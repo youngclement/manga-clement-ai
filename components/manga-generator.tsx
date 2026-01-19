@@ -24,7 +24,7 @@ import { generateMangaImage } from '@/lib/services/gemini-service';
 
 const MangaGenerator = () => {
   const router = useRouter();
-  
+
   // Config State
   const [prompt, setPrompt] = useState('');
   const [context, setContext] = useState('');
@@ -662,11 +662,11 @@ const MangaGenerator = () => {
               <div className="relative group max-h-[80%]">
                 <img src={currentImage || "/placeholder.svg"} className="rounded shadow-[0_0_80px_rgba(0,0,0,0.9)] max-h-full object-contain border-10 border-white" />
                 <div className="absolute top-4 right-4 flex gap-3 translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
-                  <button 
+                  <button
                     onClick={() => {
                       addToProject(true);
                       router.push('/studio/preview');
-                    }} 
+                    }}
                     className="px-6 py-3 bg-blue-500 text-white rounded-xl shadow-2xl hover:bg-blue-400 font-bold text-sm uppercase tracking-tighter flex items-center gap-2"
                     title="Add to PDF & Preview"
                   >

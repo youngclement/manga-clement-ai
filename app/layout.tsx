@@ -38,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-white overflow-hidden`}>
+      <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-white`}>
         {children}
         <Analytics />
       </body>
