@@ -190,7 +190,6 @@ const MangaGeneratorV2 = () => {
     init();
   }, []);
 
-  // Create or switch session
   const createSession = (name: string) => {
     const newSession: MangaSession = {
       id: Date.now().toString() + Math.random().toString(36).substring(2),
@@ -252,7 +251,6 @@ const MangaGeneratorV2 = () => {
     const sessions = Array.isArray(project.sessions) ? project.sessions : [];
     const filteredSessions = sessions.filter(s => s.id !== sessionToDelete);
 
-    // If deleting current session, switch to another or clear
     if (currentSession?.id === sessionToDelete) {
       if (filteredSessions.length > 0) {
         switchSession(filteredSessions[0].id);

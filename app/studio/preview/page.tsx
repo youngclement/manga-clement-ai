@@ -34,19 +34,14 @@ export default function PreviewPage() {
           };
           setProject(normalizedProject);
 
-          // Get current session
           const session = normalizedProject.currentSessionId
             ? normalizedProject.sessions.find(s => s.id === normalizedProject.currentSessionId)
             : null;
 
           setCurrentSession(session || null);
 
-          // Only show pages marked for export from current session
           if (session) {
             const markedPages = session.pages.filter(p => p.markedForExport);
-            console.log('Session pages:', session.pages.length);
-            console.log('Marked for export:', markedPages.length);
-            console.log('Export pages:', markedPages);
             setExportPages(markedPages);
           }
         }
@@ -135,11 +130,7 @@ export default function PreviewPage() {
                 ADD FROM OTHER SESSIONS
               </button>
               <button
-                onClick={() => {
-                  console.log('Print triggered with', exportPages.length, 'pages');
-                  console.log('Export pages URLs:', exportPages.map(p => p.url));
-                  window.print();
-                }}
+                onClick={() => window.print()}
                 className="px-8 py-3 bg-amber-500 text-black rounded-xl font-manga font-bold shadow-lg hover:bg-amber-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={exportPages.length === 0}
                 title={exportPages.length === 0 ? 'No pages marked for export' : `Print ${exportPages.length} pages`}
@@ -186,7 +177,6 @@ export default function PreviewPage() {
                                 />
                                 <button
                                   onClick={() => {
-                                    // Add this image to current session marked for export
                                     if (currentSession) {
                                       const newPage = { ...page, id: `${page.id}-copy-${Date.now()}`, markedForExport: true };
                                       const updatedSession = {
