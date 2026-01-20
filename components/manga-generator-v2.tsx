@@ -37,6 +37,7 @@ import {
 } from '@/lib/types';
 import { loadProject, saveProject } from '@/lib/services/storage-service';
 import { generateMangaImage } from '@/lib/services/gemini-service';
+import StorySettingsPanel from '@/components/story-settings-panel';
 
 
 const MangaGeneratorV2 = () => {
@@ -62,15 +63,16 @@ const MangaGeneratorV2 = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [pageToDelete, setPageToDelete] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
-  const [leftWidth, setLeftWidth] = useState(320); // Pages panel
-  const [rightWidth, setRightWidth] = useState(380); // Settings panel
+  const [leftWidth, setLeftWidth] = useState(320); // Sessions/History panel (20%)
+  const [middleWidth, setMiddleWidth] = useState(640); // Prompt + Settings panel (40%)
   const [isDraggingLeft, setIsDraggingLeft] = useState(false);
-  const [isDraggingRight, setIsDraggingRight] = useState(false);
+  const [isDraggingMiddle, setIsDraggingMiddle] = useState(false);
 
   const [project, setProject] = useState<MangaProject>({
     id: 'default',
@@ -95,17 +97,23 @@ const MangaGeneratorV2 = () => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showFullscreen) {
         setShowFullscreen(false);
+        setFullscreenImage(null);
       }
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [showFullscreen]);
 
+  const openFullscreenFromSidebar = (imageUrl: string) => {
+    setFullscreenImage(imageUrl);
+    setShowFullscreen(true);
+  };
+
   useEffect(() => {
     const savedLeftWidth = localStorage.getItem('manga-studio-left-width');
-    const savedRightWidth = localStorage.getItem('manga-studio-right-width');
+    const savedMiddleWidth = localStorage.getItem('manga-studio-middle-width');
     if (savedLeftWidth) setLeftWidth(parseInt(savedLeftWidth));
-    if (savedRightWidth) setRightWidth(parseInt(savedRightWidth));
+    if (savedMiddleWidth) setMiddleWidth(parseInt(savedMiddleWidth));
   }, []);
 
   useEffect(() => {
@@ -113,8 +121,8 @@ const MangaGeneratorV2 = () => {
   }, [leftWidth]);
 
   useEffect(() => {
-    localStorage.setItem('manga-studio-right-width', rightWidth.toString());
-  }, [rightWidth]);
+    localStorage.setItem('manga-studio-middle-width', middleWidth.toString());
+  }, [middleWidth]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -134,18 +142,18 @@ const MangaGeneratorV2 = () => {
         const newWidth = Math.max(200, Math.min(600, e.clientX));
         setLeftWidth(newWidth);
       }
-      if (isDraggingRight) {
-        const newWidth = Math.max(300, Math.min(600, window.innerWidth - e.clientX));
-        setRightWidth(newWidth);
+      if (isDraggingMiddle) {
+        const newWidth = Math.max(400, Math.min(900, e.clientX - leftWidth));
+        setMiddleWidth(newWidth);
       }
     };
 
     const handleMouseUp = () => {
       setIsDraggingLeft(false);
-      setIsDraggingRight(false);
+      setIsDraggingMiddle(false);
     };
 
-    if (isDraggingLeft || isDraggingRight) {
+    if (isDraggingLeft || isDraggingMiddle) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = 'col-resize';
@@ -159,7 +167,7 @@ const MangaGeneratorV2 = () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingLeft, isDraggingRight]);
+  }, [isDraggingLeft, isDraggingMiddle, leftWidth]);
 
   useEffect(() => {
     const init = async () => {
@@ -565,9 +573,9 @@ const MangaGeneratorV2 = () => {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - New 10 Column Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Pages */}
+        {/* Left Sidebar - Sessions/History (2/10 = 20%) */}
         {!isMobile && (
           <>
             <aside
@@ -652,6 +660,13 @@ const MangaGeneratorV2 = () => {
                       <div className="absolute bottom-0 left-0 right-0 p-2 pb-3 bg-gradient-to-t from-black/90 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
                         <div className="flex gap-1 mb-0.5">
                           <button
+                            onClick={() => openFullscreenFromSidebar(page.url)}
+                            className="p-1.5 bg-gradient-to-b from-blue-500 to-blue-700 rounded text-white transition-all shadow-[0_2px_0_0_rgb(29,78,216)] active:translate-y-0.5"
+                            title="View Fullscreen"
+                          >
+                            <Maximize2 size={12} />
+                          </button>
+                          <button
                             onClick={() => toggleMarkForExport(page.id)}
                             className={`flex-1 p-1.5 rounded text-white transition-all ${page.markedForExport ? 'bg-gradient-to-b from-green-400 to-green-600 shadow-[0_2px_0_0_rgb(5,150,105)]' : 'bg-gradient-to-b from-zinc-600 to-zinc-800 shadow-[0_2px_0_0_rgb(39,39,42)]'} active:translate-y-0.5`}
                             title={page.markedForExport ? "Remove from PDF" : "Mark for PDF"}
@@ -682,102 +697,48 @@ const MangaGeneratorV2 = () => {
           </>
         )}
 
-        {/* Center - Canvas */}
-        <main className="flex-1 flex flex-col min-w-0">
-          {/* Canvas Area */}
-          <div className="flex-1 bg-zinc-900 flex items-center justify-center p-8 overflow-hidden relative">
-            {loading && (
-              <div className="flex flex-col items-center gap-6">
-                <div className="w-64 h-80 bg-zinc-800 rounded-lg shadow-2xl relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
-                </div>
-                <div className="text-amber-500 font-manga text-xl tracking-wider animate-pulse">GENERATING...</div>
-              </div>
-            )}
-
-            {!currentImage && !loading && (
-              <div className="text-center space-y-6 opacity-30 max-w-2xl">
-
-                <p className="font-manga text-5xl text-zinc-600">CANVAS</p>
-                <p className="text-lg text-zinc-500 leading-relaxed" style={{ fontFamily: 'var(--font-inter)' }}>
-                  Describe your story moment below to generate manga
-                </p>
-              </div>
-            )}
-
-            {currentImage && !loading && (
-              <div className="w-full h-full flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-500">
-                <div className="relative max-h-[85%] max-w-[90%] group">
-                  <img
-                    src={currentImage}
-                    className="rounded-xl shadow-2xl max-h-full max-w-full object-contain border border-zinc-800 cursor-pointer hover:border-amber-500 transition-all"
-                    onClick={() => setShowFullscreen(true)}
-                    title="Click to view fullscreen"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-end justify-center p-6">
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => setShowFullscreen(true)}
-                        className="px-5 py-2.5 bg-gradient-to-b from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-[0_3px_0_0_rgb(29,78,216)] hover:shadow-[0_3px_0_0_rgb(29,78,216)] active:shadow-[0_1px_0_0_rgb(29,78,216)] active:translate-y-1"
-                        style={{ fontFamily: 'var(--font-inter)' }}
-                      >
-                        <Maximize2 size={14} />
-                        FULLSCREEN
-                      </button>
-                      <button
-                        onClick={() => addToProject(true)}
-                        className="px-5 py-2.5 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-[0_3px_0_0_rgb(5,150,105)] hover:shadow-[0_3px_0_0_rgb(5,150,105)] active:shadow-[0_1px_0_0_rgb(5,150,105)] active:translate-y-1"
-                        style={{ fontFamily: 'var(--font-inter)' }}
-                      >
-                        ✓ ADD TO PDF
-                      </button>
-                      <button
-                        onClick={() => setCurrentImage(null)}
-                        className="p-2.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white rounded-lg transition-all shadow-[0_3px_0_0_rgb(153,27,27)] hover:shadow-[0_3px_0_0_rgb(153,27,27)] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Bottom Input Panel */}
-          <div className="h-64 lg:h-64 border-t border-zinc-800 bg-zinc-900 p-4 lg:p-6 pb-8">
-            <div className="h-full flex flex-col lg:flex-row gap-4">
-              {/* Context */}
-              <div className="hidden md:block md:w-48 lg:w-64 space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
-                  <span>Context</span>
-                  <span className="text-[9px] text-amber-500 font-normal normal-case">(Keep characters consistent!)</span>
-                </label>
-                <textarea
-                  value={context}
-                  onChange={(e) => updateSessionContext(e.target.value)}
-                  placeholder="📝 Describe your characters in detail:&#10;&#10;Main character: Male, 17yo, spiky black hair, blue eyes, wearing red jacket with white shirt...&#10;&#10;Setting: Modern Tokyo, high school...&#10;&#10;💡 Tip: Be specific about appearance so AI keeps characters consistent across all images!"
-                  className="w-full h-[calc(100%-24px)] bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-[11px] placeholder:leading-relaxed focus:outline-none focus:border-amber-500 transition-colors resize-none custom-scrollbar"
-                  style={{ fontFamily: 'var(--font-inter)' }}
+        {/* Middle Section - Story Settings + Prompt (4/10 = 40%) */}
+        {!isMobile && (
+          <>
+            <aside
+              className="border-r border-zinc-800 bg-zinc-900 flex flex-col transition-all"
+              style={{ width: `${middleWidth}px`, minWidth: '400px', maxWidth: '900px' }}
+            >
+              {/* Top Half - Story Settings & Options */}
+              <div className="h-1/2 border-b border-zinc-800 bg-zinc-900 overflow-hidden">
+                <StorySettingsPanel
+                  context={context}
+                  config={config}
+                  onContextChange={updateSessionContext}
+                  onConfigChange={setConfig}
                 />
               </div>
 
-              {/* Main Prompt */}
-              <div className="flex-1 space-y-2">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
-                  <span>Story Moment</span>
-                  {currentSession && currentSession.pages.length > 0 && (
-                    <span className="text-[9px] text-green-500 font-normal normal-case">(Page {currentSession.pages.length + 1})</span>
-                  )}
-                </label>
-                <div className="h-[calc(100%-24px)] flex gap-3">
+              {/* Bottom Half - Prompt Area */}
+              <div className="h-1/2 bg-zinc-900 p-4 flex flex-col">
+                <div className="flex-1 flex flex-col gap-3">
+                  {/* Step 3 Header */}
+                  <div className="flex items-center gap-3 pb-2">
+                    <div className="w-7 h-7 rounded-full bg-amber-500 text-black font-bold text-sm flex items-center justify-center flex-shrink-0">
+                      3
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-sm font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
+                        <span>Write Your Prompt</span>
+                        {currentSession && currentSession.pages.length > 0 && (
+                          <span className="text-[9px] text-green-500 font-normal normal-case">(Page {currentSession.pages.length + 1})</span>
+                        )}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Prompt Textarea */}
                   <textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder={currentSession && currentSession.pages.length > 0
-                      ? "Continue the story with the SAME characters from Context... Example: The hero confronts the villain in the abandoned warehouse, his blue eyes blazing with determination..."
-                      : "Describe the scene: A hero standing on a rooftop, looking at the sunset, determined expression... (Use characters from Context for consistency!)"
-                    }
+                      ? "Continue the story with the SAME characters from Context..."
+                      : "Describe the scene: A hero standing on a rooftop, looking at the sunset..."}
                     className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-4 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-xs focus:outline-none focus:border-amber-500 transition-colors resize-none custom-scrollbar"
                     style={{ fontFamily: 'var(--font-inter)' }}
                     onKeyDown={(e) => {
@@ -786,230 +747,96 @@ const MangaGeneratorV2 = () => {
                       }
                     }}
                   />
+
+                  {/* Generate Button */}
                   <button
                     onClick={handleGenerate}
                     disabled={loading || !prompt.trim()}
-                    className="px-6 lg:px-8 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-base lg:text-lg rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0 w-auto lg:w-auto"
+                    className="w-full px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-lg rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0"
                   >
-                    <Sparkles size={18} className="lg:hidden" />
-                    <Sparkles size={20} className="hidden lg:block" />
-                    <span className="hidden sm:inline">{loading ? 'GENERATING...' : 'GENERATE'}</span>
-                    <span className="sm:hidden">{loading ? '...' : 'GEN'}</span>
+                    <Sparkles size={20} />
+                    {loading ? 'GENERATING...' : 'GENERATE'}
                   </button>
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="p-2 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-[10px] text-center" style={{ fontFamily: 'var(--font-inter)' }}>
+                      {error}
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-            {error && (
-              <div className="mt-2 p-2 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-[10px] text-center" style={{ fontFamily: 'var(--font-inter)' }}>
-                {error}
-              </div>
-            )}
-            {currentSession && currentSession.pages.length > 0 && !context.trim() && (
-              <div className="mt-2 p-2.5 bg-amber-900/20 border border-amber-500/50 rounded-lg text-amber-400 text-[10px] flex items-start gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
-                <span className="text-sm">💡</span>
-                <div>
-                  <strong className="block mb-0.5">Tip: Add character descriptions in Context field!</strong>
-                  <span className="text-zinc-400">To keep characters consistent across all pages, describe their appearance (hair, eyes, clothes, etc.) in the Context field on the left. This helps AI remember your characters!</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </main>
+            </aside>
 
-        {/* Right Sidebar - Settings (Desktop: Resizable, Mobile: Overlay) */}
-        {showSettings && (
-          <>
-            {/* Mobile Backdrop */}
-            {isMobile && (
-              <div
-                className="fixed inset-0 bg-black/50 z-40"
-                onClick={() => setShowSettings(false)}
-              />
-            )}
-
-            {!isMobile && (
-              <>
-                {/* Right Resize Handle */}
-                <div
-                  className="w-1 bg-zinc-800 hover:bg-amber-500 cursor-col-resize transition-colors relative group flex items-center justify-center"
-                  onMouseDown={() => setIsDraggingRight(true)}
-                >
-                  <div className="absolute inset-y-0 -inset-x-2" />
-                  <div className="absolute w-1 h-12 bg-zinc-700 rounded-full group-hover:bg-amber-500 transition-colors" />
-                </div>
-              </>
-            )}
-
-            <aside
-              className={`border-l border-zinc-800 bg-zinc-900 overflow-y-auto custom-scrollbar transition-all ${isMobile
-                ? 'fixed inset-0 z-50 w-full'
-                : ''
-                }`}
-              style={!isMobile ? { width: `${rightWidth}px`, minWidth: '300px', maxWidth: '600px' } : {}}
+            {/* Middle Resize Handle */}
+            <div
+              className="w-1 bg-zinc-800 hover:bg-amber-500 cursor-col-resize transition-colors relative group flex items-center justify-center"
+              onMouseDown={() => setIsDraggingMiddle(true)}
             >
-              <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-                <h2 className="text-xs font-bold text-zinc-400 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                  Generation Settings
-                </h2>
-                <button onClick={() => setShowSettings(false)} className="p-1 hover:bg-zinc-800 rounded transition-colors">
-                  <X size={16} className="text-zinc-500" />
-                </button>
+              <div className="absolute inset-y-0 -inset-x-2" />
+              <div className="absolute w-1 h-12 bg-zinc-700 rounded-full group-hover:bg-amber-500 transition-colors" />
+            </div>
+          </>
+        )}
+
+        {/* Right Section - Canvas (4/10 = 40%) or Full width on mobile */}
+        <main className="flex-1 bg-zinc-900 flex items-center justify-center p-8 overflow-hidden relative">
+          {loading && (
+            <div className="flex flex-col items-center gap-6">
+              <div className="w-64 h-80 bg-zinc-800 rounded-lg shadow-2xl relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer"></div>
               </div>
+              <div className="text-amber-500 font-manga text-xl tracking-wider animate-pulse">GENERATING...</div>
+            </div>
+          )}
 
-              <div className="p-4 space-y-6">
-                {/* Style */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                    Manga Style
-                  </label>
-                  <Select value={config.style} onValueChange={(value) => setConfig({ ...config, style: value as MangaStyle })}>
-                    <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-950 border-zinc-800 font-sans">
-                      {Object.values(MangaStyle).map(s => (
-                        <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+          {!currentImage && !loading && (
+            <div className="text-center space-y-6 opacity-30 max-w-2xl">
+              <p className="font-manga text-5xl text-zinc-600">CANVAS</p>
+              <p className="text-lg text-zinc-500 leading-relaxed" style={{ fontFamily: 'var(--font-inter)' }}>
+                Describe your story moment to generate manga
+              </p>
+            </div>
+          )}
 
-                {/* Inking & Screentone */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Pen Style
-                    </label>
-                    <Select value={config.inking} onValueChange={(value) => setConfig({ ...config, inking: value as InkingStyle })}>
-                      <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800">
-                        {Object.values(InkingStyle).map(s => (
-                          <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Screentone
-                    </label>
-                    <Select value={config.screentone} onValueChange={(value) => setConfig({ ...config, screentone: value as ScreentoneDensity })}>
-                      <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800">
-                        {Object.values(ScreentoneDensity).map(s => (
-                          <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                            {s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Layout */}
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                    Panel Layout
-                  </label>
-                  <Select value={config.layout} onValueChange={(value) => setConfig({ ...config, layout: value as PanelLayout })}>
-                    <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-950 border-zinc-800 font-sans">
-                      {Object.values(PanelLayout).map(l => (
-                        <SelectItem key={l} value={l} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                          {l}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Dialogue & Language */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Dialogue
-                    </label>
-                    <Select value={config.dialogueDensity} onValueChange={(value) => setConfig({ ...config, dialogueDensity: value as DialogueDensity })}>
-                      <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800">
-                        {Object.values(DialogueDensity).map(d => (
-                          <SelectItem key={d} value={d} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                            {d}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Language
-                    </label>
-                    <Select value={config.language} onValueChange={(value) => setConfig({ ...config, language: value as Language })}>
-                      <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800">
-                        {Object.values(Language).map(l => (
-                          <SelectItem key={l} value={l} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                            {l}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Aspect Ratio & Color */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Aspect Ratio
-                    </label>
-                    <Select value={config.aspectRatio} onValueChange={(value) => setConfig({ ...config, aspectRatio: value as AspectRatio })}>
-                      <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-zinc-950 border-zinc-800">
-                        {Object.values(AspectRatio).map(r => (
-                          <SelectItem key={r} value={r} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
-                            {r}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                      Color Mode
-                    </label>
+          {currentImage && !loading && (
+            <div className="w-full h-full flex flex-col items-center justify-center gap-6 animate-in fade-in zoom-in duration-500">
+              <div className="relative max-h-[95%] max-w-[95%] group">
+                <img
+                  src={currentImage}
+                  className="rounded-xl shadow-2xl max-h-full max-w-full object-contain border border-zinc-800 cursor-pointer hover:border-amber-500 transition-all"
+                  onClick={() => setShowFullscreen(true)}
+                  title="Click to view fullscreen"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-end justify-center p-6">
+                  <div className="flex gap-3">
                     <button
-                      onClick={() => setConfig({ ...config, useColor: !config.useColor })}
-                      className={`w-full h-[34px] rounded-lg transition-all flex items-center justify-center text-xs font-bold ${config.useColor ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white shadow-[0_2px_0_0_rgb(168,85,247)] hover:shadow-[0_2px_0_0_rgb(168,85,247)] active:shadow-[0_0.5px_0_0_rgb(168,85,247)] active:translate-y-0.5 animate-gradient' : 'bg-gradient-to-b from-zinc-700 to-zinc-900 border border-zinc-800 text-zinc-400 shadow-[0_2px_0_0_rgb(24,24,27)] hover:shadow-[0_2px_0_0_rgb(24,24,27)] active:shadow-[0_0.5px_0_0_rgb(24,24,27)] active:translate-y-0.5'}`}
-                      style={{
-                        fontFamily: 'var(--font-inter)',
-                        ...(config.useColor ? { backgroundImage: 'linear-gradient(to right, #ec4899, #a855f7, #3b82f6, #06b6d4)' } : {})
-                      }}
+                      onClick={() => setShowFullscreen(true)}
+                      className="px-5 py-2.5 bg-gradient-to-b from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-[0_3px_0_0_rgb(29,78,216)] hover:shadow-[0_3px_0_0_rgb(29,78,216)] active:shadow-[0_1px_0_0_rgb(29,78,216)] active:translate-y-1"
+                      style={{ fontFamily: 'var(--font-inter)' }}
                     >
-                      {config.useColor ? 'COLOR' : 'B&W'}
+                      <Maximize2 size={14} />
+                      FULLSCREEN
+                    </button>
+                    <button
+                      onClick={() => addToProject(true)}
+                      className="px-5 py-2.5 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-[0_3px_0_0_rgb(5,150,105)] hover:shadow-[0_3px_0_0_rgb(5,150,105)] active:shadow-[0_1px_0_0_rgb(5,150,105)] active:translate-y-1"
+                      style={{ fontFamily: 'var(--font-inter)' }}
+                    >
+                      ✓ ADD TO PDF
+                    </button>
+                    <button
+                      onClick={() => setCurrentImage(null)}
+                      className="p-2.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white rounded-lg transition-all shadow-[0_3px_0_0_rgb(153,27,27)] hover:shadow-[0_3px_0_0_rgb(153,27,27)] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1"
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
               </div>
-            </aside>
-          </>
-        )}
+            </div>
+          )}
+        </main>
 
         {/* Chat History Overlay */}
         {showChat && currentSession && currentSession.chatHistory && currentSession.chatHistory.length > 0 && (
@@ -1102,57 +929,68 @@ const MangaGeneratorV2 = () => {
       </AlertDialog>
 
       {/* Fullscreen Image Modal */}
-      {showFullscreen && currentImage && (
-        <div
-          className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
-          onClick={() => setShowFullscreen(false)}
-        >
-          <button
-            onClick={() => setShowFullscreen(false)}
-            className="absolute top-4 right-4 p-3 bg-zinc-900/80 hover:bg-zinc-800 rounded-full text-white transition-all z-10 group"
-            title="Close (ESC)"
+      {
+        showFullscreen && (currentImage || fullscreenImage) && (
+          <div
+            className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-300"
+            onClick={() => {
+              setShowFullscreen(false);
+              setFullscreenImage(null);
+            }}
           >
-            <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
-          </button>
+            <button
+              onClick={() => {
+                setShowFullscreen(false);
+                setFullscreenImage(null);
+              }}
+              className="absolute top-4 right-4 p-3 bg-zinc-900/80 hover:bg-zinc-800 rounded-full text-white transition-all z-10 group"
+              title="Close (ESC)"
+            >
+              <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
 
-          <div className="absolute top-4 left-4 flex gap-3 z-10">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                addToProject(true);
-                setShowFullscreen(false);
-              }}
-              className="px-6 py-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg"
-              style={{ fontFamily: 'var(--font-inter)' }}
-            >
-              ✓ ADD TO PDF
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                addToProject(true);
-                setShowFullscreen(false);
-                router.push('/studio/preview');
-              }}
-              className="px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg"
-              style={{ fontFamily: 'var(--font-inter)' }}
-            >
-              <Eye size={16} />
-              PREVIEW PDF
-            </button>
+            {currentImage && !fullscreenImage && (
+              <div className="absolute top-4 left-4 flex gap-3 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToProject(true);
+                    setShowFullscreen(false);
+                  }}
+                  className="px-6 py-3 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 text-white rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg"
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                >
+                  ✓ ADD TO PDF
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    addToProject(true);
+                    setShowFullscreen(false);
+                    router.push('/studio/preview');
+                  }}
+                  className="px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black rounded-lg font-bold text-sm flex items-center gap-2 transition-all shadow-lg"
+                  style={{ fontFamily: 'var(--font-inter)' }}
+                >
+                  <Eye size={16} />
+                  PREVIEW PDF
+                </button>
+              </div>
+            )}
+
+            <img
+              src={fullscreenImage || currentImage || ''}
+              alt="Fullscreen manga"
+              className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg shadow-2xl cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            />
           </div>
-
-          <img
-            src={currentImage}
-            alt="Fullscreen manga"
-            className="max-h-[95vh] max-w-[95vw] object-contain rounded-lg shadow-2xl cursor-default"
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-      )}
-    </div>
+        )
+      }
+    </div >
   );
 };
 
 export default MangaGeneratorV2;
+
 
