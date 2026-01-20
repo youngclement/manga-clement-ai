@@ -61,6 +61,7 @@ export interface MangaConfig {
   dialogueDensity: DialogueDensity | string;
   language: Language | string;
   context?: string;
+  referenceImages?: string[]; // Base64 or URLs
 }
 
 export interface ChatMessage {

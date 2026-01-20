@@ -40,19 +40,56 @@ export const generateMangaImage = async (
   
   let dialogueInstructions = '';
   if (config.dialogueDensity && config.dialogueDensity !== 'No Dialogue') {
-    dialogueInstructions = `\nDIALOGUE REQUIREMENTS:\n`;
-    dialogueInstructions += `- Include ${config.dialogueDensity.toLowerCase()} in the panels\n`;
-    if (config.language) {
-      dialogueInstructions += `- All text and dialogue should be in ${config.language}\n`;
-      if (config.language === 'Japanese') {
-        dialogueInstructions += `- Use Japanese characters (hiragana, katakana, kanji) for dialogue\n`;
-      }
+    // Determine amount based on density
+    let dialogueAmount = '';
+    if (config.dialogueDensity === 'Light Dialogue') {
+      dialogueAmount = '1-2 short speech bubbles with brief text (5-10 words each)';
+    } else if (config.dialogueDensity === 'Medium Dialogue') {
+      dialogueAmount = '3-5 speech bubbles with moderate text (10-20 words each)';
+    } else if (config.dialogueDensity === 'Heavy Dialogue') {
+      dialogueAmount = '6+ speech bubbles with extensive dialogue and narration boxes';
     }
-    dialogueInstructions += `- Add speech bubbles and text naturally integrated into the composition\n`;
+    
+    dialogueInstructions = `
+💬 DIALOGUE & TEXT REQUIREMENTS:
+• Density Level: ${config.dialogueDensity} - ${dialogueAmount}
+• Language: ${config.language} - ALL TEXT MUST BE IN ${config.language.toUpperCase()}
+${config.language === 'English' ? '• Use correct English spelling, grammar, and punctuation\n• Write natural, conversational dialogue appropriate for manga' : ''}
+${config.language === 'Japanese' ? '• Use proper Japanese script (hiragana, katakana, kanji)\n• Follow Japanese manga text conventions and reading direction' : ''}
+${config.language === 'Vietnamese' ? '• Use correct Vietnamese spelling with proper diacritics (à, á, ả, ã, ạ, ă, â, etc.)\n• Write natural Vietnamese dialogue' : ''}
+${config.language === 'Korean' ? '• Use proper Hangul script\n• Follow Korean manga/manhwa text conventions' : ''}
+${config.language === 'Chinese' ? '• Use traditional or simplified Chinese characters\n• Follow Chinese manhua text conventions' : ''}
+
+📝 TEXT QUALITY RULES:
+✓ SPELLING: Every word must be spelled correctly in ${config.language}
+✓ LEGIBILITY: Text must be clear, readable, and properly sized
+✓ PLACEMENT: Position speech bubbles naturally without covering important art
+✓ BUBBLES: Use traditional manga-style speech bubbles (white with black outlines)
+✓ INTEGRATION: Text should feel natural and integrated into the composition
+${config.dialogueDensity === 'Heavy Dialogue' ? '✓ Include narration boxes for story context when appropriate' : ''}
+`;
   } else {
-    dialogueInstructions = `\n- NO DIALOGUE OR TEXT: This is a silent/visual-only page.\n`;
+    dialogueInstructions = `
+💬 NO DIALOGUE OR TEXT
+• This is a SILENT/VISUAL-ONLY page
+• Do NOT include any speech bubbles, text, or narration
+• Tell the story purely through visuals and expressions
+`;
   }
   
+  let referenceImageInstructions = '';
+  if (config.referenceImages && config.referenceImages.length > 0) {
+    referenceImageInstructions = `
+🖼️ REFERENCE IMAGES PROVIDED (${config.referenceImages.length} image${config.referenceImages.length > 1 ? 's' : ''}):
+⚠️ STUDY THESE REFERENCE IMAGES CAREFULLY:
+• Use these images as visual references for character designs, art style, clothing, and aesthetics
+• Maintain consistency with the visual elements shown in these references
+• If characters are shown, use their exact appearance (hairstyle, face, clothing, proportions)
+• If art style examples are shown, match that style in your generation
+• These references are the PRIMARY source for visual consistency
+`;
+  }
+
   const enhancedPrompt = `
 ╔═══════════════════════════════════════════════════════════════════╗
 ║                    MANGA PAGE GENERATION REQUEST                   ║
@@ -65,18 +102,23 @@ ${prompt}
 • Art Style: ${config.style}
 • Inking Technique: ${config.inking}
 • Screentone Density: ${config.screentone}
-• Panel Layout: ${config.layout} (${LAYOUT_PROMPTS[config.layout] || config.layout})
 • Color Mode: ${config.useColor ? 'Full Color Manga/Anime Style' : 'Traditional Black and White Manga Ink'}
+
+🔲 PANEL LAYOUT - ${config.layout}:
+${LAYOUT_PROMPTS[config.layout] || config.layout}
+
+${referenceImageInstructions}
 
 ${continuityInstructions}
 
 ${dialogueInstructions}
 
-📐 COMPOSITION & LAYOUT RULES:
-✓ Create ONE cohesive manga page (not separate images)
-✓ Use organic, hand-drawn panel borders with varied line weights
+📐 COMPOSITION RULES:
+${config.layout === 'Single Panel' || config.layout === 'Dramatic Spread'
+  ? '⚠️ NO PANEL BORDERS - This is a full-page illustration without divisions'
+  : `⚠️ MUST HAVE ${config.layout.includes('Double') ? 'TWO' : config.layout.includes('Triple') ? 'THREE' : 'FOUR'} CLEAR PANEL BORDERS - Draw distinct black borders separating each panel`}
+✓ All content must fit within one high-resolution page image
 ✓ Apply dynamic angles and perspectives for visual impact
-✓ Ensure all panels fit within a single high-resolution image
 ✓ Use authentic manga visual language (speed lines, impact frames, etc.)
 ${config.screentone !== 'None' ? `✓ Apply ${config.screentone.toLowerCase()} screentone for depth and atmosphere` : ''}
 
@@ -86,10 +128,39 @@ ${sessionHistory && sessionHistory.length > 0 ? `
   `;
 
   try {
+    // Prepare content parts with text and reference images
+    const contentParts: any[] = [{ text: enhancedPrompt }];
+    
+    // Add reference images if provided
+    if (config.referenceImages && config.referenceImages.length > 0) {
+      for (const imageData of config.referenceImages) {
+        // Extract base64 data (remove data:image/...;base64, prefix if present)
+        const base64Data = imageData.includes('base64,') 
+          ? imageData.split('base64,')[1] 
+          : imageData;
+        
+        // Detect mime type from data URL or default to jpeg
+        let mimeType = 'image/jpeg';
+        if (imageData.includes('data:image/')) {
+          const mimeMatch = imageData.match(/data:(image\/[^;]+)/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
+          }
+        }
+        
+        contentParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        });
+      }
+    }
+
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: enhancedPrompt }]
+        parts: contentParts
       },
       config: {
         systemInstruction: MANGA_SYSTEM_INSTRUCTION,
