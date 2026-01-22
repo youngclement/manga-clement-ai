@@ -309,7 +309,7 @@ const MangaGeneratorV2 = () => {
   const handleGenerate = async () => {
     const hasPages = currentSession && currentSession.pages.length > 0;
     const isAutoContinue = config.autoContinueStory && hasPages;
-    
+
     // Allow empty prompt if auto-continue is enabled
     if (!prompt.trim() && !isAutoContinue) return;
 
@@ -392,10 +392,10 @@ const MangaGeneratorV2 = () => {
     }
   };
 
-  const handleBatchGenerate = async () => {
+  const handleBatchGenerate = async (totalPages: number = 10) => {
     const hasPages = currentSession && currentSession.pages.length > 0;
     const isAutoContinue = config.autoContinueStory && hasPages;
-    
+
     // Allow empty prompt if auto-continue is enabled
     if (!prompt.trim() && !isAutoContinue) return;
 
@@ -422,10 +422,8 @@ const MangaGeneratorV2 = () => {
 
     setBatchLoading(true);
     batchCancelledRef.current = false;
-    setBatchProgress({ current: 0, total: 10 });
+    setBatchProgress({ current: 0, total: totalPages });
     setError(null);
-
-    const totalPages = 10;
     const originalPrompt = prompt || 'Start an exciting manga story';
     const sessionId = workingSession.id;
     let generatedCount = 0;
@@ -442,9 +440,23 @@ const MangaGeneratorV2 = () => {
 
       try {
         const sessionHistory = localSession.pages || [];
-        
+
+        const configWithContext = {
+          ...config,
+          context: context || config.context,
+          autoContinueStory: false // Don't use auto-continue, we have explicit prompts now
+        };
+
         // STEP 1: Generate prompt for this page (except first page)
         if (i > 0) {
+          // Check cancel before API call
+          if (batchCancelledRef.current) {
+            setBatchLoading(false);
+            setBatchProgress(null);
+            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+            return;
+          }
+
           // AI generates the NEXT prompt based on previous pages
           setBatchProgress({ current: i, total: totalPages });
           currentPrompt = await generateNextPrompt(
@@ -452,19 +464,74 @@ const MangaGeneratorV2 = () => {
             context || config.context || '',
             originalPrompt,
             i + 1,
-            totalPages
+            totalPages,
+            configWithContext
           );
+
+          // Check cancel after API call
+          if (batchCancelledRef.current) {
+            setBatchLoading(false);
+            setBatchProgress(null);
+            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+            return;
+          }
+
           console.log(`AI Generated Prompt for Page ${i + 1}:`, currentPrompt);
         }
-        
-        const configWithContext = { 
-          ...config, 
-          context: context || config.context,
-          autoContinueStory: false // Don't use auto-continue, we have explicit prompts now
-        };
 
-        // STEP 2: Generate image using the prompt
-        const imageUrl = await generateMangaImage(currentPrompt, configWithContext, sessionHistory);
+        // STEP 2: Generate image using the prompt (with retry)
+        let imageUrl: string | null = null;
+        let retries = 3;
+        let lastError: Error | null = null;
+
+        while (retries > 0 && !imageUrl && !batchCancelledRef.current) {
+          // Check cancel before each retry
+          if (batchCancelledRef.current) {
+            setBatchLoading(false);
+            setBatchProgress(null);
+            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+            return;
+          }
+
+          try {
+            imageUrl = await generateMangaImage(currentPrompt, configWithContext, sessionHistory);
+
+            // Check cancel after API call
+            if (batchCancelledRef.current) {
+              setBatchLoading(false);
+              setBatchProgress(null);
+              setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+              return;
+            }
+          } catch (err) {
+            // Check cancel even on error
+            if (batchCancelledRef.current) {
+              setBatchLoading(false);
+              setBatchProgress(null);
+              setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+              return;
+            }
+
+            lastError = err as Error;
+            retries--;
+            if (retries > 0 && !batchCancelledRef.current) {
+              console.log(`Retrying page ${i + 1}... (${retries} attempts left)`);
+              await new Promise(resolve => setTimeout(resolve, 2000)); // Wait 2s before retry
+            }
+          }
+        }
+
+        // Check cancel before processing result
+        if (batchCancelledRef.current) {
+          setBatchLoading(false);
+          setBatchProgress(null);
+          setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+          return;
+        }
+
+        if (!imageUrl) {
+          throw lastError || new Error(`Failed to generate image for page ${i + 1} after 3 attempts`);
+        }
 
         // Create page object
         const newPage: GeneratedManga = {
@@ -498,7 +565,7 @@ const MangaGeneratorV2 = () => {
         setBatchProgress({ current: i + 1, total: totalPages });
 
         // Small delay between generations to avoid overwhelming the API
-        if (i < totalPages - 1) {
+        if (i < totalPages - 1 && !batchCancelledRef.current) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (err) {
@@ -513,7 +580,7 @@ const MangaGeneratorV2 = () => {
     setBatchLoading(false);
     setBatchProgress(null);
     setPrompt('');
-    
+
     if (!batchCancelledRef.current) {
       setError(null);
     }
@@ -521,6 +588,10 @@ const MangaGeneratorV2 = () => {
 
   const cancelBatchGenerate = () => {
     batchCancelledRef.current = true;
+    // Immediately update UI state - don't wait for API
+    setBatchLoading(false);
+    setBatchProgress(null);
+    setError('Batch generation cancelled.');
   };
 
   const addToProject = (markForExport = true) => {

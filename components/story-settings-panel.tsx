@@ -93,12 +93,12 @@ export default function StorySettingsPanel({
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Context</span>
-                                <span className="text-[9px] text-amber-500 font-normal normal-case">(Keep characters consistent!)</span>
+                                <span className="text-[9px] text-zinc-500 font-normal normal-case">(Keep characters consistent!)</span>
                             </label>
                             <textarea
                                 value={context}
                                 onChange={(e) => onContextChange(e.target.value)}
-                                placeholder="📝 Describe your characters in detail:&#10;&#10;Main character: Male, 17yo, spiky black hair, blue eyes, wearing red jacket with white shirt...&#10;&#10;Setting: Modern Tokyo, high school..."
+                                placeholder="Describe your characters in detail:&#10;&#10;Main character: Male, 17yo, spiky black hair, blue eyes, wearing red jacket with white shirt...&#10;&#10;Setting: Modern Tokyo, high school..."
                                 className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-[11px] placeholder:leading-relaxed focus:outline-none focus:border-amber-500 transition-colors resize-none custom-scrollbar"
                                 style={{ fontFamily: 'var(--font-inter)' }}
                             />
@@ -109,7 +109,7 @@ export default function StorySettingsPanel({
                             <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <ImageIcon size={14} />
                                 <span>Reference Images</span>
-                                <span className="text-[9px] text-amber-500 font-normal normal-case">(Optional: Character/Style references)</span>
+                                <span className="text-[9px] text-zinc-500 font-normal normal-case">(Optional: Character/Style references)</span>
                             </label>
 
                             {/* Upload Button */}
@@ -168,47 +168,12 @@ export default function StorySettingsPanel({
                     </div>
 
                     <div className="space-y-4">
-                        {/* Quick Style Presets */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
-                                🎨 Quick Presets
-                            </label>
-                            <div className="grid grid-cols-2 gap-2">
-                                <button
-                                    onClick={() => onConfigChange({
-                                        ...config,
-                                        style: 'Modern Webtoon',
-                                        inking: 'Digital Painting',
-                                        screentone: 'None',
-                                        useColor: true
-                                    })}
-                                    className="px-2 py-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded text-[10px] font-bold transition-all"
-                                    style={{ fontFamily: 'var(--font-inter)' }}
-                                >
-                                    🇰🇷 Webtoon Style
-                                </button>
-                                <button
-                                    onClick={() => onConfigChange({
-                                        ...config,
-                                        style: 'Digital Painting',
-                                        inking: 'Painterly',
-                                        screentone: 'None',
-                                        useColor: true
-                                    })}
-                                    className="px-2 py-1.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded text-[10px] font-bold transition-all"
-                                    style={{ fontFamily: 'var(--font-inter)' }}
-                                >
-                                    🎨 Digital Paint
-                                </button>
-                            </div>
-                        </div>
-
                         {/* Style */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Art Style</span>
                                 {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital')) && (
-                                    <span className="text-[9px] text-pink-500 font-normal normal-case">✨ Modern</span>
+                                    <span className="text-[9px] text-zinc-500 font-normal normal-case">Modern</span>
                                 )}
                             </label>
                             <Select value={config.style} onValueChange={(value) => onConfigChange({ ...config, style: value as MangaStyle })}>
@@ -218,33 +183,18 @@ export default function StorySettingsPanel({
                                 <SelectContent className="bg-zinc-950 border-zinc-800 font-sans max-h-[300px]">
                                     <div className="px-2 py-1 text-[9px] text-zinc-500 uppercase tracking-wider">Traditional Manga</div>
                                     {['Shonen', 'Shoujo', 'Seinen', 'Josei'].map(s => (
-                                        <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-amber-500/20 focus:bg-amber-500/20 focus:text-white cursor-pointer">
+                                        <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer">
                                             {s}
                                         </SelectItem>
                                     ))}
-                                    <div className="px-2 py-1 mt-2 text-[9px] text-pink-500 uppercase tracking-wider">Modern Styles</div>
+                                    <div className="px-2 py-1 mt-2 text-[9px] text-zinc-500 uppercase tracking-wider">Modern Styles</div>
                                     {['Modern Webtoon', 'Korean Manhwa', 'Digital Painting', 'Realistic Manga', 'Semi-Realistic', 'Clean Line Art', 'Cinematic Style'].map(s => (
-                                        <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-pink-500/20 focus:bg-pink-500/20 focus:text-white cursor-pointer">
+                                        <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer">
                                             {s}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {(config.style === 'Modern Webtoon' || config.style === 'Korean Manhwa') && (
-                                <div className="text-[9px] text-pink-400 bg-pink-500/10 border border-pink-500/20 rounded p-2 leading-relaxed">
-                                    🇰🇷 Korean style with vibrant colors, dramatic lighting & glossy rendering. Best with COLOR mode!
-                                </div>
-                            )}
-                            {config.style === 'Digital Painting' && (
-                                <div className="text-[9px] text-purple-400 bg-purple-500/10 border border-purple-500/20 rounded p-2 leading-relaxed">
-                                    🎨 Painterly style with blended colors & textured brushwork. Recommended: COLOR mode + Painterly inking!
-                                </div>
-                            )}
-                            {(config.style === 'Realistic Manga' || config.style === 'Semi-Realistic') && (
-                                <div className="text-[9px] text-blue-400 bg-blue-500/10 border border-blue-500/20 rounded p-2 leading-relaxed">
-                                    📸 Realistic proportions with manga aesthetics. Works great in both B&W and color!
-                                </div>
-                            )}
                         </div>
 
                         {/* Inking & Screentone */}
@@ -264,9 +214,9 @@ export default function StorySettingsPanel({
                                                 {s}
                                             </SelectItem>
                                         ))}
-                                        <div className="px-2 py-1 mt-2 text-[9px] text-pink-500 uppercase tracking-wider">Digital Rendering</div>
+                                        <div className="px-2 py-1 mt-2 text-[9px] text-zinc-500 uppercase tracking-wider">Digital Rendering</div>
                                         {['Digital', 'Clean Digital', 'Digital Painting', 'Soft Brush', 'Airbrush', 'Painterly'].map(s => (
-                                            <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-pink-500/20 focus:bg-pink-500/20 focus:text-white cursor-pointer">
+                                            <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer">
                                                 {s}
                                             </SelectItem>
                                         ))}
@@ -277,7 +227,7 @@ export default function StorySettingsPanel({
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1" style={{ fontFamily: 'var(--font-inter)' }}>
                                     <span>Screentone</span>
                                     {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital')) && config.screentone !== 'None' && (
-                                        <span className="text-[8px] text-yellow-500 font-normal normal-case">💡 None</span>
+                                        <span className="text-[8px] text-zinc-500 font-normal normal-case">None</span>
                                     )}
                                 </label>
                                 <Select value={config.screentone} onValueChange={(value) => onConfigChange({ ...config, screentone: value as ScreentoneDensity })}>
@@ -299,7 +249,7 @@ export default function StorySettingsPanel({
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Panel Layout</span>
-                                <span className="text-[9px] text-amber-500 font-normal normal-case">(Choose manga page style)</span>
+                                <span className="text-[9px] text-zinc-500 font-normal normal-case">(Choose manga page style)</span>
                             </label>
                             <Select value={config.layout} onValueChange={(value) => onConfigChange({ ...config, layout: value as PanelLayout })}>
                                 <SelectTrigger className="w-full bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-amber-500 focus:border-amber-500 h-9 text-xs">
@@ -313,11 +263,6 @@ export default function StorySettingsPanel({
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {config.layout === 'Dynamic Freestyle' && (
-                                <div className="text-[9px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded p-2 leading-relaxed">
-                                    ✨ AI will create 5-8 panels with varied sizes and shapes for dynamic visual storytelling!
-                                </div>
-                            )}
                         </div>
 
                         {/* Dialogue & Language */}
@@ -381,18 +326,15 @@ export default function StorySettingsPanel({
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1" style={{ fontFamily: 'var(--font-inter)' }}>
                                     <span>Color Mode</span>
                                     {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital') || config.style.includes('Cinematic')) && !config.useColor && (
-                                        <span className="text-[8px] text-pink-500 font-normal normal-case">⚡ Try COLOR!</span>
+                                        <span className="text-[8px] text-zinc-500 font-normal normal-case">Try COLOR!</span>
                                     )}
                                 </label>
                                 <button
                                     onClick={() => onConfigChange({ ...config, useColor: !config.useColor })}
-                                    className={`w-full h-[34px] rounded-lg transition-all flex items-center justify-center text-xs font-bold ${config.useColor ? 'bg-gradient-to-r from-pink-500 via-purple-500 to-blue-500 text-white shadow-[0_2px_0_0_rgb(168,85,247)] hover:shadow-[0_2px_0_0_rgb(168,85,247)] active:shadow-[0_0.5px_0_0_rgb(168,85,247)] active:translate-y-0.5 animate-gradient' : 'bg-gradient-to-b from-zinc-700 to-zinc-900 border border-zinc-800 text-zinc-400 shadow-[0_2px_0_0_rgb(24,24,27)] hover:shadow-[0_2px_0_0_rgb(24,24,27)] active:shadow-[0_0.5px_0_0_rgb(24,24,27)] active:translate-y-0.5'}`}
-                                    style={{
-                                        fontFamily: 'var(--font-inter)',
-                                        ...(config.useColor ? { backgroundImage: 'linear-gradient(to right, #ec4899, #a855f7, #3b82f6, #06b6d4)' } : {})
-                                    }}
+                                    className={`w-full h-[34px] rounded-lg transition-all flex items-center justify-center text-xs font-bold ${config.useColor ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-600 text-black shadow-[0_2px_0_0_rgb(180,83,9)] hover:from-amber-500 hover:via-orange-600 hover:to-amber-700 hover:shadow-[0_2px_0_0_rgb(180,83,9)] active:shadow-[0_0.5px_0_0_rgb(180,83,9)] active:translate-y-0.5' : 'bg-gradient-to-b from-zinc-700 to-zinc-900 border border-zinc-800 text-zinc-400 shadow-[0_2px_0_0_rgb(24,24,27)] hover:shadow-[0_2px_0_0_rgb(24,24,27)] active:shadow-[0_0.5px_0_0_rgb(24,24,27)] active:translate-y-0.5'}`}
+                                    style={{ fontFamily: 'var(--font-inter)' }}
                                 >
-                                    {config.useColor ? '🎨 COLOR' : '⚫ B&W'}
+                                    {config.useColor ? 'COLOR' : 'B&W'}
                                 </button>
                             </div>
                         </div>
@@ -401,8 +343,8 @@ export default function StorySettingsPanel({
                         <div className="space-y-2 pt-2 border-t border-zinc-800">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
-                                    <label className="text-[10px] font-bold text-emerald-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
-                                        <span>🤖 Auto-Continue Story</span>
+                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
+                                        <span>Auto-Continue Story</span>
                                     </label>
                                     <p className="text-[9px] text-zinc-500 mt-1 leading-relaxed" style={{ fontFamily: 'var(--font-inter)' }}>
                                         AI tự động tiếp tục câu chuyện từ page trước (không cần viết prompt mới)
@@ -410,16 +352,11 @@ export default function StorySettingsPanel({
                                 </div>
                                 <button
                                     onClick={() => onConfigChange({ ...config, autoContinueStory: !config.autoContinueStory })}
-                                    className={`ml-3 relative w-14 h-7 rounded-full transition-all ${config.autoContinueStory ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-zinc-700'}`}
+                                    className={`ml-3 relative w-14 h-7 rounded-full transition-all ${config.autoContinueStory ? 'bg-zinc-600' : 'bg-zinc-700'}`}
                                 >
                                     <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${config.autoContinueStory ? 'translate-x-7' : 'translate-x-0'}`} />
                                 </button>
                             </div>
-                            {config.autoContinueStory && (
-                                <div className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded p-2 leading-relaxed">
-                                    ✨ Enabled! Khi gen page mới, AI sẽ tự động tạo scene tiếp theo dựa trên story flow.
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

@@ -8,9 +8,10 @@ export const generateNextPrompt = async (
   context: string,
   originalPrompt: string,
   pageNumber: number,
-  totalPages: number
+  totalPages: number,
+  config?: MangaConfig
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyDFbFT3W4yQ_Ad8I1CLz80otq7uJ7gf4_4' });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyCWdZeeNGdHbRGqoisSNI4_nj2hHpCQqiI' });
   
   // Prepare previous pages info
   let previousPagesInfo = '';
@@ -19,6 +20,36 @@ export const generateNextPrompt = async (
     previousPagesInfo += `\nPage ${sessionHistory.length - recentPages.length + idx + 1}: ${page.prompt}\n`;
   });
   
+  // Get layout info from config or previous pages
+  const layout = config?.layout || (sessionHistory.length > 0 ? sessionHistory[sessionHistory.length - 1].config?.layout : undefined);
+  const layoutInfo = layout ? LAYOUT_PROMPTS[layout] || layout : '';
+  
+  // Determine panel count requirement based on layout
+  let panelCountRequirement = '';
+  if (layout) {
+    if (layout === 'Single Panel' || layout === 'Dramatic Spread' || layout === 'Widescreen Cinematic') {
+      panelCountRequirement = 'SINGLE PANEL or minimal panels';
+    } else if (layout === 'Dynamic Freestyle' || layout === 'Asymmetric Mixed') {
+      panelCountRequirement = '5-8 PANELS with varied sizes';
+    } else if (layout.includes('Action Sequence')) {
+      panelCountRequirement = '5-7 ACTION PANELS';
+    } else if (layout.includes('Conversation')) {
+      panelCountRequirement = '4-6 HORIZONTAL PANELS';
+    } else if (layout === 'Z-Pattern Flow') {
+      panelCountRequirement = '5-6 PANELS in Z-pattern';
+    } else if (layout === 'Vertical Strip') {
+      panelCountRequirement = '3-5 WIDE HORIZONTAL PANELS';
+    } else if (layout === 'Climax Focus') {
+      panelCountRequirement = 'ONE DOMINANT PANEL + 4-5 SMALLER PANELS';
+    } else if (layout.includes('Double')) {
+      panelCountRequirement = 'TWO PANELS';
+    } else if (layout.includes('Triple')) {
+      panelCountRequirement = 'THREE PANELS';
+    } else {
+      panelCountRequirement = 'FOUR PANELS';
+    }
+  }
+
   const promptGenerationRequest = `You are a professional manga story writer. Your task is to generate the NEXT scene prompt for a manga page.
 
 CONTEXT:
@@ -30,9 +61,16 @@ ${originalPrompt}
 PREVIOUS PAGES:
 ${previousPagesInfo}
 
-CURRENT STATUS:
+${layout ? `⚠️ CRITICAL LAYOUT REQUIREMENT:
+The previous pages used "${layout}" layout with ${panelCountRequirement}.
+You MUST generate a prompt that will result in the SAME layout structure: ${panelCountRequirement}.
+This is ESSENTIAL for visual consistency - the next page MUST have the same number and arrangement of panels as previous pages.
+${layoutInfo ? `Layout details: ${layoutInfo}` : ''}
+
+` : ''}CURRENT STATUS:
 - You are creating the prompt for PAGE ${pageNumber} of ${totalPages}
 - This is a continuation of the story from the previous page(s)
+${layout ? `- The page MUST use "${layout}" layout with ${panelCountRequirement} (same as previous pages)` : ''}
 
 YOUR TASK:
 Analyze what happened in the previous pages and write a SHORT, CLEAR prompt (2-3 sentences) describing what should happen NEXT in the story.
@@ -43,6 +81,16 @@ The prompt should:
 3. Be specific about the scene, characters, and action
 4. Maintain story pacing appropriate for page ${pageNumber}/${totalPages}
 5. Build towards climax if approaching the end
+${layout ? `6. CRITICAL: The scene must work with "${layout}" layout requiring ${panelCountRequirement} - structure your prompt to support multiple panels if needed` : ''}
+${layout && panelCountRequirement.includes('PANEL') && !panelCountRequirement.includes('SINGLE') ? `
+7. IMPORTANT - MULTI-PANEL STORY FLOW:
+   Since this page will have ${panelCountRequirement}, your prompt should describe a SCENE SEQUENCE that can be broken into multiple moments:
+   - The prompt should describe a series of connected actions/events that flow naturally
+   - Think of it as describing a short sequence of events, not just one static moment
+   - Example: Instead of "The hero stands there", use "The hero runs toward the enemy, dodges an attack, then counter-attacks"
+   - This allows the multiple panels to show: Panel 1 (running), Panel 2 (dodging), Panel 3 (counter-attacking)
+   - Each panel will show the next moment in the sequence you describe
+` : ''}
 
 IMPORTANT: Write ONLY the prompt text (2-3 sentences), nothing else. No explanations, no meta-commentary.
 
@@ -104,7 +152,7 @@ export const generateMangaImage = async (
   config: MangaConfig,
   sessionHistory?: GeneratedManga[]
 ): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyDFbFT3W4yQ_Ad8I1CLz80otq7uJ7gf4_4' });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyCWdZeeNGdHbRGqoisSNI4_nj2hHpCQqiI' });
   
   // Auto-continue story logic
   let actualPrompt = prompt;
@@ -186,6 +234,19 @@ Create the next scene that continues this manga story naturally.`;
     continuityInstructions += `✓ Keep the same level of detail and drawing quality\n`;
     continuityInstructions += `✓ If characters wore specific outfits before, they MUST wear the same unless story requires change\n`;
     continuityInstructions += `✓ Background and setting should match the established world\n`;
+    
+    // CRITICAL: Layout consistency
+    if (sessionHistory.length > 0) {
+      const previousLayout = sessionHistory[sessionHistory.length - 1].config?.layout;
+      if (previousLayout && previousLayout === config.layout) {
+        continuityInstructions += `\n⚠️ LAYOUT CONSISTENCY - CRITICAL:\n`;
+        continuityInstructions += `✓ The previous page used "${previousLayout}" layout\n`;
+        continuityInstructions += `✓ This page MUST use the EXACT SAME layout: "${config.layout}"\n`;
+        continuityInstructions += `✓ You MUST create the SAME number of panels as the previous page\n`;
+        continuityInstructions += `✓ Panel arrangement and structure MUST match previous pages\n`;
+        continuityInstructions += `✓ DO NOT change the panel count or layout structure - maintain visual consistency\n`;
+      }
+    }
   }
   
   let dialogueInstructions = '';
@@ -363,6 +424,44 @@ ${config.layout === 'Single Panel' || config.layout === 'Dramatic Spread' || con
             : config.layout === 'Climax Focus'
               ? '⚠️ ONE DOMINANT PANEL (40-50% of page) + 4-5 SMALLER SUPPORTING PANELS with clear borders'
               : `⚠️ MUST HAVE ${config.layout.includes('Double') ? 'TWO' : config.layout.includes('Triple') ? 'THREE' : 'FOUR'} CLEAR PANEL BORDERS - Draw distinct black borders separating each panel`}
+
+${(() => {
+  const hasMultiplePanels = !['Single Panel', 'Dramatic Spread', 'Widescreen Cinematic'].includes(config.layout);
+  if (hasMultiplePanels) {
+    return `\n🎬 CRITICAL: STORY FLOW THROUGH PANELS (MULTI-PANEL LAYOUT):
+⚠️ This page has MULTIPLE PANELS - they MUST tell a CONTINUOUS STORY SEQUENCE:
+• Panel 1: ${sessionHistory && sessionHistory.length > 0 ? 'Continues from the LAST panel of the previous page' : 'Starts the scene'}
+• Panel 2: Shows what happens IMMEDIATELY AFTER Panel 1 - the next moment in time
+• Panel 3: Shows what happens IMMEDIATELY AFTER Panel 2 - continuing the sequence
+• Panel 4+: Each subsequent panel is the NEXT moment in the story timeline
+• Last Panel: Shows the final moment that leads to the NEXT PAGE
+
+📖 STORY CONTINUITY REQUIREMENTS:
+✓ Each panel must be a LOGICAL PROGRESSION from the previous panel
+✓ Create a smooth narrative flow: Panel 1 → Panel 2 → Panel 3 → ... → Last Panel
+✓ Think of it like frames in a movie: each panel is the next frame in the sequence
+✓ The story should advance naturally through ALL panels in this page
+✓ Characters' actions, expressions, and positions should flow logically between panels
+✓ If Panel 1 shows a character starting to run, Panel 2 should show them mid-run, Panel 3 shows them jumping, etc.
+✓ Dialogue and actions should progress naturally across all panels
+✓ The LAST panel should end at a moment that naturally leads to the next page
+
+⚠️ DO NOT:
+✗ Repeat the same moment in multiple panels
+✗ Show disconnected scenes - panels must be sequential moments
+✗ Jump around in time - maintain chronological flow
+✗ Make panels feel like separate stories - they're all part of ONE continuous sequence
+
+✓ DO:
+✓ Create a clear cause-and-effect chain: Panel 1 causes Panel 2, Panel 2 causes Panel 3, etc.
+✓ Show progression of action, emotion, or dialogue through the panels
+✓ Use panel transitions to show the passage of time or movement
+✓ Make each panel feel like the natural "next moment" after the previous one
+`;
+  }
+  return '';
+})()}
+
 ✓ All content must fit within one high-resolution page image
 ✓ Apply dynamic angles and perspectives for visual impact
 ✓ Use authentic manga visual language (speed lines, impact frames, dramatic close-ups, perspective shots)
@@ -371,7 +470,15 @@ ${config.screentone !== 'None' ? `✓ Apply ${config.screentone.toLowerCase()} s
 ${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') || config.layout.includes('Action') ? '✓ Be creative with panel shapes - use diagonal cuts, overlapping edges, or irregular forms' : ''}
 
 ${sessionHistory && sessionHistory.length > 0 ? `
-⚠️ FINAL REMINDER: This page is part of an ongoing story. Characters MUST look exactly the same as in previous pages. Check character descriptions and previous scenes carefully before drawing!
+⚠️ FINAL REMINDER: This page is part of an ongoing story. 
+- Characters MUST look exactly the same as in previous pages. Check character descriptions and previous scenes carefully before drawing!
+${(() => {
+  const previousLayout = sessionHistory[sessionHistory.length - 1].config?.layout;
+  if (previousLayout && previousLayout === config.layout) {
+    return `- LAYOUT MUST BE IDENTICAL: Previous page used "${previousLayout}" with specific panel structure. You MUST replicate the EXACT same panel count and arrangement. This is CRITICAL for visual consistency!`;
+  }
+  return '';
+})()}
 ` : ''}
   `;
 
@@ -446,13 +553,49 @@ ${sessionHistory && sessionHistory.length > 0 ? `
       }
     });
 
-    for (const part of response.candidates?.[0]?.content?.parts || []) {
-      if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+    // Check for errors in response
+    if (response.promptFeedback?.blockReason) {
+      throw new Error(`Content blocked: ${response.promptFeedback.blockReason}`);
+    }
+
+    // Check if we have candidates
+    if (!response.candidates || response.candidates.length === 0) {
+      console.error("No candidates in response:", response);
+      throw new Error("No candidates returned from Gemini API");
+    }
+
+    const candidate = response.candidates[0];
+    
+    // Check for finish reason
+    if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+      console.error("Finish reason:", candidate.finishReason);
+      throw new Error(`Generation stopped: ${candidate.finishReason}`);
+    }
+
+    // Check for content
+    if (!candidate.content || !candidate.content.parts) {
+      console.error("No content parts in candidate:", candidate);
+      throw new Error("No content parts in response");
+    }
+
+    // Look for image data in parts
+    for (const part of candidate.content.parts) {
+      if (part.inlineData && part.inlineData.data) {
+        return `data:${part.inlineData.mimeType || 'image/png'};base64,${part.inlineData.data}`;
       }
     }
 
-    throw new Error("No image data returned from Gemini");
+    // If no image found, log the response structure for debugging
+    console.error("Response structure:", JSON.stringify({
+      candidates: response.candidates?.length,
+      firstCandidate: {
+        finishReason: candidate.finishReason,
+        contentParts: candidate.content?.parts?.length,
+        parts: candidate.content?.parts?.map((p: any) => Object.keys(p))
+      }
+    }, null, 2));
+
+    throw new Error("No image data returned from Gemini - check console for details");
   } catch (error) {
     console.error("Error generating manga image:", error);
     throw error;
