@@ -20,7 +20,6 @@ export const generateNextPrompt = async (
     previousPagesInfo += `\nPage ${sessionHistory.length - recentPages.length + idx + 1}: ${page.prompt}\n`;
   });
   
-  // Get layout info from config or previous pages
   const layout = config?.layout || (sessionHistory.length > 0 ? sessionHistory[sessionHistory.length - 1].config?.layout : undefined);
   const layoutInfo = layout ? LAYOUT_PROMPTS[layout] || layout : '';
   
