@@ -233,20 +233,45 @@ const MangaGeneratorV2 = () => {
     }
   };
 
+  // Debounce timer for context updates to prevent lag
+  const contextUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   const updateSessionContext = (newContext: string) => {
-    setContext(newContext);
-    setConfig(prev => ({ ...prev, context: newContext }));
-    if (currentSession) {
-      const updatedSession = {
-        ...currentSession,
-        context: newContext,
-        updatedAt: Date.now()
-      };
-      setCurrentSession(updatedSession);
-      setProject(prev => ({
-        ...prev,
-        sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s => s.id === currentSession.id ? updatedSession : s)
-      }));
+    try {
+      // Limit context length to prevent issues (e.g., 10000 characters)
+      const maxContextLength = 10000;
+      const trimmedContext = newContext.length > maxContextLength 
+        ? newContext.substring(0, maxContextLength) 
+        : newContext;
+      
+      // Update UI immediately (no lag for typing)
+      setContext(trimmedContext);
+      setConfig(prev => ({ ...prev, context: trimmedContext }));
+      
+      // Clear previous timer
+      if (contextUpdateTimerRef.current) {
+        clearTimeout(contextUpdateTimerRef.current);
+      }
+      
+      // Debounce the expensive operations (session/project updates)
+      // Only update session and project after user stops typing for 500ms
+      contextUpdateTimerRef.current = setTimeout(() => {
+        if (currentSession) {
+          const updatedSession = {
+            ...currentSession,
+            context: trimmedContext,
+            updatedAt: Date.now()
+          };
+          setCurrentSession(updatedSession);
+          setProject(prev => ({
+            ...prev,
+            sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s => s.id === currentSession.id ? updatedSession : s)
+          }));
+        }
+      }, 500); // Wait 500ms after user stops typing
+    } catch (error) {
+      console.error("Error updating context:", error);
+      setError("Failed to update context. Please try again.");
     }
   };
 
@@ -292,18 +317,34 @@ const MangaGeneratorV2 = () => {
     setPageToDelete(null);
   };
 
+  // Debounce project saving to prevent lag when typing context
+  const projectSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
-    const save = async () => {
-      try {
-        await saveProject(project);
-      } catch (err) {
-        console.error("Failed to save project", err);
-        setError("Storage error: Could not save your progress.");
+    // Clear previous timer
+    if (projectSaveTimerRef.current) {
+      clearTimeout(projectSaveTimerRef.current);
+    }
+    
+    // Only save if there's actual content
+    if (project.pages.length > 0 || project.title !== 'New Chapter' || project.sessions.length > 0) {
+      // Debounce saving - only save after 1 second of no changes
+      projectSaveTimerRef.current = setTimeout(async () => {
+        try {
+          await saveProject(project);
+        } catch (err) {
+          console.error("Failed to save project", err);
+          setError("Storage error: Could not save your progress.");
+        }
+      }, 1000); // Wait 1 second after last change
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      if (projectSaveTimerRef.current) {
+        clearTimeout(projectSaveTimerRef.current);
       }
     };
-    if (project.pages.length > 0 || project.title !== 'New Chapter' || project.sessions.length > 0) {
-      save();
-    }
   }, [project]);
 
   const handleGenerate = async () => {

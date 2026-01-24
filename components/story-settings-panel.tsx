@@ -97,10 +97,17 @@ export default function StorySettingsPanel({
                             </label>
                             <textarea
                                 value={context}
-                                onChange={(e) => onContextChange(e.target.value)}
+                                onChange={(e) => {
+                                    try {
+                                        onContextChange(e.target.value);
+                                    } catch (error) {
+                                        console.error("Error in context onChange:", error);
+                                    }
+                                }}
                                 placeholder="Describe your characters in detail:&#10;&#10;Main character: Male, 17yo, spiky black hair, blue eyes, wearing red jacket with white shirt...&#10;&#10;Setting: Modern Tokyo, high school..."
                                 className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-[11px] placeholder:leading-relaxed focus:outline-none focus:border-amber-500 transition-colors resize-none custom-scrollbar"
                                 style={{ fontFamily: 'var(--font-inter)' }}
+                                maxLength={10000}
                             />
                         </div>
 
