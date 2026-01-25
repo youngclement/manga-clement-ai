@@ -1145,8 +1145,8 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
             }
             throw new Error(`Content blocked: ${response.promptFeedback.blockReason}. ${response.promptFeedback.blockReasonMessage || ''}`);
           }
-        }
-    
+    }
+
     // Check if we have candidates
     if (!response.candidates || response.candidates.length === 0) {
       console.error("No candidates in response:", response);
