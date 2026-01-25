@@ -2,6 +2,18 @@ import { GoogleGenAI } from "@google/genai";
 import { MANGA_SYSTEM_INSTRUCTION, LAYOUT_PROMPTS } from "@/lib/constants";
 import { MangaConfig, GeneratedManga } from "@/lib/types";
 
+// Model configuration - easily changeable
+const TEXT_GENERATION_MODEL = 'gemini-2.5-flash'; // For prompt generation
+const IMAGE_GENERATION_MODEL = 'gemini-2.5-flash-image'; // For manga image generation
+// Alternative models you can use:
+// - 'gemini-1.5-pro' (more capable, slower)
+// - 'gemini-1.5-flash' (faster, less capable)
+// - 'gemini-2.0-flash-exp' (experimental)
+// - 'gemini-2.0-flash' (stable version)
+// - 'gemini-2.5-flash' (latest stable, recommended)
+// - 'gemini-2.5-flash-image' (optimized for images)
+// - 'gemini-3-flash' (newest version)
+
 // Generate next prompt based on previous pages
 export const generateNextPrompt = async (
   sessionHistory: GeneratedManga[],
@@ -15,7 +27,7 @@ export const generateNextPrompt = async (
   
   // Prepare previous pages info - emphasize the MOST RECENT page
   let previousPagesInfo = '';
-  const recentPages = sessionHistory.slice(-3);
+  const recentPages = sessionHistory.slice(-10);
   const lastPage = sessionHistory[sessionHistory.length - 1];
   
   if (recentPages.length > 0) {
@@ -160,7 +172,7 @@ Now generate the prompt for page ${pageNumber}:`;
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: TEXT_GENERATION_MODEL,
       contents: {
         parts: contentParts
       },
@@ -500,7 +512,15 @@ ${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling
   
   let referenceImageInstructions = '';
   let hasRefPreviousPages = sessionHistory && sessionHistory.length > 0;
-  let hasUploadedReferences = config.referenceImages && config.referenceImages.length > 0;
+  
+  // Count only enabled reference images
+  const enabledReferenceImages = config.referenceImages 
+    ? config.referenceImages.filter(img => {
+        if (typeof img === 'string') return true; // Old format: always enabled
+        return img.enabled;
+      })
+    : [];
+  let hasUploadedReferences = enabledReferenceImages.length > 0;
   
   if (hasUploadedReferences || hasRefPreviousPages) {
     referenceImageInstructions = `
@@ -508,7 +528,7 @@ ${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling
 `;
     
     if (hasRefPreviousPages) {
-      const recentPagesCount = Math.min(3, sessionHistory!.length);
+      const recentPagesCount = Math.min(10, sessionHistory!.length);
       referenceImageInstructions += `
 📚 PREVIOUS MANGA PAGES (${recentPagesCount} recent pages provided as visual references):
 ⚠️⚠️⚠️ CRITICAL - CHARACTER CONSISTENCY IS MANDATORY ⚠️⚠️⚠️
@@ -562,7 +582,7 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
     
     if (hasUploadedReferences) {
       referenceImageInstructions += `
-🎨 UPLOADED REFERENCE IMAGES (${config.referenceImages!.length} image${config.referenceImages!.length > 1 ? 's' : ''}):
+🎨 UPLOADED REFERENCE IMAGES (${enabledReferenceImages.length} image${enabledReferenceImages.length > 1 ? 's' : ''} enabled):
 • Use these as additional style/character references
 • Maintain consistency with visual elements shown
 • These are supplementary references for art style and character design
@@ -607,29 +627,67 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
   // Function to sanitize prompt for retry (make it less explicit)
   const sanitizePromptForRetry = (originalPrompt: string, attempt: number): string => {
     if (attempt === 1) {
-      // First retry: Use more artistic/abstract language
+      // First retry: Use more artistic/abstract language - replace explicit terms
       let sanitized = originalPrompt
+        // English terms
         .replace(/explicit/gi, 'artistic')
         .replace(/hentai/gi, 'mature manga')
         .replace(/sexual/gi, 'intimate')
+        .replace(/sex/gi, 'romance')
         .replace(/nude/gi, 'revealing')
         .replace(/nudity/gi, 'revealing scenes')
+        .replace(/naked/gi, 'unclothed')
         .replace(/fetish/gi, 'special interest')
-        .replace(/biến thái/gi, 'unconventional')
+        .replace(/porn/gi, 'mature content')
+        .replace(/pornography/gi, 'mature content')
+        .replace(/erotic/gi, 'sensual')
         .replace(/18\+/g, 'mature')
         .replace(/adult.*content/gi, 'mature content')
-        .replace(/explicit.*content/gi, 'artistic content');
+        .replace(/explicit.*content/gi, 'artistic content')
+        .replace(/nsfw/gi, 'mature')
+        // Vietnamese terms
+        .replace(/biến thái/gi, 'unconventional')
+        .replace(/khiêu dâm/gi, 'mature content')
+        .replace(/sex/gi, 'romance')
+        .replace(/tình dục/gi, 'romance')
+        .replace(/khỏa thân/gi, 'revealing')
+        .replace(/18\+/g, 'mature');
+      
+      // Remove any remaining explicit phrases
+      sanitized = sanitized
+        .replace(/very.*explicit/gi, 'artistic')
+        .replace(/highly.*sexual/gi, 'romantic')
+        .replace(/graphic.*content/gi, 'artistic content');
+      
       return sanitized + ' Use artistic and stylized approach, focus on manga aesthetics and visual storytelling.';
     } else if (attempt === 2) {
-      // Second retry: Even more abstract
+      // Second retry: Even more abstract - remove explicit terms entirely
       let sanitized = originalPrompt
-        .replace(/explicit|hentai|sexual|nude|nudity|fetish|biến thái|18\+|adult content|explicit content/gi, '')
+        .replace(/explicit|hentai|sexual|sex|nude|nudity|naked|fetish|porn|pornography|erotic|biến thái|khiêu dâm|tình dục|khỏa thân|18\+|adult content|explicit content|nsfw/gi, '')
         .replace(/mature.*themes/gi, 'artistic themes')
-        .replace(/explicit.*scenes/gi, 'artistic scenes');
+        .replace(/explicit.*scenes/gi, 'artistic scenes')
+        .replace(/romantic.*scenes/gi, 'emotional scenes')
+        .replace(/intimate.*moments/gi, 'close moments');
+      
+      // Clean up multiple spaces
+      sanitized = sanitized.replace(/\s+/g, ' ').trim();
+      
       return sanitized + ' Focus on artistic manga style, expressive poses, and visual narrative. Use creative composition and manga aesthetics.';
     } else {
-      // Third retry: Very safe, generic
-      return 'Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      // Third retry: Very safe, generic - use only safe description
+      // Try to extract safe elements from original prompt
+      let safeElements = originalPrompt
+        .replace(/explicit|hentai|sexual|sex|nude|nudity|naked|fetish|porn|pornography|erotic|biến thái|khiêu dâm|tình dục|khỏa thân|18\+|adult|explicit|nsfw/gi, '')
+        .replace(/mature.*themes?/gi, '')
+        .replace(/explicit.*scenes?/gi, '')
+        .trim();
+      
+      // If we have safe elements, use them; otherwise use generic
+      if (safeElements.length > 20) {
+        return safeElements + ' Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      } else {
+        return 'Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      }
     }
   };
   
@@ -839,9 +897,9 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: enhancedPrompt }];
     
-    // Add previous manga pages as visual references (last 3 pages)
+    // Add previous manga pages as visual references (last 10 pages)
     if (sessionHistory && sessionHistory.length > 0) {
-      const recentPages = sessionHistory.slice(-3); // Get last 3 pages
+      const recentPages = sessionHistory.slice(-10); // Get last 10 pages
       
       for (const page of recentPages) {
         if (page.url) {
@@ -867,9 +925,26 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       }
     }
     
-    // Add uploaded reference images if provided
+    // Add uploaded reference images if provided (only enabled ones)
     if (config.referenceImages && config.referenceImages.length > 0) {
-      for (const imageData of config.referenceImages) {
+      for (const imageItem of config.referenceImages) {
+        // Support both old format (string) and new format (ReferenceImage object)
+        let imageData: string;
+        let enabled: boolean = true; // Default to enabled for backward compatibility
+        
+        if (typeof imageItem === 'string') {
+          // Old format: just a string URL
+          imageData = imageItem;
+          enabled = true;
+        } else {
+          // New format: ReferenceImage object
+          imageData = imageItem.url;
+          enabled = imageItem.enabled;
+        }
+        
+        // Only add if enabled
+        if (!enabled) continue;
+        
         // Extract base64 data (remove data:image/...;base64, prefix if present)
         const base64Data = imageData.includes('base64,') 
           ? imageData.split('base64,')[1] 
@@ -914,7 +989,7 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
         }
         
         response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: IMAGE_GENERATION_MODEL,
       contents: {
             parts: currentContentParts
       },
@@ -978,6 +1053,13 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (finishReason). Retrying with modified prompt...`);
       retryAttempt++;
       lastError = new Error(`Content blocked: PROHIBITED_CONTENT. ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+      
+      // Sanitize prompt for next retry
+      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      
       // Wait a bit before retry
       await new Promise(resolve => setTimeout(resolve, 1000));
       continue; // Retry with modified prompt
@@ -994,6 +1076,13 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
           console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY. Retrying with modified prompt...`);
           retryAttempt++;
           lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+          
+          // Sanitize prompt for next retry
+          console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+          
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;
         } else {
@@ -1021,6 +1110,13 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
           console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: PROHIBITED_CONTENT. Retrying with modified prompt...`);
           retryAttempt++;
           lastError = error;
+          
+          // Sanitize prompt for next retry
+          console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+          
           // Wait a bit before retry
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;

@@ -71,6 +71,11 @@ export enum Language {
   FRENCH = 'French',
 }
 
+export interface ReferenceImage {
+  url: string; // Base64 or URL
+  enabled: boolean; // Whether to use this image in generation
+}
+
 export interface MangaConfig {
   style: MangaStyle | string;
   inking: InkingStyle | string;
@@ -81,7 +86,7 @@ export interface MangaConfig {
   dialogueDensity: DialogueDensity | string;
   language: Language | string;
   context?: string;
-  referenceImages?: string[]; // Base64 or URLs
+  referenceImages?: (string | ReferenceImage)[]; // Support both old format (string) and new format (ReferenceImage)
   autoContinueStory?: boolean; // Auto-generate story continuation
   storyDirection?: string; // Story flow/direction for auto-continue
 }

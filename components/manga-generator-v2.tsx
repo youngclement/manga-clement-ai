@@ -60,6 +60,8 @@ const MangaGeneratorV2 = () => {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
   const batchCancelledRef = useRef(false);
+  const batchGeneratingRef = useRef(false); // Guard to prevent multiple simultaneous batch generations
+  const generatingRef = useRef(false); // Guard to prevent multiple simultaneous single generations
   const [showSettings, setShowSettings] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showFullscreen, setShowFullscreen] = useState(false);
@@ -355,11 +357,20 @@ const MangaGeneratorV2 = () => {
   }, [project]);
 
   const handleGenerate = async () => {
+    // Guard: Prevent multiple simultaneous generations
+    if (generatingRef.current || loading || batchLoading) {
+      console.warn('Generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     const hasPages = currentSession && currentSession.pages.length > 0;
     const isAutoContinue = config.autoContinueStory && hasPages;
 
     // Allow empty prompt if auto-continue is enabled
     if (!prompt.trim() && !isAutoContinue) return;
+
+    // Set guard immediately
+    generatingRef.current = true;
 
     let workingSession = currentSession;
     if (!workingSession) {
@@ -437,15 +448,25 @@ const MangaGeneratorV2 = () => {
       setError("Failed to generate manga. Please try again.");
     } finally {
       setLoading(false);
+      generatingRef.current = false; // Release guard
     }
   };
 
   const handleBatchGenerate = async (totalPages: number = 10) => {
+    // Guard: Prevent multiple simultaneous batch generations
+    if (batchGeneratingRef.current || batchLoading || loading) {
+      console.warn('Batch generation already in progress, ignoring duplicate call');
+      return;
+    }
+
     const hasPages = currentSession && currentSession.pages.length > 0;
     const isAutoContinue = config.autoContinueStory && hasPages;
 
     // Allow empty prompt if auto-continue is enabled
     if (!prompt.trim() && !isAutoContinue) return;
+
+    // Set guard immediately
+    batchGeneratingRef.current = true;
 
     let workingSession = currentSession;
     if (!workingSession) {
@@ -598,15 +619,34 @@ const MangaGeneratorV2 = () => {
           updatedAt: Date.now()
         };
 
-        // Update React state
-        setCurrentSession(localSession);
-        setProject(prev => ({
-          ...prev,
-          pages: [...prev.pages, newPage],
-          sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s =>
-            s.id === sessionId ? localSession : s
-          )
-        }));
+        // Update React state - use functional updates to avoid race conditions
+        setCurrentSession(prevSession => {
+          // Only update if this is still the current session
+          if (prevSession?.id === sessionId) {
+            return localSession;
+          }
+          return prevSession;
+        });
+        
+        setProject(prev => {
+          // Use functional update to ensure we're working with latest state
+          const currentSessions = Array.isArray(prev.sessions) ? prev.sessions : [];
+          const sessionIndex = currentSessions.findIndex(s => s.id === sessionId);
+          
+          // Only update if session still exists
+          if (sessionIndex === -1) {
+            return prev;
+          }
+          
+          const updatedSessions = [...currentSessions];
+          updatedSessions[sessionIndex] = localSession;
+          
+          return {
+            ...prev,
+            pages: [...prev.pages, newPage],
+            sessions: updatedSessions
+          };
+        });
 
         generatedCount++;
         // Update progress
@@ -621,6 +661,7 @@ const MangaGeneratorV2 = () => {
         setError(`Failed at page ${i + 1}. Successfully generated ${generatedCount} pages.`);
         setBatchLoading(false);
         setBatchProgress(null);
+        batchGeneratingRef.current = false; // Release guard on error
         return;
       }
     }
@@ -632,10 +673,14 @@ const MangaGeneratorV2 = () => {
     if (!batchCancelledRef.current) {
       setError(null);
     }
+
+    // Release guard
+    batchGeneratingRef.current = false;
   };
 
   const cancelBatchGenerate = () => {
     batchCancelledRef.current = true;
+    batchGeneratingRef.current = false; // Release guard
     // Immediately update UI state - don't wait for API
     setBatchLoading(false);
     setBatchProgress(null);
@@ -911,6 +956,7 @@ const MangaGeneratorV2 = () => {
               project={project}
               currentSession={currentSession}
               pagesToShow={pagesToShow}
+              config={config}
               onSwitchSession={switchSession}
               onDeleteSession={confirmDeleteSession}
               onCreateSession={createSession}
@@ -919,6 +965,7 @@ const MangaGeneratorV2 = () => {
               onDeletePage={confirmDeletePage}
               onDeletePages={confirmDeletePages}
               onOpenFullscreen={openFullscreenFromSidebar}
+              onConfigChange={setConfig}
               leftWidth={leftWidth}
             />
 
