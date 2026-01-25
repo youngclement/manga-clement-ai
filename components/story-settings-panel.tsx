@@ -92,8 +92,25 @@ export default function StorySettingsPanel({
         }
     };
 
-    const removeImage = (index: number) => {
+    const removeImage = async (index: number) => {
         const currentImages = config.referenceImages || [];
+        const imageToRemove = currentImages[index];
+        
+        // If image is base64 (stored in MongoDB), delete it
+        if (imageToRemove) {
+            const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url;
+            // Check if it's a MongoDB image ID (not base64 or http)
+            if (imageUrl && !imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
+                try {
+                    const { deleteImage } = await import('@/lib/services/storage-service');
+                    await deleteImage(imageUrl);
+                } catch (error) {
+                    console.error('Failed to delete image from MongoDB:', error);
+                    // Continue with removal from config even if DB delete fails
+                }
+            }
+        }
+        
         const newImages = currentImages.filter((_, i) => i !== index);
         onConfigChange({ ...config, referenceImages: newImages });
     };

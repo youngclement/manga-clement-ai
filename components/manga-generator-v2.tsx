@@ -196,7 +196,7 @@ const MangaGeneratorV2 = () => {
           }
         }
       } catch (err) {
-        console.error("Failed to load project from IndexedDB", err);
+        console.error("Failed to load project from MongoDB", err);
       }
     };
     init();
@@ -312,17 +312,17 @@ const MangaGeneratorV2 = () => {
     setDeleteDialogOpen(true);
   };
 
-  const deletePage = () => {
+  const deletePage = async () => {
     if (!pageToDelete) return;
-    removePage(pageToDelete);
+    await removePage(pageToDelete);
     setDeleteDialogOpen(false);
     setPageToDelete(null);
   };
 
-  const confirmDeletePages = (pageIds: string[]) => {
+  const confirmDeletePages = async (pageIds: string[]) => {
     if (pageIds.length === 0) return;
     if (window.confirm(`Are you sure you want to delete ${pageIds.length} page(s)? This action cannot be undone.`)) {
-      removePages(pageIds);
+      await removePages(pageIds);
     }
   };
 
@@ -749,8 +749,23 @@ const MangaGeneratorV2 = () => {
     }
   };
 
-  const removePage = (id: string) => {
+  const removePage = async (id: string) => {
     if (!id) return;
+    
+    // Find page to get image ID for deletion
+    const pageToDelete = currentSession?.pages.find(p => p.id === id) || 
+                         project.pages.find(p => p.id === id);
+    
+    // Delete image from MongoDB if it's stored there
+    if (pageToDelete?.url && !pageToDelete.url.startsWith('data:image') && !pageToDelete.url.startsWith('http')) {
+      try {
+        const { deleteImage } = await import('@/lib/services/storage-service');
+        await deleteImage(pageToDelete.url);
+      } catch (error) {
+        console.error('Failed to delete image from MongoDB:', error);
+        // Continue with page removal even if image delete fails
+      }
+    }
     
     if (currentSession) {
       // Filter out the page to delete
@@ -797,8 +812,30 @@ const MangaGeneratorV2 = () => {
     }
   };
 
-  const removePages = (ids: string[]) => {
+  const removePages = async (ids: string[]) => {
     if (!ids || ids.length === 0) return;
+    
+    // Find pages to get image IDs for deletion
+    const pagesToDelete = [
+      ...(currentSession?.pages.filter(p => ids.includes(p.id)) || []),
+      ...project.pages.filter(p => ids.includes(p.id) && !currentSession?.pages.some(sp => sp.id === p.id))
+    ];
+    
+    // Collect image IDs to delete
+    const imageIdsToDelete = pagesToDelete
+      .map(p => p.url)
+      .filter(url => url && !url.startsWith('data:image') && !url.startsWith('http'));
+    
+    // Delete images from MongoDB
+    if (imageIdsToDelete.length > 0) {
+      try {
+        const { deleteImages } = await import('@/lib/services/storage-service');
+        await deleteImages(imageIdsToDelete);
+      } catch (error) {
+        console.error('Failed to delete images from MongoDB:', error);
+        // Continue with page removal even if image delete fails
+      }
+    }
     
     if (currentSession) {
       // Filter out the pages to delete

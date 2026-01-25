@@ -30,6 +30,10 @@ export const generateNextPrompt = async (
   const recentPages = sessionHistory.slice(-10);
   const lastPage = sessionHistory[sessionHistory.length - 1];
   
+  // Collect all previous prompts to avoid duplication
+  const allPreviousPrompts = sessionHistory.map(p => p.prompt).filter(p => p && p.trim());
+  const recentPrompts = recentPages.map(p => p.prompt).filter(p => p && p.trim());
+  
   if (recentPages.length > 0) {
     previousPagesInfo += `\n⚠️ CRITICAL - MOST RECENT PAGE (Page ${sessionHistory.length}):\n`;
     previousPagesInfo += `"${lastPage.prompt}"\n`;
@@ -42,6 +46,35 @@ export const generateNextPrompt = async (
         previousPagesInfo += `\nPage ${pageNum}: ${page.prompt}\n`;
   });
     }
+  }
+  
+  // Add prompt uniqueness requirement
+  let promptUniquenessNote = '';
+  if (allPreviousPrompts.length > 0) {
+    promptUniquenessNote = `\n🚫 CRITICAL - PROMPT UNIQUENESS REQUIREMENT:
+⚠️⚠️⚠️ YOUR NEW PROMPT MUST BE COMPLETELY DIFFERENT FROM ALL PREVIOUS PROMPTS IN THIS SESSION ⚠️⚠️⚠️
+
+PREVIOUS PROMPTS USED IN THIS SESSION (DO NOT REPEAT OR SIMILAR):
+${allPreviousPrompts.map((p, idx) => `${idx + 1}. "${p}"`).join('\n')}
+
+REQUIREMENTS:
+✓ Your new prompt must describe a DIFFERENT scene, action, or moment
+✓ DO NOT reuse similar wording, phrases, or descriptions from previous prompts
+✓ DO NOT describe the same type of action or event
+✓ DO NOT use similar character actions or situations
+✓ Create a UNIQUE prompt that advances the story in a NEW direction
+✓ If previous prompts mentioned "fight", "run", "talk" - use DIFFERENT actions
+✓ If previous prompts had similar settings - use a DIFFERENT location or context
+✓ Be creative and ensure your prompt is DISTINCT from all previous ones
+
+VERIFICATION:
+Before finalizing your prompt, check:
+- Is this prompt similar to any previous prompt? → If yes, CHANGE IT
+- Does this use similar words/phrases? → If yes, REPHRASE IT
+- Does this describe a similar scene? → If yes, CREATE A DIFFERENT SCENE
+- Is this too similar to the last prompt? → If yes, MAKE IT MORE DISTINCT
+
+Your prompt must be UNIQUE and DIFFERENT from all ${allPreviousPrompts.length} previous prompt(s)!\n`;
   }
   
   // Get layout info from config or previous pages
@@ -93,6 +126,7 @@ ${originalPrompt}
 ${storyDirectionNote}
 ${previousPagesInfo ? `PREVIOUS PAGES:
 ${previousPagesInfo}` : ''}
+${promptUniquenessNote}
 
 ${layout ? `📐 LAYOUT CONTEXT (for reference, but feel free to vary):
 The previous pages used "${layout}" layout with ${panelCountRequirement}.
@@ -122,6 +156,7 @@ The prompt should:
 5. ${pageNumber >= totalPages * 0.8 ? 'Build towards the climax - we are approaching the end' : 'Continue building the story naturally'}
 6. Describe a scene that can work with various panel layouts - layout variety is encouraged
 7. ${sessionHistory.length > 0 ? `DO NOT repeat what happened in Page ${sessionHistory.length} - always move forward` : ''}
+8. ${allPreviousPrompts.length > 0 ? `🚫 CRITICAL: Your prompt MUST be COMPLETELY DIFFERENT from all previous prompts. Check the list above and ensure your prompt is UNIQUE and DISTINCT.` : ''}
 ${layout && panelCountRequirement.includes('PANEL') && !panelCountRequirement.includes('SINGLE') ? `
 7. OPTIONAL - MULTI-PANEL STORY FLOW (if using multi-panel layout):
    If the page uses multiple panels, your prompt should describe a SCENE SEQUENCE that can be broken into multiple moments:
@@ -198,7 +233,65 @@ Now generate the prompt for page ${pageNumber}:`;
       }
     });
 
-    const generatedPrompt = response.text?.trim() || '';
+    let generatedPrompt = response.text?.trim() || '';
+    
+    // Check for prompt similarity and retry if too similar
+    if (allPreviousPrompts.length > 0 && generatedPrompt) {
+      const maxRetries = 3;
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries) {
+        // Check similarity with previous prompts
+        const isTooSimilar = allPreviousPrompts.some(prevPrompt => {
+          const similarity = calculatePromptSimilarity(generatedPrompt.toLowerCase(), prevPrompt.toLowerCase());
+          return similarity > 0.7; // 70% similarity threshold
+        });
+        
+        if (!isTooSimilar) {
+          break; // Prompt is unique enough
+        }
+        
+        retryCount++;
+        console.warn(`⚠️ Generated prompt is too similar to previous prompts. Retrying (${retryCount}/${maxRetries})...`);
+        
+        // Add stronger uniqueness requirement
+        const retryRequest = promptGenerationRequest + `\n\n⚠️⚠️⚠️ RETRY REQUEST - PREVIOUS ATTEMPT WAS TOO SIMILAR:
+Your previous attempt was too similar to existing prompts. Generate a COMPLETELY DIFFERENT prompt.
+- Use DIFFERENT words, phrases, and descriptions
+- Describe a DIFFERENT type of scene or action
+- Change the focus, perspective, or situation
+- Make it DISTINCT and UNIQUE from all previous prompts listed above.`;
+        
+        try {
+          const retryResponse = await ai.models.generateContent({
+            model: TEXT_GENERATION_MODEL,
+            contents: {
+              parts: contentParts.map((part, idx) => 
+                idx === 0 ? { text: retryRequest } : part
+              )
+            },
+            config: {
+              safetySettings: [
+                { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any }
+              ] as any
+            }
+          });
+          
+          generatedPrompt = retryResponse.text?.trim() || generatedPrompt;
+        } catch (retryError) {
+          console.warn('Retry failed, using generated prompt:', retryError);
+          break;
+        }
+      }
+      
+      if (retryCount >= maxRetries) {
+        console.warn('⚠️ Could not generate completely unique prompt after retries, but proceeding with generated prompt.');
+      }
+    }
+    
     return generatedPrompt;
   } catch (error) {
     console.error("Error generating next prompt:", error);
@@ -206,6 +299,20 @@ Now generate the prompt for page ${pageNumber}:`;
     return `Continue the story naturally from page ${pageNumber - 1}. Show what happens next.`;
   }
 };
+
+// Helper function to calculate prompt similarity (simple word overlap)
+function calculatePromptSimilarity(prompt1: string, prompt2: string): number {
+  const words1 = new Set(prompt1.split(/\s+/).filter(w => w.length > 3)); // Only words longer than 3 chars
+  const words2 = new Set(prompt2.split(/\s+/).filter(w => w.length > 3));
+  
+  if (words1.size === 0 || words2.size === 0) return 0;
+  
+  const intersection = new Set([...words1].filter(w => words2.has(w)));
+  const union = new Set([...words1, ...words2]);
+  
+  // Jaccard similarity
+  return intersection.size / union.size;
+}
 
 export const generateMangaImage = async (
   prompt: string,
@@ -1065,36 +1172,38 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       continue; // Retry with modified prompt
     }
     
+    // Check for IMAGE_SAFETY in finishReason (similar to PROHIBITED_CONTENT)
+    if (candidate.finishReason === 'IMAGE_SAFETY' && retryAttempt < maxRetries) {
+      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY (finishReason). Retrying with modified prompt...`);
+      retryAttempt++;
+      lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+      
+      // Sanitize prompt for next retry
+      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      
+      // Wait a bit before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue; // Retry with modified prompt
+    }
+    
     // Check for other finish reasons
     if (candidate.finishReason && candidate.finishReason !== 'STOP') {
       console.error("Finish reason:", candidate.finishReason);
       console.error("Finish message:", candidate.finishMessage);
       
+      // If IMAGE_SAFETY and max retries reached
       if (candidate.finishReason === 'IMAGE_SAFETY') {
-        // IMAGE_SAFETY can also be retried
-        if (retryAttempt < maxRetries) {
-          console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY. Retrying with modified prompt...`);
-          retryAttempt++;
-          lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
-          
-          // Sanitize prompt for next retry
-          console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
-          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
-          
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        } else {
-          console.error("Image was blocked by IMAGE_SAFETY filter");
-          console.warn("The generated image violated Google's Generative AI Prohibited Use policy");
-          console.warn("This can happen even with safety settings disabled due to Google's content policy");
-          console.warn("Suggestions:");
-          console.warn("1. Try rephrasing the prompt to be less explicit");
-          console.warn("2. Use more artistic/abstract descriptions");
-          console.warn("3. Consider using alternative APIs that support adult content");
-          throw new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
-        }
+        console.error("Image was blocked by IMAGE_SAFETY filter after all retry attempts");
+        console.warn("The generated image violated Google's Generative AI Prohibited Use policy");
+        console.warn("This can happen even with safety settings disabled due to Google's content policy");
+        console.warn("Suggestions:");
+        console.warn("1. Try rephrasing the prompt to be less explicit");
+        console.warn("2. Use more artistic/abstract descriptions");
+        console.warn("3. Consider using alternative APIs that support adult content");
+        throw new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
       }
       
       // For other finish reasons, throw error
@@ -1105,9 +1214,10 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
     console.log(`✅ Generation successful${retryAttempt > 0 ? ` after ${retryAttempt} retry attempt(s)` : ''}`);
     break;
       } catch (error: any) {
-        // If it's a PROHIBITED_CONTENT error and we haven't reached max retries, retry
-        if (error.message?.includes('PROHIBITED_CONTENT') && retryAttempt < maxRetries) {
-          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: PROHIBITED_CONTENT. Retrying with modified prompt...`);
+        // If it's a PROHIBITED_CONTENT or IMAGE_SAFETY error and we haven't reached max retries, retry
+        if ((error.message?.includes('PROHIBITED_CONTENT') || error.message?.includes('IMAGE_SAFETY')) && retryAttempt < maxRetries) {
+          const errorType = error.message?.includes('IMAGE_SAFETY') ? 'IMAGE_SAFETY' : 'PROHIBITED_CONTENT';
+          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: ${errorType}. Retrying with modified prompt...`);
           retryAttempt++;
           lastError = error;
           
