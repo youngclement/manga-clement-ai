@@ -2,6 +2,18 @@ import { GoogleGenAI } from "@google/genai";
 import { MANGA_SYSTEM_INSTRUCTION, LAYOUT_PROMPTS } from "@/lib/constants";
 import { MangaConfig, GeneratedManga } from "@/lib/types";
 
+// Model configuration - easily changeable
+const TEXT_GENERATION_MODEL = 'gemini-2.5-flash'; // For prompt generation
+const IMAGE_GENERATION_MODEL = 'gemini-2.5-flash-image'; // For manga image generation
+// Alternative models you can use:
+// - 'gemini-1.5-pro' (more capable, slower)
+// - 'gemini-1.5-flash' (faster, less capable)
+// - 'gemini-2.0-flash-exp' (experimental)
+// - 'gemini-2.0-flash' (stable version)
+// - 'gemini-2.5-flash' (latest stable, recommended)
+// - 'gemini-2.5-flash-image' (optimized for images)
+// - 'gemini-3-flash' (newest version)
+
 // Generate next prompt based on previous pages
 export const generateNextPrompt = async (
   sessionHistory: GeneratedManga[],
@@ -15,8 +27,12 @@ export const generateNextPrompt = async (
   
   // Prepare previous pages info - emphasize the MOST RECENT page
   let previousPagesInfo = '';
-  const recentPages = sessionHistory.slice(-3);
+  const recentPages = sessionHistory.slice(-10);
   const lastPage = sessionHistory[sessionHistory.length - 1];
+  
+  // Collect all previous prompts to avoid duplication
+  const allPreviousPrompts = sessionHistory.map(p => p.prompt).filter(p => p && p.trim());
+  const recentPrompts = recentPages.map(p => p.prompt).filter(p => p && p.trim());
   
   if (recentPages.length > 0) {
     previousPagesInfo += `\n⚠️ CRITICAL - MOST RECENT PAGE (Page ${sessionHistory.length}):\n`;
@@ -30,6 +46,35 @@ export const generateNextPrompt = async (
         previousPagesInfo += `\nPage ${pageNum}: ${page.prompt}\n`;
   });
     }
+  }
+  
+  // Add prompt uniqueness requirement
+  let promptUniquenessNote = '';
+  if (allPreviousPrompts.length > 0) {
+    promptUniquenessNote = `\n🚫 CRITICAL - PROMPT UNIQUENESS REQUIREMENT:
+⚠️⚠️⚠️ YOUR NEW PROMPT MUST BE COMPLETELY DIFFERENT FROM ALL PREVIOUS PROMPTS IN THIS SESSION ⚠️⚠️⚠️
+
+PREVIOUS PROMPTS USED IN THIS SESSION (DO NOT REPEAT OR SIMILAR):
+${allPreviousPrompts.map((p, idx) => `${idx + 1}. "${p}"`).join('\n')}
+
+REQUIREMENTS:
+✓ Your new prompt must describe a DIFFERENT scene, action, or moment
+✓ DO NOT reuse similar wording, phrases, or descriptions from previous prompts
+✓ DO NOT describe the same type of action or event
+✓ DO NOT use similar character actions or situations
+✓ Create a UNIQUE prompt that advances the story in a NEW direction
+✓ If previous prompts mentioned "fight", "run", "talk" - use DIFFERENT actions
+✓ If previous prompts had similar settings - use a DIFFERENT location or context
+✓ Be creative and ensure your prompt is DISTINCT from all previous ones
+
+VERIFICATION:
+Before finalizing your prompt, check:
+- Is this prompt similar to any previous prompt? → If yes, CHANGE IT
+- Does this use similar words/phrases? → If yes, REPHRASE IT
+- Does this describe a similar scene? → If yes, CREATE A DIFFERENT SCENE
+- Is this too similar to the last prompt? → If yes, MAKE IT MORE DISTINCT
+
+Your prompt must be UNIQUE and DIFFERENT from all ${allPreviousPrompts.length} previous prompt(s)!\n`;
   }
   
   // Get layout info from config or previous pages
@@ -81,6 +126,7 @@ ${originalPrompt}
 ${storyDirectionNote}
 ${previousPagesInfo ? `PREVIOUS PAGES:
 ${previousPagesInfo}` : ''}
+${promptUniquenessNote}
 
 ${layout ? `📐 LAYOUT CONTEXT (for reference, but feel free to vary):
 The previous pages used "${layout}" layout with ${panelCountRequirement}.
@@ -110,6 +156,7 @@ The prompt should:
 5. ${pageNumber >= totalPages * 0.8 ? 'Build towards the climax - we are approaching the end' : 'Continue building the story naturally'}
 6. Describe a scene that can work with various panel layouts - layout variety is encouraged
 7. ${sessionHistory.length > 0 ? `DO NOT repeat what happened in Page ${sessionHistory.length} - always move forward` : ''}
+8. ${allPreviousPrompts.length > 0 ? `🚫 CRITICAL: Your prompt MUST be COMPLETELY DIFFERENT from all previous prompts. Check the list above and ensure your prompt is UNIQUE and DISTINCT.` : ''}
 ${layout && panelCountRequirement.includes('PANEL') && !panelCountRequirement.includes('SINGLE') ? `
 7. OPTIONAL - MULTI-PANEL STORY FLOW (if using multi-panel layout):
    If the page uses multiple panels, your prompt should describe a SCENE SEQUENCE that can be broken into multiple moments:
@@ -160,7 +207,7 @@ Now generate the prompt for page ${pageNumber}:`;
     }
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp',
+      model: TEXT_GENERATION_MODEL,
       contents: {
         parts: contentParts
       },
@@ -186,7 +233,65 @@ Now generate the prompt for page ${pageNumber}:`;
       }
     });
 
-    const generatedPrompt = response.text?.trim() || '';
+    let generatedPrompt = response.text?.trim() || '';
+    
+    // Check for prompt similarity and retry if too similar
+    if (allPreviousPrompts.length > 0 && generatedPrompt) {
+      const maxRetries = 3;
+      let retryCount = 0;
+      
+      while (retryCount < maxRetries) {
+        // Check similarity with previous prompts
+        const isTooSimilar = allPreviousPrompts.some(prevPrompt => {
+          const similarity = calculatePromptSimilarity(generatedPrompt.toLowerCase(), prevPrompt.toLowerCase());
+          return similarity > 0.7; // 70% similarity threshold
+        });
+        
+        if (!isTooSimilar) {
+          break; // Prompt is unique enough
+        }
+        
+        retryCount++;
+        console.warn(`⚠️ Generated prompt is too similar to previous prompts. Retrying (${retryCount}/${maxRetries})...`);
+        
+        // Add stronger uniqueness requirement
+        const retryRequest = promptGenerationRequest + `\n\n⚠️⚠️⚠️ RETRY REQUEST - PREVIOUS ATTEMPT WAS TOO SIMILAR:
+Your previous attempt was too similar to existing prompts. Generate a COMPLETELY DIFFERENT prompt.
+- Use DIFFERENT words, phrases, and descriptions
+- Describe a DIFFERENT type of scene or action
+- Change the focus, perspective, or situation
+- Make it DISTINCT and UNIQUE from all previous prompts listed above.`;
+        
+        try {
+          const retryResponse = await ai.models.generateContent({
+            model: TEXT_GENERATION_MODEL,
+            contents: {
+              parts: contentParts.map((part, idx) => 
+                idx === 0 ? { text: retryRequest } : part
+              )
+            },
+            config: {
+              safetySettings: [
+                { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any }
+              ] as any
+            }
+          });
+          
+          generatedPrompt = retryResponse.text?.trim() || generatedPrompt;
+        } catch (retryError) {
+          console.warn('Retry failed, using generated prompt:', retryError);
+          break;
+        }
+      }
+      
+      if (retryCount >= maxRetries) {
+        console.warn('⚠️ Could not generate completely unique prompt after retries, but proceeding with generated prompt.');
+      }
+    }
+    
     return generatedPrompt;
   } catch (error) {
     console.error("Error generating next prompt:", error);
@@ -194,6 +299,20 @@ Now generate the prompt for page ${pageNumber}:`;
     return `Continue the story naturally from page ${pageNumber - 1}. Show what happens next.`;
   }
 };
+
+// Helper function to calculate prompt similarity (simple word overlap)
+function calculatePromptSimilarity(prompt1: string, prompt2: string): number {
+  const words1 = new Set(prompt1.split(/\s+/).filter(w => w.length > 3)); // Only words longer than 3 chars
+  const words2 = new Set(prompt2.split(/\s+/).filter(w => w.length > 3));
+  
+  if (words1.size === 0 || words2.size === 0) return 0;
+  
+  const intersection = new Set([...words1].filter(w => words2.has(w)));
+  const union = new Set([...words1, ...words2]);
+  
+  // Jaccard similarity
+  return intersection.size / union.size;
+}
 
 export const generateMangaImage = async (
   prompt: string,
@@ -236,15 +355,24 @@ All characters described above MUST maintain their EXACT appearance throughout t
   // This ensures proper story flow in batch generation (x10, x15, etc.)
   const hasPreviousPages = sessionHistory && sessionHistory.length > 0;
   
+  // CRITICAL: Check if user provided a specific prompt FIRST
+  // User prompt takes absolute priority - if user typed something, use it
+  const isUserProvidedPrompt = prompt && prompt.trim() && 
+    !prompt.includes('Continue the story naturally from page') && 
+    prompt !== 'Continue the story naturally';
+  
   if (hasPreviousPages) {
     // Check if this is a batch continuation (prompt contains "Continue the story naturally from page")
     isBatchContinuation = prompt.includes('Continue the story naturally from page');
     
-    // If we have previous pages, treat this as continuation even if autoContinueStory is false
-    // This is important for batch generation where each page should continue from the previous one
-    const shouldContinue = config.autoContinueStory || isBatchContinuation || true; // Always continue if we have history
-    
-    if (isBatchContinuation) {
+    // PRIORITY 1: If user provided a specific prompt, use it directly (highest priority)
+    if (isUserProvidedPrompt && !isBatchContinuation) {
+      // User provided a specific prompt - use it as-is, it's the PRIMARY instruction
+      actualPrompt = prompt;
+      // Note: We keep actualPrompt as the user's prompt - it will be shown with highest priority in enhancedPrompt
+    } 
+    // PRIORITY 2: Batch continuation (auto-generated)
+    else if (isBatchContinuation) {
       const pageMatch = prompt.match(/page (\d+)\. This is page (\d+) of (\d+)/);
       if (pageMatch) {
         const currentPage = parseInt(pageMatch[2]);
@@ -267,9 +395,24 @@ ${config.storyDirection && config.storyDirection.trim() ? '• Align with the ov
 • Keep the narrative flowing smoothly between pages
 • You have full creative freedom to develop the story in an engaging way
 
-Create the next scene that continues this manga story naturally.`;
+⚠️ CRITICAL VISUAL VARIETY REQUIREMENTS:
+• AVOID repeating the same LAYOUT/COMPOSITION from previous pages
+  - Change camera angles: if previous page used close-up, use wide shot or medium shot
+  - Change composition: if previous page was centered, use rule of thirds or asymmetric
+  - Change framing: if previous page was horizontal, use vertical or diagonal
+• AVOID repeating the same POSES/GESTURES from previous pages
+  - Change character positions: standing → sitting/walking/lying
+  - Change arm positions: crossed → open/down/up
+  - Change facing direction: left → right/front/back
+  - Change body language and gestures completely
+• VARY visual presentation: different angles, compositions, poses, gestures on EVERY page
+• Each page should have a DISTINCT visual identity while maintaining story continuity
+
+Create the next scene that continues this manga story naturally with VISUALLY DISTINCT composition and poses.`;
       }
-    } else if (!prompt || prompt.trim() === '' || prompt === 'Continue the story naturally' || shouldContinue) {
+    } 
+    // PRIORITY 3: Auto-continue (no user prompt, but auto-continue is enabled or we have history)
+    else if (!prompt || prompt.trim() === '' || prompt === 'Continue the story naturally' || config.autoContinueStory) {
       // This is a continuation - enhance the prompt to emphasize continuation from the LAST page
       const lastPageNum = sessionHistory!.length;
       const storyDirectionNote = config.storyDirection && config.storyDirection.trim() 
@@ -291,7 +434,17 @@ ANALYZE PAGE ${lastPageNum} (THE LAST PAGE):
 CREATE PAGE ${lastPageNum + 1} (THE NEXT PAGE):
 - Your FIRST PANEL must show what happens IMMEDIATELY AFTER the last panel of Page ${lastPageNum}
 - ⚠️ CRITICAL: Panel 1 MUST NOT duplicate or repeat the content of Page ${lastPageNum}'s last panel
-- Panel 1 must be VISUALLY DIFFERENT - use different composition, camera angle, or show a different moment
+- ⚠️ CRITICAL: Panel 1 must be VISUALLY DIFFERENT - use different composition, camera angle, or show a different moment
+- ⚠️ CRITICAL: AVOID repeating the same LAYOUT/COMPOSITION from Page ${lastPageNum}
+  * If Page ${lastPageNum} used centered composition → use rule of thirds or asymmetric composition
+  * If Page ${lastPageNum} used close-up → use medium shot or wide shot
+  * If Page ${lastPageNum} used low angle → use high angle or eye-level
+  * If Page ${lastPageNum} used horizontal layout → use vertical or diagonal layout
+- ⚠️ CRITICAL: AVOID repeating the same POSES/GESTURES from Page ${lastPageNum}
+  * If characters were standing → show them sitting, walking, or in different position
+  * If characters had arms crossed → show different arm positions
+  * If characters were facing left → show them facing right, front, or back
+  * Change body language, facial expressions, and gestures completely
 - Continue the story chronologically - show the NEXT moment in the timeline
 - Advance the narrative forward - what happens because of what ended in Page ${lastPageNum}?
 ${config.storyDirection && config.storyDirection.trim() ? '- Align with the overall story direction while maintaining natural flow' : ''}
@@ -299,7 +452,9 @@ ${config.storyDirection && config.storyDirection.trim() ? '- Align with the over
 - DO NOT repeat the same scene, action, or moment from Page ${lastPageNum}
 - DO NOT show characters in the same position doing the same thing
 - DO NOT recreate the same visual composition, pose, or scene from Page ${lastPageNum}'s panels
+- DO NOT use the same camera angle, framing, or panel layout as Page ${lastPageNum}
 - Move the story forward - show progression and development with NEW visual content
+- VARY the visual presentation: different angles, different compositions, different poses, different gestures
 
 STORY FLOW:
 Page ${lastPageNum} ended with → [Analyze what ended] → Page ${lastPageNum + 1} shows → [What happens next]
@@ -307,39 +462,6 @@ Page ${lastPageNum} ended with → [Analyze what ended] → Page ${lastPageNum +
 Think: "If Page ${lastPageNum} ended with X, then Page ${lastPageNum + 1} should show what happens because of X, or what X leads to, or the consequence of X."
 
 Create a scene that naturally follows and advances the story from Page ${lastPageNum}'s conclusion.`;
-    } else {
-      // User provided a specific prompt, but we still need to continue from previous page
-      const lastPageNum = sessionHistory!.length;
-      const storyDirectionNote = config.storyDirection && config.storyDirection.trim() 
-        ? `\n📖 STORY DIRECTION CONTEXT: Keep the overall story direction in mind: "${config.storyDirection.substring(0, 200)}${config.storyDirection.length > 200 ? '...' : ''}"\n`
-        : '';
-      
-      actualPrompt = `📖 STORY CONTINUATION WITH DIRECTION - PAGE ${lastPageNum + 1}:
-
-This page (Page ${lastPageNum + 1}) continues from Page ${lastPageNum} (the most recent page), moving toward: "${prompt}"
-${storyDirectionNote}
-
-CRITICAL CONTINUITY:
-- Page ${lastPageNum} ended at a specific moment - study its LAST PANEL carefully
-- Your FIRST PANEL must continue IMMEDIATELY from the last panel of Page ${lastPageNum}
-- ⚠️ CRITICAL: Panel 1 MUST NOT duplicate or repeat the visual content of Page ${lastPageNum}'s last panel
-- Panel 1 must be VISUALLY DISTINCT - different composition, angle, or moment
-- Then progress toward the direction: "${prompt}"
-${config.storyDirection && config.storyDirection.trim() ? '- Align with the overall story direction provided' : ''}
-- DO NOT skip or ignore what happened in Page ${lastPageNum}
-- DO NOT repeat scenes or actions from Page ${lastPageNum}
-- DO NOT recreate the same visual composition, pose, or scene from Page ${lastPageNum}'s panels
-- ADVANCE the story forward chronologically - show what happens next with NEW visual content
-
-STORY FLOW:
-Page ${lastPageNum} (ended with...) → Page ${lastPageNum + 1} (continues from that, moving toward: "${prompt}")
-
-Create a scene that:
-1. Continues from Page ${lastPageNum}'s last panel (the immediate next moment)
-2. Moves toward the direction: "${prompt}"
-${config.storyDirection && config.storyDirection.trim() ? '3. Aligns with the overall story direction' : '3. Advances the story chronologically'}
-4. Shows new moments, not repeated ones
-5. Maintains story continuity from Page ${lastPageNum}`;
     }
   }
   
@@ -354,6 +476,14 @@ ${config.storyDirection && config.storyDirection.trim() ? '3. Aligns with the ov
     continuityInstructions += `⚠️ CRITICAL: Study Page ${lastPageNum}'s LAST PANEL - Panel 1 of Page ${lastPageNum + 1} must continue IMMEDIATELY after it\n`;
     continuityInstructions += `✓ ADVANCE the story forward - show NEXT moment, NOT repeat Page ${lastPageNum}\n`;
     continuityInstructions += `✓ Panel 1 MUST be VISUALLY DIFFERENT from Page ${lastPageNum}'s last panel - different composition/angle/moment\n`;
+    continuityInstructions += `\n⚠️⚠️⚠️ AVOID REPEATING LAYOUT & POSES FROM PAGE ${lastPageNum} ⚠️⚠️⚠️\n`;
+    continuityInstructions += `✓ CHANGE composition: If Page ${lastPageNum} was centered → use rule of thirds/asymmetric\n`;
+    continuityInstructions += `✓ CHANGE camera angle: If Page ${lastPageNum} was close-up → use wide/medium shot\n`;
+    continuityInstructions += `✓ CHANGE framing: If Page ${lastPageNum} was horizontal → use vertical/diagonal\n`;
+    continuityInstructions += `✓ CHANGE poses: If characters were standing → show sitting/walking/different position\n`;
+    continuityInstructions += `✓ CHANGE gestures: Different arm positions, facing directions, body language\n`;
+    continuityInstructions += `✓ CHANGE panel layout: Vary panel sizes, positions, and arrangements\n`;
+    continuityInstructions += `✓ Each page must have DISTINCT visual identity - NO repeated compositions or poses\n`;
     continuityInstructions += `\n🎭 CHARACTER APPEARANCE CONSISTENCY (HIGHEST PRIORITY):\n`;
     continuityInstructions += `⚠️⚠️⚠️ ALL characters MUST look EXACTLY THE SAME as in previous pages ⚠️⚠️⚠️\n`;
     continuityInstructions += `✓ Before drawing ANY character, LOOK at the previous page images provided\n`;
@@ -489,7 +619,15 @@ ${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling
   
   let referenceImageInstructions = '';
   let hasRefPreviousPages = sessionHistory && sessionHistory.length > 0;
-  let hasUploadedReferences = config.referenceImages && config.referenceImages.length > 0;
+  
+  // Count only enabled reference images
+  const enabledReferenceImages = config.referenceImages 
+    ? config.referenceImages.filter(img => {
+        if (typeof img === 'string') return true; // Old format: always enabled
+        return img.enabled;
+      })
+    : [];
+  let hasUploadedReferences = enabledReferenceImages.length > 0;
   
   if (hasUploadedReferences || hasRefPreviousPages) {
     referenceImageInstructions = `
@@ -497,7 +635,7 @@ ${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling
 `;
     
     if (hasRefPreviousPages) {
-      const recentPagesCount = Math.min(3, sessionHistory!.length);
+      const recentPagesCount = Math.min(10, sessionHistory!.length);
       referenceImageInstructions += `
 📚 PREVIOUS MANGA PAGES (${recentPagesCount} recent pages provided as visual references):
 ⚠️⚠️⚠️ CRITICAL - CHARACTER CONSISTENCY IS MANDATORY ⚠️⚠️⚠️
@@ -551,7 +689,7 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
     
     if (hasUploadedReferences) {
       referenceImageInstructions += `
-🎨 UPLOADED REFERENCE IMAGES (${config.referenceImages!.length} image${config.referenceImages!.length > 1 ? 's' : ''}):
+🎨 UPLOADED REFERENCE IMAGES (${enabledReferenceImages.length} image${enabledReferenceImages.length > 1 ? 's' : ''} enabled):
 • Use these as additional style/character references
 • Maintain consistency with visual elements shown
 • These are supplementary references for art style and character design
@@ -596,29 +734,67 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
   // Function to sanitize prompt for retry (make it less explicit)
   const sanitizePromptForRetry = (originalPrompt: string, attempt: number): string => {
     if (attempt === 1) {
-      // First retry: Use more artistic/abstract language
+      // First retry: Use more artistic/abstract language - replace explicit terms
       let sanitized = originalPrompt
+        // English terms
         .replace(/explicit/gi, 'artistic')
         .replace(/hentai/gi, 'mature manga')
         .replace(/sexual/gi, 'intimate')
+        .replace(/sex/gi, 'romance')
         .replace(/nude/gi, 'revealing')
         .replace(/nudity/gi, 'revealing scenes')
+        .replace(/naked/gi, 'unclothed')
         .replace(/fetish/gi, 'special interest')
-        .replace(/biến thái/gi, 'unconventional')
+        .replace(/porn/gi, 'mature content')
+        .replace(/pornography/gi, 'mature content')
+        .replace(/erotic/gi, 'sensual')
         .replace(/18\+/g, 'mature')
         .replace(/adult.*content/gi, 'mature content')
-        .replace(/explicit.*content/gi, 'artistic content');
+        .replace(/explicit.*content/gi, 'artistic content')
+        .replace(/nsfw/gi, 'mature')
+        // Vietnamese terms
+        .replace(/biến thái/gi, 'unconventional')
+        .replace(/khiêu dâm/gi, 'mature content')
+        .replace(/sex/gi, 'romance')
+        .replace(/tình dục/gi, 'romance')
+        .replace(/khỏa thân/gi, 'revealing')
+        .replace(/18\+/g, 'mature');
+      
+      // Remove any remaining explicit phrases
+      sanitized = sanitized
+        .replace(/very.*explicit/gi, 'artistic')
+        .replace(/highly.*sexual/gi, 'romantic')
+        .replace(/graphic.*content/gi, 'artistic content');
+      
       return sanitized + ' Use artistic and stylized approach, focus on manga aesthetics and visual storytelling.';
     } else if (attempt === 2) {
-      // Second retry: Even more abstract
+      // Second retry: Even more abstract - remove explicit terms entirely
       let sanitized = originalPrompt
-        .replace(/explicit|hentai|sexual|nude|nudity|fetish|biến thái|18\+|adult content|explicit content/gi, '')
+        .replace(/explicit|hentai|sexual|sex|nude|nudity|naked|fetish|porn|pornography|erotic|biến thái|khiêu dâm|tình dục|khỏa thân|18\+|adult content|explicit content|nsfw/gi, '')
         .replace(/mature.*themes/gi, 'artistic themes')
-        .replace(/explicit.*scenes/gi, 'artistic scenes');
+        .replace(/explicit.*scenes/gi, 'artistic scenes')
+        .replace(/romantic.*scenes/gi, 'emotional scenes')
+        .replace(/intimate.*moments/gi, 'close moments');
+      
+      // Clean up multiple spaces
+      sanitized = sanitized.replace(/\s+/g, ' ').trim();
+      
       return sanitized + ' Focus on artistic manga style, expressive poses, and visual narrative. Use creative composition and manga aesthetics.';
     } else {
-      // Third retry: Very safe, generic
-      return 'Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      // Third retry: Very safe, generic - use only safe description
+      // Try to extract safe elements from original prompt
+      let safeElements = originalPrompt
+        .replace(/explicit|hentai|sexual|sex|nude|nudity|naked|fetish|porn|pornography|erotic|biến thái|khiêu dâm|tình dục|khỏa thân|18\+|adult|explicit|nsfw/gi, '')
+        .replace(/mature.*themes?/gi, '')
+        .replace(/explicit.*scenes?/gi, '')
+        .trim();
+      
+      // If we have safe elements, use them; otherwise use generic
+      if (safeElements.length > 20) {
+        return safeElements + ' Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      } else {
+        return 'Create a manga page with expressive characters, dynamic poses, and engaging visual storytelling. Focus on artistic composition and manga aesthetics.';
+      }
     }
   };
   
@@ -652,11 +828,8 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
   };
 
   // Determine if user provided a specific prompt (not auto-continue)
-  // User prompt is considered if it exists and is not an auto-generated continuation prompt
-  const hasUserPrompt = prompt && prompt.trim() && 
-    !prompt.includes('Continue the story naturally from page') && 
-    prompt !== 'Continue the story naturally' &&
-    !isBatchContinuation;
+  // This should match the same logic used above
+  const hasUserPrompt = isUserProvidedPrompt && !isBatchContinuation;
 
   const enhancedPrompt = `
 ╔═══════════════════════════════════════════════════════════════════╗
@@ -797,6 +970,11 @@ ${isAutoContinue ? `• Panel 1: Continue from Page ${sessionHistory.length}'s L
 ✓ Each panel = logical progression from previous
 ✓ Characters COMPLETE within ONE panel - NEVER split across borders
 ✓ Use varied camera angles for visual variety
+${isAutoContinue ? `⚠️ Panel 1 MUST use DIFFERENT composition/angle/pose than Page ${sessionHistory.length}'s last panel\n` : ''}
+✓ VARY compositions: close-up → medium → wide → extreme close-up
+✓ VARY angles: low angle → eye-level → high angle → bird's eye
+✓ VARY poses: standing → sitting → walking → action pose
+✓ VARY gestures: different arm positions, facing directions, body language
 `;
   }
   return '';
@@ -816,7 +994,8 @@ ${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') ||
 ✓ Characters can appear in multiple panels, but each appearance must be a COMPLETE, FULL character
 ✓ Use different camera angles (close-up, medium, full body) to show the same character in different panels while keeping them complete
 
-${sessionHistory && sessionHistory.length > 0 ? `\n⚠️ CONTINUITY: Characters must look IDENTICAL to previous pages. ${config.autoContinueStory ? `Panel 1 continues from Page ${sessionHistory.length}'s last panel - ADVANCE forward, don't repeat.` : ''}\n` : ''}
+${sessionHistory && sessionHistory.length > 0 ? `\n⚠️ CONTINUITY: Characters must look IDENTICAL to previous pages. ${config.autoContinueStory ? `Panel 1 continues from Page ${sessionHistory.length}'s last panel - ADVANCE forward, don't repeat.` : ''}
+⚠️ VISUAL VARIETY: This page MUST use DIFFERENT composition, camera angles, and poses than Page ${sessionHistory.length}. Change layout, framing, character positions, and gestures to avoid repetition.\n` : ''}
 ${['Dynamic Freestyle', 'Asymmetric Mixed', 'Action Sequence', 'Z-Pattern Flow', 'Climax Focus', 'Conversation Layout'].includes(config.layout) ? `\n⚠️ COMPLEX LAYOUT: Verify spelling in ALL panels before finalizing - text accuracy is #1 priority!\n` : ''}
 ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must have colors, NO grayscale\n` : `\n⚫ COLOR MODE: Black and white only - use screentones for shading\n`}
   `;
@@ -825,9 +1004,9 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: enhancedPrompt }];
     
-    // Add previous manga pages as visual references (last 3 pages)
+    // Add previous manga pages as visual references (last 10 pages)
     if (sessionHistory && sessionHistory.length > 0) {
-      const recentPages = sessionHistory.slice(-3); // Get last 3 pages
+      const recentPages = sessionHistory.slice(-10); // Get last 10 pages
       
       for (const page of recentPages) {
         if (page.url) {
@@ -853,9 +1032,26 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       }
     }
     
-    // Add uploaded reference images if provided
+    // Add uploaded reference images if provided (only enabled ones)
     if (config.referenceImages && config.referenceImages.length > 0) {
-      for (const imageData of config.referenceImages) {
+      for (const imageItem of config.referenceImages) {
+        // Support both old format (string) and new format (ReferenceImage object)
+        let imageData: string;
+        let enabled: boolean = true; // Default to enabled for backward compatibility
+        
+        if (typeof imageItem === 'string') {
+          // Old format: just a string URL
+          imageData = imageItem;
+          enabled = true;
+        } else {
+          // New format: ReferenceImage object
+          imageData = imageItem.url;
+          enabled = imageItem.enabled;
+        }
+        
+        // Only add if enabled
+        if (!enabled) continue;
+        
         // Extract base64 data (remove data:image/...;base64, prefix if present)
         const base64Data = imageData.includes('base64,') 
           ? imageData.split('base64,')[1] 
@@ -900,7 +1096,7 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
         }
         
         response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
+      model: IMAGE_GENERATION_MODEL,
       contents: {
             parts: currentContentParts
       },
@@ -964,6 +1160,30 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (finishReason). Retrying with modified prompt...`);
       retryAttempt++;
       lastError = new Error(`Content blocked: PROHIBITED_CONTENT. ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+      
+      // Sanitize prompt for next retry
+      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      
+      // Wait a bit before retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      continue; // Retry with modified prompt
+    }
+    
+    // Check for IMAGE_SAFETY in finishReason (similar to PROHIBITED_CONTENT)
+    if (candidate.finishReason === 'IMAGE_SAFETY' && retryAttempt < maxRetries) {
+      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY (finishReason). Retrying with modified prompt...`);
+      retryAttempt++;
+      lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+      
+      // Sanitize prompt for next retry
+      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      
       // Wait a bit before retry
       await new Promise(resolve => setTimeout(resolve, 1000));
       continue; // Retry with modified prompt
@@ -974,24 +1194,16 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
       console.error("Finish reason:", candidate.finishReason);
       console.error("Finish message:", candidate.finishMessage);
       
+      // If IMAGE_SAFETY and max retries reached
       if (candidate.finishReason === 'IMAGE_SAFETY') {
-        // IMAGE_SAFETY can also be retried
-        if (retryAttempt < maxRetries) {
-          console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY. Retrying with modified prompt...`);
-          retryAttempt++;
-          lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          continue;
-        } else {
-          console.error("Image was blocked by IMAGE_SAFETY filter");
-          console.warn("The generated image violated Google's Generative AI Prohibited Use policy");
-          console.warn("This can happen even with safety settings disabled due to Google's content policy");
-          console.warn("Suggestions:");
-          console.warn("1. Try rephrasing the prompt to be less explicit");
-          console.warn("2. Use more artistic/abstract descriptions");
-          console.warn("3. Consider using alternative APIs that support adult content");
-          throw new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
-        }
+        console.error("Image was blocked by IMAGE_SAFETY filter after all retry attempts");
+        console.warn("The generated image violated Google's Generative AI Prohibited Use policy");
+        console.warn("This can happen even with safety settings disabled due to Google's content policy");
+        console.warn("Suggestions:");
+        console.warn("1. Try rephrasing the prompt to be less explicit");
+        console.warn("2. Use more artistic/abstract descriptions");
+        console.warn("3. Consider using alternative APIs that support adult content");
+        throw new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
       }
       
       // For other finish reasons, throw error
@@ -1002,11 +1214,19 @@ ${config.useColor ? `\n🌈 COLOR MODE: FULL COLOR required - all elements must 
     console.log(`✅ Generation successful${retryAttempt > 0 ? ` after ${retryAttempt} retry attempt(s)` : ''}`);
     break;
       } catch (error: any) {
-        // If it's a PROHIBITED_CONTENT error and we haven't reached max retries, retry
-        if (error.message?.includes('PROHIBITED_CONTENT') && retryAttempt < maxRetries) {
-          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: PROHIBITED_CONTENT. Retrying with modified prompt...`);
+        // If it's a PROHIBITED_CONTENT or IMAGE_SAFETY error and we haven't reached max retries, retry
+        if ((error.message?.includes('PROHIBITED_CONTENT') || error.message?.includes('IMAGE_SAFETY')) && retryAttempt < maxRetries) {
+          const errorType = error.message?.includes('IMAGE_SAFETY') ? 'IMAGE_SAFETY' : 'PROHIBITED_CONTENT';
+          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: ${errorType}. Retrying with modified prompt...`);
           retryAttempt++;
           lastError = error;
+          
+          // Sanitize prompt for next retry
+          console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
+          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+          
           // Wait a bit before retry
           await new Promise(resolve => setTimeout(resolve, 1000));
           continue;

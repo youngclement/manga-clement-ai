@@ -1,41 +1,106 @@
 import { MangaProject } from "@/lib/types";
 
-const DB_NAME = 'MangaGenDB';
-const STORE_NAME = 'projects';
-const DB_VERSION = 3; // Match existing database version
-
-export const initDB = (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-};
+const API_BASE_URL = '/api/projects';
 
 export const saveProject = async (project: MangaProject): Promise<void> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.put(project);
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const response = await fetch(API_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(project),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to save project');
+    }
+  } catch (error) {
+    console.error('Error saving project to MongoDB:', error);
+    throw error;
+  }
 };
 
 export const loadProject = async (id: string = 'default'): Promise<MangaProject | null> => {
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const request = store.get(id);
-    request.onsuccess = () => resolve(request.result || null);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}?id=${encodeURIComponent(id)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to load project');
+    }
+
+    const data = await response.json();
+    return data.project || null;
+  } catch (error) {
+    console.error('Error loading project from MongoDB:', error);
+    throw error;
+  }
+};
+
+export const deleteProject = async (id: string = 'default'): Promise<void> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}?id=${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete project');
+    }
+  } catch (error) {
+    console.error('Error deleting project from MongoDB:', error);
+    throw error;
+  }
+};
+
+// Delete image(s) from MongoDB
+export const deleteImage = async (imageId: string): Promise<void> => {
+  try {
+    const response = await fetch(`/api/images?id=${encodeURIComponent(imageId)}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete image');
+    }
+  } catch (error) {
+    console.error('Error deleting image from MongoDB:', error);
+    throw error;
+  }
+};
+
+// Delete multiple images from MongoDB
+export const deleteImages = async (imageIds: string[]): Promise<void> => {
+  try {
+    if (imageIds.length === 0) return;
+    
+    const response = await fetch(`/api/images?ids=${encodeURIComponent(imageIds.join(','))}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to delete images');
+    }
+  } catch (error) {
+    console.error('Error deleting images from MongoDB:', error);
+    throw error;
+  }
 };

@@ -18,6 +18,7 @@ import {
     DialogueDensity,
     Language,
     MangaConfig,
+    ReferenceImage,
 } from '@/lib/types';
 
 interface StorySettingsPanelProps {
@@ -37,12 +38,30 @@ export default function StorySettingsPanel({
     const [uploading, setUploading] = useState(false);
     const [autoContinue, setAutoContinue] = useState(true);
 
+    // Helper to normalize image format (string -> ReferenceImage)
+    const normalizeImage = (img: string | ReferenceImage): ReferenceImage => {
+        if (typeof img === 'string') {
+            return { url: img, enabled: true };
+        }
+        return img;
+    };
+
+    // Helper to get image URL
+    const getImageUrl = (img: string | ReferenceImage): string => {
+        return typeof img === 'string' ? img : img.url;
+    };
+
+    // Helper to check if image is enabled
+    const isImageEnabled = (img: string | ReferenceImage): boolean => {
+        return typeof img === 'string' ? true : img.enabled;
+    };
+
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (!files || files.length === 0) return;
 
         setUploading(true);
-        const newImages: string[] = [];
+        const newImages: ReferenceImage[] = [];
 
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
@@ -51,7 +70,10 @@ export default function StorySettingsPanel({
             await new Promise((resolve) => {
                 reader.onload = (event) => {
                     if (event.target?.result) {
-                        newImages.push(event.target.result as string);
+                        newImages.push({
+                            url: event.target.result as string,
+                            enabled: true, // New images are enabled by default
+                        });
                     }
                     resolve(null);
                 };
@@ -60,7 +82,9 @@ export default function StorySettingsPanel({
         }
 
         const currentImages = config.referenceImages || [];
-        onConfigChange({ ...config, referenceImages: [...currentImages, ...newImages] });
+        // Normalize existing images to ReferenceImage format
+        const normalizedImages = currentImages.map(img => normalizeImage(img));
+        onConfigChange({ ...config, referenceImages: [...normalizedImages, ...newImages] });
         setUploading(false);
 
         if (fileInputRef.current) {
@@ -68,10 +92,34 @@ export default function StorySettingsPanel({
         }
     };
 
-    const removeImage = (index: number) => {
+    const removeImage = async (index: number) => {
         const currentImages = config.referenceImages || [];
+        const imageToRemove = currentImages[index];
+        
+        // If image is base64 (stored in MongoDB), delete it
+        if (imageToRemove) {
+            const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url;
+            // Check if it's a MongoDB image ID (not base64 or http)
+            if (imageUrl && !imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
+                try {
+                    const { deleteImage } = await import('@/lib/services/storage-service');
+                    await deleteImage(imageUrl);
+                } catch (error) {
+                    console.error('Failed to delete image from MongoDB:', error);
+                    // Continue with removal from config even if DB delete fails
+                }
+            }
+        }
+        
         const newImages = currentImages.filter((_, i) => i !== index);
         onConfigChange({ ...config, referenceImages: newImages });
+    };
+
+    const toggleImageEnabled = (index: number) => {
+        const currentImages = config.referenceImages || [];
+        const normalizedImages = currentImages.map(img => normalizeImage(img));
+        normalizedImages[index].enabled = !normalizedImages[index].enabled;
+        onConfigChange({ ...config, referenceImages: normalizedImages });
     };
 
     return (
@@ -139,22 +187,59 @@ export default function StorySettingsPanel({
 
                             {/* Display uploaded images */}
                             {config.referenceImages && config.referenceImages.length > 0 && (
-                                <div className="grid grid-cols-2 gap-2">
-                                    {config.referenceImages.map((img, idx) => (
-                                        <div key={idx} className="relative group">
-                                            <img
-                                                src={img}
-                                                alt={`Reference ${idx + 1}`}
-                                                className="w-full h-20 object-cover rounded border border-zinc-800"
-                                            />
-                                            <button
-                                                onClick={() => removeImage(idx)}
-                                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                                            >
-                                                <X size={12} className="text-white" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                <div className="space-y-2">
+                                    <p className="text-xs text-zinc-400 mb-2">
+                                        Click checkbox to enable/disable. Disabled images won't be used in generation but will be saved.
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {config.referenceImages.map((img, idx) => {
+                                            const imageUrl = getImageUrl(img);
+                                            const enabled = isImageEnabled(img);
+                                            return (
+                                                <div key={idx} className="relative group">
+                                                    <img
+                                                        src={imageUrl}
+                                                        alt={`Reference ${idx + 1}`}
+                                                        className={`w-full h-20 object-cover rounded border transition-all ${
+                                                            enabled 
+                                                                ? 'border-zinc-800 opacity-100' 
+                                                                : 'border-zinc-700 opacity-50 grayscale'
+                                                        }`}
+                                                    />
+                                                    {/* Enable/Disable Checkbox */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            toggleImageEnabled(idx);
+                                                        }}
+                                                        className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                                            enabled
+                                                                ? 'bg-amber-500 border-amber-500'
+                                                                : 'bg-zinc-800 border-zinc-600'
+                                                        }`}
+                                                        title={enabled ? 'Disable (will be saved but not used)' : 'Enable (will be used in generation)'}
+                                                    >
+                                                        {enabled && (
+                                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                                            </svg>
+                                                        )}
+                                                    </button>
+                                                    {/* Remove Button */}
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            removeImage(idx);
+                                                        }}
+                                                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        title="Remove image"
+                                                    >
+                                                        <X size={12} className="text-white" />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
                             )}
                         </div>

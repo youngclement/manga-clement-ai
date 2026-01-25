@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Layers, Trash2, Plus, FileText, Maximize2, CheckSquare, Square } from 'lucide-react';
+import { Layers, Trash2, Plus, FileText, Maximize2, CheckSquare, Square, Image as ImageIcon, X } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -9,12 +9,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import { MangaProject, MangaSession, GeneratedManga } from '@/lib/types';
+import { MangaProject, MangaSession, GeneratedManga, MangaConfig, ReferenceImage } from '@/lib/types';
 
 interface SessionSidebarProps {
     project: MangaProject;
     currentSession: MangaSession | null;
     pagesToShow: GeneratedManga[];
+    config?: MangaConfig;
     onSwitchSession: (sessionId: string) => void;
     onDeleteSession: (sessionId: string) => void;
     onCreateSession: (name: string) => void;
@@ -23,6 +24,7 @@ interface SessionSidebarProps {
     onDeletePage: (pageId: string) => void;
     onDeletePages: (pageIds: string[]) => void;
     onOpenFullscreen: (imageUrl: string) => void;
+    onConfigChange?: (config: MangaConfig) => void;
     leftWidth: number;
 }
 
@@ -30,6 +32,7 @@ export default function SessionSidebar({
     project,
     currentSession,
     pagesToShow,
+    config,
     onSwitchSession,
     onDeleteSession,
     onCreateSession,
@@ -38,9 +41,64 @@ export default function SessionSidebar({
     onDeletePage,
     onDeletePages,
     onOpenFullscreen,
+    onConfigChange,
     leftWidth,
 }: SessionSidebarProps) {
     const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
+    const [showReferencePanel, setShowReferencePanel] = useState(false);
+
+    // Helper to normalize image format
+    const normalizeImage = (img: string | ReferenceImage): ReferenceImage => {
+        if (typeof img === 'string') {
+            return { url: img, enabled: true };
+        }
+        return img;
+    };
+
+    // Helper to get image URL
+    const getImageUrl = (img: string | ReferenceImage): string => {
+        return typeof img === 'string' ? img : img.url;
+    };
+
+    // Helper to check if image is enabled
+    const isImageEnabled = (img: string | ReferenceImage): boolean => {
+        return typeof img === 'string' ? true : img.enabled;
+    };
+
+    const toggleImageEnabled = (index: number) => {
+        if (!config || !onConfigChange) return;
+        const currentImages = config.referenceImages || [];
+        const normalizedImages = currentImages.map(img => normalizeImage(img));
+        normalizedImages[index].enabled = !normalizedImages[index].enabled;
+        onConfigChange({ ...config, referenceImages: normalizedImages });
+    };
+
+    const removeReferenceImage = async (index: number) => {
+        if (!config || !onConfigChange) return;
+        const currentImages = config.referenceImages || [];
+        const imageToRemove = currentImages[index];
+        
+        // If image is stored in MongoDB, delete it
+        if (imageToRemove) {
+            const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url;
+            // Check if it's a MongoDB image ID (not base64 or http)
+            if (imageUrl && !imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
+                try {
+                    const { deleteImage } = await import('@/lib/services/storage-service');
+                    await deleteImage(imageUrl);
+                } catch (error) {
+                    console.error('Failed to delete image from MongoDB:', error);
+                    // Continue with removal from config even if DB delete fails
+                }
+            }
+        }
+        
+        const newImages = currentImages.filter((_, i) => i !== index);
+        onConfigChange({ ...config, referenceImages: newImages });
+    };
+
+    const referenceImages = config?.referenceImages || [];
+    const enabledCount = referenceImages.filter(img => isImageEnabled(img)).length;
 
     const togglePageSelection = (pageId: string) => {
         setSelectedPages(prev => {
@@ -150,6 +208,17 @@ export default function SessionSidebar({
                             <Plus size={12} />
                             NEW SESSION
                         </button>
+                        {/* Reference Images Button */}
+                        {referenceImages.length > 0 && (
+                            <button
+                                onClick={() => setShowReferencePanel(!showReferencePanel)}
+                                className="w-full px-3 py-1.5 bg-gradient-to-b from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 shadow-[0_2px_0_0_rgb(29,78,216)] hover:shadow-[0_2px_0_0_rgb(29,78,216)] active:shadow-[0_0.5px_0_0_rgb(29,78,216)] active:translate-y-0.5"
+                                style={{ fontFamily: 'var(--font-inter)' }}
+                            >
+                                <ImageIcon size={12} />
+                                REFERENCE ({enabledCount}/{referenceImages.length})
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <button
@@ -161,6 +230,67 @@ export default function SessionSidebar({
                     </button>
                 )}
             </div>
+
+            {/* Reference Images Panel */}
+            {showReferencePanel && referenceImages.length > 0 && (
+                <div className="border-b border-zinc-800 bg-zinc-950 p-4 max-h-64 overflow-y-auto custom-scrollbar">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-xs font-bold text-zinc-400 uppercase" style={{ fontFamily: 'var(--font-inter)' }}>
+                            Reference Images
+                        </h3>
+                        <button
+                            onClick={() => setShowReferencePanel(false)}
+                            className="p-1 hover:bg-zinc-800 rounded transition-colors"
+                            title="Close"
+                        >
+                            <X size={14} className="text-zinc-500" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                        {referenceImages.map((img, idx) => {
+                            const imageUrl = getImageUrl(img);
+                            const enabled = isImageEnabled(img);
+                            return (
+                                <div key={idx} className="relative group">
+                                    <img
+                                        src={imageUrl}
+                                        alt={`Reference ${idx + 1}`}
+                                        className={`w-full h-20 object-cover rounded border transition-all ${
+                                            enabled 
+                                                ? 'border-zinc-800 opacity-100' 
+                                                : 'border-zinc-700 opacity-50 grayscale'
+                                        }`}
+                                    />
+                                    {/* Enable/Disable Checkbox */}
+                                    <button
+                                        onClick={() => toggleImageEnabled(idx)}
+                                        className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                            enabled
+                                                ? 'bg-amber-500 border-amber-500'
+                                                : 'bg-zinc-800 border-zinc-600'
+                                        }`}
+                                        title={enabled ? 'Disable (will be saved but not used)' : 'Enable (will be used in generation)'}
+                                    >
+                                        {enabled && (
+                                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                            </svg>
+                                        )}
+                                    </button>
+                                    {/* Remove Button */}
+                                    <button
+                                        onClick={() => removeReferenceImage(idx)}
+                                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Remove image"
+                                    >
+                                        <X size={12} className="text-white" />
+                                    </button>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            )}
 
             {/* Pages Grid */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
