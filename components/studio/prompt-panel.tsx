@@ -38,7 +38,10 @@ export default function PromptPanel({
 
     const handleBatchSelect = (count: number) => {
         setBatchPopoverOpen(false);
-        onBatchGenerate(count);
+        // Small delay to ensure state updates are processed
+        setTimeout(() => {
+            onBatchGenerate(count);
+        }, 100);
     };
 
     return (

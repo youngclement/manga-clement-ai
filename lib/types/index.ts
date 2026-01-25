@@ -106,6 +106,7 @@ export interface MangaSession {
   context: string;
   pages: GeneratedManga[];
   chatHistory: ChatMessage[];
+  config?: MangaConfig; // Store config including storyDirection
   createdAt: number;
   updatedAt: number;
 }
@@ -125,4 +126,8 @@ export interface MangaProject {
   pages: GeneratedManga[];
   sessions: MangaSession[];
   currentSessionId?: string;
+  preferences?: {
+    leftWidth?: number;
+    middleWidth?: number;
+  };
 }
