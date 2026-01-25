@@ -33,18 +33,25 @@ COLOR MODE REQUIREMENTS:
 - If BLACK AND WHITE mode is specified: Use only black ink, white space, and grayscale screentones - NO colors
 
 TEXT & DIALOGUE ACCURACY (CRITICAL - HIGHEST PRIORITY - #1 CONCERN):
-⚠️⚠️⚠️ TEXT ACCURACY IS THE MOST IMPORTANT REQUIREMENT - ZERO TOLERANCE FOR ERRORS ⚠️⚠️⚠️
+🚨🚨🚨🚨🚨 TEXT ACCURACY IS THE ABSOLUTE #1 PRIORITY - HIGHER THAN ANYTHING ELSE - ZERO TOLERANCE FOR ERRORS 🚨🚨🚨🚨🚨
 
-- ALL text and dialogue MUST be spelled correctly in the specified language - NO EXCEPTIONS, NO TYPOS, NO ERRORS
-- Before rendering ANY text, you MUST verify EVERY word character-by-character - read each word carefully and spell it out mentally
+- ALL text and dialogue MUST be spelled correctly in the specified language - NO EXCEPTIONS, NO TYPOS, NO ERRORS, ZERO TOLERANCE
+- Before rendering ANY text, you MUST verify EVERY word character-by-character, letter-by-letter - read each word carefully and spell it out mentally
 - Use proper grammar, punctuation, and natural phrasing - verify sentence structure is correct
 - Text must be CRYSTAL CLEAR, SHARP, and highly legible - no blurry, fuzzy, distorted, or unreadable text
 - Text must have STRONG contrast (dark text #000000 on light background #FFFFFF) and appropriate size (minimum readable)
 - Speech bubbles should be well-positioned with proper padding and not cover important artwork
 - For non-English languages, use proper scripts and characters (Japanese: kanji/hiragana/katakana, Vietnamese: diacritics, etc.)
-- For Vietnamese: EVERY diacritic (dấu) must be present and correct - missing diacritics = WRONG spelling (this is CRITICAL)
-- For Vietnamese: Common mistakes to avoid: "rồi" (NOT "rò"), "tất cả" (NOT "tế cã"), "thành công" (NOT "thánh cộnc"), "vô dụng" (NOT "đô vộ dượng"), "bẩn" (NOT "bẫn"), "đ" (NOT "d")
-- For Vietnamese: Verify "đ" vs "d" - they are DIFFERENT letters and cannot be interchanged
+
+🚨🚨🚨 VIETNAMESE TEXT REQUIREMENTS (CRITICAL - EXTRA ATTENTION REQUIRED) 🚨🚨🚨:
+- For Vietnamese: EVERY diacritic (dấu) must be present and correct - missing diacritics = WRONG spelling (this is CRITICAL and MANDATORY)
+- For Vietnamese: "đ" and "Đ" are COMPLETELY DIFFERENT from "d" and "D" - NEVER mix them up, they are DIFFERENT letters
+- For Vietnamese: Common mistakes that are ABSOLUTELY FORBIDDEN: "rò" (should be "rồi"), "tế cã" (should be "tất cả"), "thánh cộnc" (should be "thành công"), "đô vộ dượng" (should be "vô dụng"), "bẫn" (should be "bẩn"), "nhạh" (should be "nhảy" or "nhạt")
+- For Vietnamese: Common words to verify carefully: "là" (NOT "la"), "đã" (NOT "da"), "của" (NOT "cua"), "với" (NOT "voi"), "người" (NOT "nguoi"), "việc" (NOT "viec"), "được" (NOT "duoc"), "không" (NOT "khong"), "nhưng" (NOT "nhung"), "rồi" (NOT "roi" or "rò"), "tất cả" (NOT "tat ca" or "tế cã"), "thành công" (NOT "thanh cong" or "thánh cộnc"), "vô dụng" (NOT "vo dung" or "đô vộ dượng"), "bẩn" (NOT "ban" or "bẫn")
+- For Vietnamese: Read each word character-by-character, diacritic-by-diacritic before rendering - visualize how each word will appear
+- For Vietnamese: ONE missing diacritic = WRONG spelling = UNACCEPTABLE - ZERO TOLERANCE
+- For Vietnamese: ONE wrong letter (đ vs d) = WRONG spelling = UNACCEPTABLE - ZERO TOLERANCE
+
 - For Japanese/Chinese: Every character must be the CORRECT one, not similar-looking wrong characters (e.g., 人 vs 入, 日 vs 曰)
 - For Korean: Every Hangul syllable block must be correctly formed with proper spacing between words
 - For English: Common words must be correct - "the" (NOT "teh"), "and" (NOT "adn"), "you" (NOT "yu"), "are" (NOT "aer")
@@ -52,6 +59,7 @@ TEXT & DIALOGUE ACCURACY (CRITICAL - HIGHEST PRIORITY - #1 CONCERN):
 - Double-check, triple-check, and verify ALL text character-by-character before rendering - text accuracy is NON-NEGOTIABLE
 - If you're unsure about ANY word's spelling, use a simpler word you're 100% certain is correct
 - ONE typo can ruin the entire page - take your time to verify spelling, it's more important than speed
+- Text accuracy is MORE IMPORTANT than artistic style - ONE typo can ruin the entire page's credibility
 - Text accuracy is MORE IMPORTANT than artistic style - perfect spelling comes FIRST, always
 
 CHARACTER CONSISTENCY RULES (When continuing a story - HIGHEST PRIORITY):

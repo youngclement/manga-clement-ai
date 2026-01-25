@@ -382,108 +382,36 @@ ${config.storyDirection && config.storyDirection.trim() ? '3. Aligns with the ov
     // Language-specific spelling and grammar requirements
     let languageSpecificRules = '';
     if (config.language === 'English') {
-      languageSpecificRules = `⚠️ CRITICAL ENGLISH TEXT REQUIREMENTS:
-• EVERY word must be spelled correctly - double-check spelling before rendering
-• Use proper English grammar, punctuation, and capitalization
-• Common words must be correct: "the", "and", "you", "are", "is", "was", "were", etc.
-• Avoid common misspellings: "teh" → "the", "adn" → "and", "yu" → "you"
-• Use correct verb forms: "is/are", "was/were", "has/have"
-• Proper punctuation: periods (.), commas (,), question marks (?), exclamation marks (!)
-• Capitalize first letter of sentences and proper nouns
-• Write natural, conversational dialogue appropriate for manga`;
+      languageSpecificRules = `⚠️ ENGLISH TEXT REQUIREMENTS:
+• Spell EVERY word correctly - verify: "the" (NOT "teh"), "and" (NOT "adn"), "you" (NOT "yu")
+• Use proper grammar, punctuation, and capitalization
+• Write natural, conversational dialogue`;
     } else if (config.language === 'Japanese') {
-      languageSpecificRules = `⚠️ CRITICAL JAPANESE TEXT REQUIREMENTS:
-• Use correct Japanese characters - NO typos or incorrect kanji
-• Hiragana (ひらがな) must be written correctly
-• Katakana (カタカナ) must be written correctly  
-• Kanji (漢字) must be the correct characters, not similar-looking wrong ones
-• Follow proper Japanese grammar and sentence structure
-• Use appropriate honorifics (さん, くん, ちゃん, etc.) when needed
-• Follow Japanese manga text conventions and reading direction (right-to-left for vertical text)
-• NO mixing of hiragana/katakana incorrectly`;
+      languageSpecificRules = `⚠️ JAPANESE TEXT REQUIREMENTS:
+• Use correct Hiragana (ひらがな), Katakana (カタカナ), and Kanji (漢字)
+• Every character must be correct, not similar-looking wrong ones
+• Follow proper Japanese grammar and manga text conventions`;
     } else if (config.language === 'Vietnamese') {
-      languageSpecificRules = `⚠️⚠️⚠️ CRITICAL VIETNAMESE TEXT REQUIREMENTS - ZERO TOLERANCE FOR ERRORS ⚠️⚠️⚠️
-• EVERY word must have CORRECT diacritics (dấu) - this is ESSENTIAL and MANDATORY
-• Missing even ONE diacritic = WRONG spelling - this is CRITICAL
-• Common diacritics: à, á, ả, ã, ạ, ă, â, è, é, ẻ, ẽ, ẹ, ê, ì, í, ỉ, ĩ, ị, ò, ó, ỏ, õ, ọ, ô, ơ, ù, ú, ủ, ũ, ụ, ư, ỳ, ý, ỷ, ỹ, ỵ
-
-🔍 COMMON WORDS - VERIFY THESE CAREFULLY:
-✓ "là" (NOT "la") - means "is/are"
-✓ "đã" (NOT "da") - means "already"
-✓ "của" (NOT "cua") - means "of/belonging to"
-✓ "với" (NOT "voi") - means "with"
-✓ "này" (NOT "nay") - means "this"
-✓ "người" (NOT "nguoi") - means "person/people"
-✓ "việc" (NOT "viec") - means "work/thing"
-✓ "được" (NOT "duoc") - means "can/get"
-✓ "không" (NOT "khong") - means "no/not"
-✓ "nhưng" (NOT "nhung") - means "but"
-✓ "rồi" (NOT "roi" or "rò") - means "already/done"
-✓ "tất cả" (NOT "tat ca" or "tế cã") - means "everyone/all"
-✓ "thành công" (NOT "thanh cong" or "thánh cộnc") - means "successful"
-✓ "vô dụng" (NOT "vo dung" or "đô vộ dượng") - means "useless"
-✓ "bẩn" (NOT "ban" or "bẫn") - means "dirty"
-✓ "nhảy" (NOT "nhay" or "nhạh") - means "jump"
-✓ "nhạt" (NOT "nhat" or "nhạh") - means "bland"
-✓ "kết quả" (NOT "ket qua" or "quả mình") - means "result"
-
-🚫 COMMON MISTAKES TO AVOID (VERIFY THESE CAREFULLY):
-✗ "RỐT" → Should be "RỐI" (messy) or "RỐT RÁO" (urgent) - NEVER use "RỐT" alone
-✗ "BẪN ĐỒ" → Should be "BẨN ĐỒ" (dirty thing) - "BẪN" is WRONG, must be "BẨN"
-✗ "RÒ" → Should be "RỒI" (already/done) - MUST have diacritic "ồ"
-✗ "RỒI" (NOT "roi" or "rò") - always check the diacritic
-✗ "TẾ CÃ" → Should be "TẤT CẢ" (everyone/all) - "TẾ CÃ" is COMPLETELY WRONG
-✗ "TẤT CẢ" (NOT "tat ca" or "tế cã") - must have all diacritics
-✗ "ĐÔ VỘ DƯỢNG" → Should be "ĐỒ VÔ DỤNG" (useless thing) - "ĐÔ VỘ DƯỢNG" is WRONG
-✗ "ĐỒ VÔ DỤNG" (NOT "đô vộ dượng" or "do vo dung") - verify each word carefully
-✗ "QUẢ MÌNH" → Should be "KẾT QUẢ CỦA MÌNH" (my result) or "PHẦN CỦA MÌNH" (my share)
-✗ "NHẠH" → Should be "NHẢY" (jump) or "NHẠT" (bland) - "NHẠH" is NOT a valid word
-✗ "THÁNH CỘNC" → Should be "THÀNH CÔNG" (successful) - "THÁNH CỘNC" is COMPLETELY WRONG
-✗ "THÀNH CÔNG" (NOT "thánh cộnc" or "thanh cong") - verify each character
-✗ Missing diacritics on ANY word - this makes the word WRONG
-✗ Using "d" instead of "đ" - they are DIFFERENT letters
-✗ Using "D" instead of "Đ" - they are DIFFERENT letters
-✗ "LÀ" (NOT "la") - must have diacritic "à"
-✗ "ĐÃ" (NOT "da") - must use "đ" not "d", and diacritic "ã"
-✗ "CỦA" (NOT "cua") - must have diacritic "ủ"
-✗ "VỚI" (NOT "voi") - must have diacritic "ớ"
-✗ "NGƯỜI" (NOT "nguoi") - must have diacritics "ư" and "ờ"
-✗ "VIỆC" (NOT "viec") - must have diacritics "ệ"
-✗ "ĐƯỢC" (NOT "duoc") - must use "đ" not "d", and diacritics "ư" and "ợ"
-
-✓ REQUIRED:
-✓ "đ" and "Đ" are DIFFERENT from "d" and "D" - use correct letter
-✓ EVERY diacritic must be present and correct
-✓ Double-check EVERY word before rendering
-✓ Use correct Vietnamese spelling - NO missing diacritics, NO typos
-✓ Write natural Vietnamese dialogue with proper grammar
-✓ If unsure about spelling, use a simpler word you're certain is correct`;
+      languageSpecificRules = `🚨 VIETNAMESE TEXT REQUIREMENTS - CRITICAL:
+• EVERY word MUST have correct diacritics (dấu) - missing ONE = WRONG spelling
+• "đ" and "Đ" are DIFFERENT from "d" and "D" - NEVER mix them up
+• Common correct words: "là", "đã", "của", "với", "rồi", "tất cả", "thành công", "vô dụng", "bẩn"
+• Common WRONG words to AVOID: "rò" (should be "rồi"), "tế cã" (should be "tất cả"), "thánh cộnc" (should be "thành công"), "đô vộ dượng" (should be "vô dụng"), "bẫn" (should be "bẩn"), "nhạh" (should be "nhảy" or "nhạt")
+• Verify each word character-by-character before rendering`;
     } else if (config.language === 'Korean') {
-      languageSpecificRules = `⚠️ CRITICAL KOREAN TEXT REQUIREMENTS:
-• Use correct Hangul (한글) characters - NO typos or incorrect letters
-• Every syllable block must be correctly formed
-• Use proper spacing between words
-• Common words must be correct: "안녕", "있어", "없어", "하고", "그리고", etc.
-• Avoid common mistakes: "있어" (not "이써"), "없어" (not "업서")
-• Use correct Korean grammar and sentence endings (요, 다, 니다, etc.)
-• Follow Korean manga/manhwa text conventions
-• NO mixing of similar-looking Hangul characters incorrectly`;
+      languageSpecificRules = `⚠️ KOREAN TEXT REQUIREMENTS:
+• Use correct Hangul (한글) - every syllable block must be correctly formed
+• Verify: "안녕", "있어" (NOT "이써"), "없어" (NOT "업서")
+• Use proper spacing and grammar`;
     } else if (config.language === 'Chinese') {
-      languageSpecificRules = `⚠️ CRITICAL CHINESE TEXT REQUIREMENTS:
-• Use correct Chinese characters (汉字) - NO typos or incorrect characters
-• Every character must be the correct one, not similar-looking wrong characters
-• Use consistent script: Traditional (繁體) OR Simplified (简体) - don't mix
-• Common characters must be correct: "的", "了", "是", "在", "有", "我", "你", "他"
-• Avoid using wrong characters that look similar
-• Use proper Chinese grammar and sentence structure
-• Follow Chinese manhua text conventions
-• NO character substitution or typos`;
+      languageSpecificRules = `⚠️ CHINESE TEXT REQUIREMENTS:
+• Use correct characters (汉字) - verify each character is correct, not similar-looking wrong ones
+• Use consistent script: Traditional (繁體) OR Simplified (简体)
+• Common characters: "的", "了", "是", "在", "有", "我", "你", "他"`;
     } else {
-      languageSpecificRules = `⚠️ CRITICAL TEXT REQUIREMENTS FOR ${config.language.toUpperCase()}:
-• EVERY word must be spelled correctly in ${config.language}
-• Use proper grammar, punctuation, and spelling rules for ${config.language}
-• Double-check all text before rendering - NO typos allowed
-• Write natural dialogue appropriate for ${config.language} manga`;
+      languageSpecificRules = `⚠️ ${config.language.toUpperCase()} TEXT REQUIREMENTS:
+• Spell EVERY word correctly in ${config.language}
+• Use proper grammar, punctuation, and spelling rules`;
     }
     
     dialogueInstructions = `
@@ -502,25 +430,14 @@ STEP 1: READ & SPELL CHECK (DO THIS FIRST):
 ✓ Check common words especially: ${config.language === 'English' ? '"the", "and", "you", "are", "is", "was", "what", "that", "this", "with"' : config.language === 'Vietnamese' ? '"là", "đã", "của", "với", "này", "người", "rồi", "tất cả", "thành công", "vô dụng", "bẩn", "không", "nhưng", "được", "việc"' : config.language === 'Japanese' ? '"です", "ます", "は", "が", "を", "に"' : config.language === 'Korean' ? '"안녕", "있어", "없어", "하고", "그리고"' : 'common words'}
 ✓ If you're unsure about ANY word's spelling, use a simpler word you're 100% certain is correct
 
-STEP 2: ${config.language === 'Vietnamese' ? 'DIACRITICS VERIFICATION (CRITICAL FOR VIETNAMESE):' : config.language === 'Japanese' || config.language === 'Chinese' ? 'CHARACTER VERIFICATION:' : config.language === 'Korean' ? 'HANGUL VERIFICATION:' : 'CHARACTER VERIFICATION:'}
-${config.language === 'Vietnamese' ? `✓ For EVERY word, verify ALL diacritics are present and correct
-✓ Check: "à" vs "a", "á" vs "a", "ả" vs "a", "ã" vs "a", "ạ" vs "a"
-✓ Check: "ă" vs "a", "â" vs "a", "đ" vs "d", "ê" vs "e", "ô" vs "o", "ơ" vs "o", "ư" vs "u"
-✓ Missing even ONE diacritic = WRONG spelling - this is CRITICAL
-✓ Verify "đ" vs "d" - they are COMPLETELY DIFFERENT letters
-✓ Read each word aloud mentally, checking each diacritic one by one
-✓ Common mistakes to avoid:
-  - "rồi" (NOT "rò" or "roi")
-  - "tất cả" (NOT "tế cã" or "tat ca")
-  - "thành công" (NOT "thánh cộnc" or "thanh cong")
-  - "vô dụng" (NOT "đô vộ dượng" or "vo dung")
-  - "bẩn" (NOT "bẫn" or "ban")
-  - "nhảy" (NOT "nhạh" or "nhay")
-  - "kết quả" (NOT "quả mình" or "ket qua")` : config.language === 'Japanese' || config.language === 'Chinese' ? `✓ For EVERY character, verify it's the CORRECT character, not similar-looking wrong ones
-✓ Check: 人 (person) vs 入 (enter), 日 (sun) vs 曰 (say), 大 (big) vs 太 (fat)
-✓ Every character must be exact - no substitutions` : config.language === 'Korean' ? `✓ For EVERY Hangul syllable block, verify it's correctly formed
-✓ Check: ㅏ (a) vs ㅓ (eo), ㅗ (o) vs ㅜ (u), ㅐ (ae) vs ㅔ (e)
-✓ Verify spacing between words is correct` : `✓ For EVERY character/letter, verify it's correct`}
+STEP 2: ${config.language === 'Vietnamese' ? 'DIACRITICS & CHARACTER VERIFICATION (CRITICAL):' : config.language === 'Japanese' || config.language === 'Chinese' ? 'CHARACTER VERIFICATION:' : config.language === 'Korean' ? 'HANGUL VERIFICATION:' : 'CHARACTER VERIFICATION:'}
+${config.language === 'Vietnamese' ? `✓ Verify ALL diacritics are present: "à/á/ả/ã/ạ", "ă/â", "đ" (NOT "d"), "ê", "ô/ơ", "ư"
+✓ Check "đ" vs "d" - they are DIFFERENT letters
+✓ Count diacritics: "rồi" (1: ồ), "tất cả" (2: ấ, ả), "thành công" (2: à, ô)
+✓ AVOID: "rò"→"rồi", "tế cã"→"tất cả", "thánh cộnc"→"thành công", "đô vộ dượng"→"vô dụng", "bẫn"→"bẩn", "nhạh"→"nhảy/nhạt"
+✓ Spell mentally: r-ồ-i, t-ấ-t c-ả, t-h-à-n-h c-ô-n-g` : config.language === 'Japanese' || config.language === 'Chinese' ? `✓ Verify each character is correct: 人 (person) vs 入 (enter), 日 (sun) vs 曰 (say)
+✓ No character substitutions - every character must be exact` : config.language === 'Korean' ? `✓ Verify Hangul blocks: ㅏ (a) vs ㅓ (eo), ㅗ (o) vs ㅜ (u), ㅐ (ae) vs ㅔ (e)
+✓ Check spacing between words` : `✓ Verify every character/letter is correct`}
 
 STEP 3: GRAMMAR & PUNCTUATION CHECK:
 ✓ Verify sentence structure is correct
@@ -552,12 +469,14 @@ STEP 4: FINAL PROOFREAD (READ ALOUD MENTALLY):
 ✓ Text contrast: dark text on light background for maximum readability
 ${config.dialogueDensity === 'Heavy Dialogue' ? '✓ Include narration boxes when appropriate - verify narration text is also PERFECTLY accurate' : ''}
 
-⚠️⚠️⚠️ FINAL REMINDER: TEXT ACCURACY IS MORE IMPORTANT THAN ARTISTIC STYLE ⚠️⚠️⚠️
-• ONE typo can ruin the entire page's credibility
-• Readers will IMMEDIATELY notice ANY spelling or character errors
-• Take your time to verify spelling - it's better to be slow and accurate than fast and wrong
-• Double-check, triple-check, and verify EVERY word character-by-character before rendering
-• If you're unsure about ANY word's spelling, use a simpler word you're 100% certain is correct
+⚠️ FINAL REMINDER: TEXT ACCURACY IS MORE IMPORTANT THAN ARTISTIC STYLE ⚠️
+${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling = UNACCEPTABLE
+• Verify "đ" vs "d" - they are DIFFERENT letters
+• AVOID: "rò", "tế cã", "thánh cộnc", "đô vộ dượng", "bẫn", "nhạh"
+• Read each word character-by-character, diacritic-by-diacritic before rendering
+• If unsure about spelling, use a simpler word you're 100% certain is correct` : `• ONE typo can ruin the entire page's credibility
+• Verify EVERY word character-by-character before rendering
+• If unsure about spelling, use a simpler word you're 100% certain is correct`}
 `;
   } else {
     dialogueInstructions = `
@@ -733,11 +652,11 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
   };
 
   // Determine if user provided a specific prompt (not auto-continue)
+  // User prompt is considered if it exists and is not an auto-generated continuation prompt
   const hasUserPrompt = prompt && prompt.trim() && 
     !prompt.includes('Continue the story naturally from page') && 
     prompt !== 'Continue the story naturally' &&
-    !isBatchContinuation &&
-    !(config.autoContinueStory && sessionHistory && sessionHistory.length > 0 && (!prompt || prompt.trim() === ''));
+    !isBatchContinuation;
 
   const enhancedPrompt = `
 ╔═══════════════════════════════════════════════════════════════════╗
@@ -745,7 +664,23 @@ These are pages you JUST CREATED in this session. You MUST study them carefully 
 ${isBatchContinuation ? `║                     🔥 BATCH AUTO-CONTINUE MODE 🔥                  ║` : ''}
 ╚═══════════════════════════════════════════════════════════════════╝
 
-🔞 CONTENT POLICY:
+${config.language === 'Vietnamese' ? `🚨 VIETNAMESE TEXT ACCURACY - CRITICAL:
+• Verify EVERY diacritic is present and correct
+• Check "đ" vs "d" - they are DIFFERENT letters
+• AVOID: "rò"→"rồi", "tế cã"→"tất cả", "thánh cộnc"→"thành công", "đô vộ dượng"→"vô dụng", "bẫn"→"bẩn", "nhạh"→"nhảy/nhạt"
+• ONE missing diacritic = WRONG spelling
+
+` : config.language !== 'English' ? `⚠️ ${config.language.toUpperCase()} TEXT ACCURACY:
+• Verify EVERY character/letter is correct
+• Read each word character-by-character
+• ONE error = UNACCEPTABLE
+
+` : `⚠️ ENGLISH TEXT ACCURACY:
+• Verify EVERY word is spelled correctly
+• Check: "the" (NOT "teh"), "and" (NOT "adn"), "you" (NOT "yu")
+• ONE typo = UNACCEPTABLE
+
+`}🔞 CONTENT POLICY:
 • Mature content (18+) allowed - adult themes, hentai, explicit content permitted
 • Focus on artistic quality and authentic manga aesthetics
 • NO horror, gore, violence, or disturbing content - keep content sensual and romantic
@@ -753,6 +688,8 @@ ${isBatchContinuation ? `║                     🔥 BATCH AUTO-CONTINUE MODE �
 ${hasUserPrompt ? `
 📝 USER PROMPT (HIGHEST PRIORITY - FOLLOW THIS FIRST):
 ${actualPrompt}
+
+⚠️⚠️⚠️ CRITICAL: The user prompt above is the PRIMARY instruction. Follow it exactly. Story direction and context below are only for reference and guidance.
 
 ${referenceImageInstructions ? referenceImageInstructions + '\n' : ''}
 ` : ''}${isBatchContinuation ? '' : config.autoContinueStory && sessionHistory && sessionHistory.length > 0 && !hasUserPrompt ? `
@@ -771,10 +708,10 @@ ${actualPrompt}
 ${!hasUserPrompt && referenceImageInstructions ? referenceImageInstructions + '\n' : ''}
 
 ${config.storyDirection && config.storyDirection.trim() ? `
-📖 STORY DIRECTION & FLOW GUIDE:
+📖 STORY DIRECTION & FLOW GUIDE${hasUserPrompt ? ' (Reference Only - User Prompt Takes Priority)' : ''}:
 ${config.storyDirection.trim()}
 
-⚠️ IMPORTANT: Use this story direction as a guide for the overall narrative flow. When generating pages, ensure the story progresses according to this direction while maintaining natural storytelling.
+⚠️ IMPORTANT: ${hasUserPrompt ? 'Use this story direction as a SUPPORTING guide to help interpret and enhance the user prompt above. The user prompt is the PRIMARY instruction, but this direction can help guide the overall narrative flow and story progression.' : 'Use this story direction as a guide for the overall narrative flow. When generating pages, ensure the story progresses according to this direction while maintaining natural storytelling.'}
 ` : ''}
 
 ${contextSection ? contextSection + '\n' : ''}
@@ -824,7 +761,9 @@ ${config.style.includes('Cinematic')
 ${LAYOUT_PROMPTS[config.layout] || config.layout}
 
 💡 LAYOUT: "${config.layout}" - Layout variety between pages is encouraged
-${['Dynamic Freestyle', 'Asymmetric Mixed', 'Action Sequence', 'Z-Pattern Flow', 'Climax Focus'].includes(config.layout) ? `⚠️ COMPLEX LAYOUT: Verify spelling in EVERY panel - text accuracy is #1 priority even with ${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') ? '5-8' : config.layout.includes('Action') ? '5-7' : config.layout.includes('Z-Pattern') ? '5-6' : config.layout.includes('Climax') ? '5-6' : 'multiple'} panels\n` : ''}
+${['Dynamic Freestyle', 'Asymmetric Mixed', 'Action Sequence', 'Z-Pattern Flow', 'Climax Focus'].includes(config.layout) ? `⚠️ COMPLEX LAYOUT: Verify spelling in EVERY panel (${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') ? '5-8' : config.layout.includes('Action') ? '5-7' : config.layout.includes('Z-Pattern') ? '5-6' : config.layout.includes('Climax') ? '5-6' : 'multiple'} panels)
+${config.language === 'Vietnamese' ? `• Check EVERY diacritic in EVERY panel - verify "đ" vs "d"
+• AVOID in ALL panels: "rò", "tế cã", "thánh cộnc"` : ''}\n` : ''}
 
 ${continuityInstructions}
 
