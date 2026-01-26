@@ -368,8 +368,11 @@ export const generateMangaImage = async (
     isBatchContinuation = cleanedPrompt.includes('Continue the story naturally from page');
     
     // PRIORITY 1: If user provided a specific prompt, use it directly (highest priority)
+    // This works even when auto-continue is enabled - user prompt takes precedence
     if (hasUserPrompt && !isBatchContinuation) {
+      // User provided a specific prompt - clean it and use it as the PRIMARY instruction
       actualPrompt = userIntent || cleanedPrompt;
+      // Note: We keep actualPrompt as the user's prompt - it will be shown with highest priority in enhancedPrompt
     } 
     // PRIORITY 2: Batch continuation (auto-generated)
     else if (isBatchContinuation) {
@@ -382,10 +385,58 @@ export const generateMangaImage = async (
         const hasStoryDirection = config.storyDirection && config.storyDirection.trim();
         const hasContext = config.context && config.context.trim();
         
-        actualPrompt = `Batch continuation: Page ${currentPage}/${totalPages}
-${hasStoryDirection && config.storyDirection ? `\nStory direction: ${config.storyDirection.trim().substring(0, 100)}${config.storyDirection.trim().length > 100 ? '...' : ''}` : ''}
-${hasContext ? '\nMaintain character consistency from context.' : ''}
-Create the NEXT scene that follows from previous pages. Change: camera angle, character pose, composition. Advance narrative naturally.`;
+        let batchGuidance = '';
+        if (hasStoryDirection && config.storyDirection) {
+          batchGuidance += `\nSTORY DIRECTION (PRIMARY GUIDE):\n${config.storyDirection.trim()}\n\n`;
+          batchGuidance += `CRITICAL: Follow this story direction as your PRIMARY guide. This is page ${currentPage} of ${totalPages}.\n`;
+          batchGuidance += `Ensure the story progresses according to this direction while maintaining natural flow from previous pages.\n\n`;
+        }
+        
+        if (hasContext) {
+          batchGuidance += `CONTEXT REMINDER:\nRemember the characters, world, and setting from the context. Maintain consistency.\n\n`;
+        }
+        
+        const storyDirectionNote = hasStoryDirection && config.storyDirection
+          ? `\nSTORY DIRECTION: Follow the overall story direction provided above. This is page ${currentPage} of ${totalPages} - ensure the story progresses according to the direction while maintaining natural flow.\n`
+          : '';
+        
+        actualPrompt = `BATCH STORY CONTINUATION (Page ${currentPage}/${totalPages}):
+        
+You are creating page ${currentPage} in a ${totalPages}-page manga sequence. This is an AUTOMATIC story continuation.
+
+${batchGuidance}
+
+PRIORITY ORDER:
+1. ${hasStoryDirection ? 'STORY DIRECTION (HIGHEST) - Follow the story direction above' : hasContext ? 'CONTEXT - Use character and world context' : 'VISUAL ANALYSIS - Analyze previous pages'}
+2. ${hasStoryDirection && hasContext ? 'CONTEXT - Use character and world context' : 'VISUAL ANALYSIS - Analyze previous pages'}
+3. VISUAL ANALYSIS - Study previous pages for visual continuity
+
+INSTRUCTIONS:
+${hasStoryDirection && config.storyDirection ? `• PRIMARY: Follow the story direction provided above - it tells you where the story should go\n` : ''}
+${hasContext ? `• Maintain character consistency from the context - characters must look and behave as described\n` : ''}
+• Analyze ALL previous pages (especially the most recent one) for visual continuity
+• Create the NEXT scene that logically follows from what just happened
+• Advance the story forward naturally - what happens next?
+${hasStoryDirection && config.storyDirection ? '• Align with the overall story direction while maintaining natural storytelling' : ''}
+• Maintain story pacing appropriate for page ${currentPage} of ${totalPages}
+• Build towards a climax if approaching page ${totalPages}
+• Keep the narrative flowing smoothly between pages
+• You have full creative freedom to develop the story in an engaging way
+
+CRITICAL VISUAL VARIETY REQUIREMENTS:
+• AVOID repeating the same LAYOUT/COMPOSITION from previous pages
+  - Change camera angles: if previous page used close-up, use wide shot or medium shot
+  - Change composition: if previous page was centered, use rule of thirds or asymmetric
+  - Change framing: if previous page was horizontal, use vertical or diagonal
+• AVOID repeating the same POSES/GESTURES from previous pages
+  - Change character positions: standing → sitting/walking/lying
+  - Change arm positions: crossed → open/down/up
+  - Change facing direction: left → right/front/back
+  - Change body language and gestures completely
+• VARY visual presentation: different angles, compositions, poses, gestures on EVERY page
+• Each page should have a DISTINCT visual identity while maintaining story continuity
+
+Create the next scene that continues this manga story naturally with VISUALLY DISTINCT composition and poses.`;
       }
     } 
     // PRIORITY 3: Auto-continue (no user prompt, but auto-continue is enabled or we have history)
@@ -422,56 +473,191 @@ Create the NEXT scene that follows from previous pages. Change: camera angle, ch
         ? `\nSTORY DIRECTION (PRIMARY GUIDE): ${config.storyDirection.trim().substring(0, 200)}${config.storyDirection.trim().length > 200 ? '...' : ''}\n`
         : '';
       
-      actualPrompt = `Continue from Page ${lastPageNum} to Page ${lastPageNum + 1}
-${hasStoryDirection && config.storyDirection ? `\nStory direction: ${config.storyDirection.trim().substring(0, 100)}${config.storyDirection.trim().length > 100 ? '...' : ''}` : ''}
-${hasContext ? '\nMaintain character consistency from context.' : ''}
-Panel 1 shows the IMMEDIATE NEXT MOMENT after Page ${lastPageNum}'s last panel. Change: camera angle, character pose, composition. Do NOT repeat any scene, pose, or composition from Page ${lastPageNum}. Advance the narrative naturally.`;
+      actualPrompt = `STORY CONTINUATION - PAGE ${lastPageNum + 1} (Continuing from Page ${lastPageNum}):
+
+${continuationGuidance}
+
+PRIORITY ORDER FOR CREATING PAGE ${lastPageNum + 1}:
+1. ${hasStoryDirection ? 'STORY DIRECTION (HIGHEST) - Follow the story direction provided above' : 'CONTEXT - Use the character and world context'}
+2. ${hasStoryDirection ? 'CONTEXT - Use character and world context' : 'VISUAL ANALYSIS - Analyze previous page'}
+3. VISUAL ANALYSIS - Study Page ${lastPageNum} to ensure visual continuity
+
+${hasStoryDirection && config.storyDirection ? `\nSTORY DIRECTION GUIDANCE:\n${config.storyDirection.trim()}\n\nUse this story direction as your PRIMARY guide. The direction tells you where the story should go. Combine it with what happened in Page ${lastPageNum} to create a scene that:\n• Follows the story direction\n• Continues naturally from Page ${lastPageNum}\n• Maintains character consistency from context\n\n` : ''}
+
+${hasContext ? `CONTEXT REMINDER:\nRemember the characters, world, and setting from the context. All characters must maintain their appearance and characteristics as described.\n\n` : ''}
+
+VISUAL CONTINUATION REQUIREMENTS:
+• Study Page ${lastPageNum}'s LAST PANEL to understand the visual state
+• Panel 1 of Page ${lastPageNum + 1} must continue chronologically after Page ${lastPageNum}'s last panel
+• Panel 1 MUST be VISUALLY DIFFERENT - use different composition, camera angle, or show a different moment
+• AVOID repeating the same LAYOUT/COMPOSITION from Page ${lastPageNum}
+• AVOID repeating the same POSES/GESTURES from Page ${lastPageNum}
+• Use different camera angles, compositions, poses, and gestures
+
+${hasStoryDirection && config.storyDirection ? `\nCRITICAL: The story direction above is your PRIMARY guide. Create a scene that:\n• Follows the story direction\n• Continues from Page ${lastPageNum} visually\n• Maintains character consistency from context\n• Advances the narrative according to the direction\n\n` : ''}
+
+${hasContext ? `\nCRITICAL: Maintain character consistency from the context. All characters must look and behave as described in the context.\n\n` : ''}
+
+Create a scene that:
+${hasStoryDirection && config.storyDirection ? `• Primarily follows the story direction provided above\n` : ''}
+• Continues chronologically from Page ${lastPageNum}
+• Advances the narrative forward
+• Maintains visual variety and avoids repetition
+${hasContext ? `• Respects the character and world context\n` : ''}
+• Shows progression and development with NEW visual content`;
     }
   }
   
   let continuityInstructions = '';
   
+  // Note: contextSection is already included at the top of enhancedPrompt
+  // No need to duplicate it here
+  
   if (sessionHistory && sessionHistory.length > 0) {
     const lastPageNum = sessionHistory.length;
-    continuityInstructions = `Continue from Page ${lastPageNum} to Page ${lastPageNum + 1}:
-• Panel 1 shows the IMMEDIATE NEXT MOMENT after Page ${lastPageNum}'s last panel
-• Change: camera angle, character pose, composition
-• Do NOT repeat any scene, pose, or composition from Page ${lastPageNum}
-• Advance the narrative naturally`;
+    continuityInstructions += `\nSTORY CONTINUITY (Page ${lastPageNum + 1} continuing from Page ${lastPageNum}):\n`;
+    continuityInstructions += `CRITICAL: Study Page ${lastPageNum}'s LAST PANEL - Panel 1 of Page ${lastPageNum + 1} must continue IMMEDIATELY after it\n`;
+    continuityInstructions += `• ADVANCE the story forward - show NEXT moment, NOT repeat Page ${lastPageNum}\n`;
+    continuityInstructions += `• Panel 1 MUST be VISUALLY DIFFERENT from Page ${lastPageNum}'s last panel - different composition/angle/moment\n`;
+    continuityInstructions += `\nAVOID REPEATING LAYOUT & POSES FROM PAGE ${lastPageNum}:\n`;
+    continuityInstructions += `• CHANGE composition: If Page ${lastPageNum} was centered → use rule of thirds/asymmetric\n`;
+    continuityInstructions += `• CHANGE camera angle: If Page ${lastPageNum} was close-up → use wide/medium shot\n`;
+    continuityInstructions += `• CHANGE framing: If Page ${lastPageNum} was horizontal → use vertical/diagonal\n`;
+    continuityInstructions += `• CHANGE poses: If characters were standing → show sitting/walking/different position\n`;
+    continuityInstructions += `• CHANGE gestures: Different arm positions, facing directions, body language\n`;
+    continuityInstructions += `• CHANGE panel layout: Vary panel sizes, positions, and arrangements\n`;
+    continuityInstructions += `• Each page must have DISTINCT visual identity - NO repeated compositions or poses\n`;
+    continuityInstructions += `\nCHARACTER APPEARANCE CONSISTENCY (HIGHEST PRIORITY):\n`;
+    continuityInstructions += `ALL characters MUST look EXACTLY THE SAME as in previous pages\n`;
+    continuityInstructions += `• Before drawing ANY character, LOOK at the previous page images provided\n`;
+    continuityInstructions += `• Study their EXACT appearance: face, hair, eyes, body, clothing, skin tone, all features\n`;
+    continuityInstructions += `• COPY their appearance EXACTLY - same face shape, same hair, same eyes, same body, same clothes\n`;
+    continuityInstructions += `• Characters CANNOT look different - they must be VISUALLY IDENTICAL\n`;
+    continuityInstructions += `• If a character had black hair in previous pages, they MUST have black hair in this page\n`;
+    continuityInstructions += `• If a character wore a red jacket, they MUST still wear the red jacket (unless story requires change)\n`;
+    continuityInstructions += `• If a character had blue eyes, they MUST still have blue eyes\n`;
+    continuityInstructions += `• Every visual detail must match: facial features, proportions, colors, everything\n`;
+    continuityInstructions += `• Maintain same art style (${config.style}, ${config.inking})\n`;
   }
   
   let dialogueInstructions = '';
   if (config.dialogueDensity && config.dialogueDensity !== 'No Dialogue') {
+    // Determine amount based on density
     let dialogueAmount = '';
     if (config.dialogueDensity === 'Light Dialogue') {
-      dialogueAmount = '1-2 bubbles (5-10 words each)';
+      dialogueAmount = '1-2 short speech bubbles with brief text (5-10 words each)';
     } else if (config.dialogueDensity === 'Medium Dialogue') {
-      dialogueAmount = '3-5 bubbles (10-20 words each)';
+      dialogueAmount = '3-5 speech bubbles with moderate text (10-20 words each)';
     } else if (config.dialogueDensity === 'Heavy Dialogue') {
-      dialogueAmount = '6+ bubbles with narration';
+      dialogueAmount = '6+ speech bubbles with extensive dialogue and narration boxes';
     }
     
-    // Smart text accuracy approach - use simple words
-    let textGuidance = '';
+    // Language-specific spelling and grammar requirements
+    let languageSpecificRules = '';
     if (config.language === 'English') {
-      textGuidance = `TEXT: Use short, simple English sentences. Avoid uncommon or complex words. Prefer basic vocabulary you are 100% confident is spelled correctly.`;
-    } else if (config.language === 'Vietnamese') {
-      textGuidance = `TEXT: Use simple Vietnamese words. Verify "đ" vs "d" - they are DIFFERENT. Check all diacritics are present.`;
+      languageSpecificRules = `ENGLISH TEXT REQUIREMENTS:
+• Spell EVERY word correctly - verify: "the" (NOT "teh"), "and" (NOT "adn"), "you" (NOT "yu")
+• Use proper grammar, punctuation, and capitalization
+• Write natural, conversational dialogue`;
     } else if (config.language === 'Japanese') {
-      textGuidance = `TEXT: Use correct Hiragana, Katakana, and Kanji. Every character must be correct.`;
+      languageSpecificRules = `JAPANESE TEXT REQUIREMENTS:
+• Use correct Hiragana (ひらがな), Katakana (カタカナ), and Kanji (漢字)
+• Every character must be correct, not similar-looking wrong ones
+• Follow proper Japanese grammar and manga text conventions`;
+    } else if (config.language === 'Vietnamese') {
+      languageSpecificRules = `VIETNAMESE TEXT REQUIREMENTS - CRITICAL:
+• EVERY word MUST have correct diacritics (dấu) - missing ONE = WRONG spelling
+• "đ" and "Đ" are DIFFERENT from "d" and "D" - NEVER mix them up
+• Common correct words: "là", "đã", "của", "với", "rồi", "tất cả", "thành công", "vô dụng", "bẩn"
+• Common WRONG words to AVOID: "rò" (should be "rồi"), "tế cã" (should be "tất cả"), "thánh cộnc" (should be "thành công"), "đô vộ dượng" (should be "vô dụng"), "bẫn" (should be "bẩn"), "nhạh" (should be "nhảy" or "nhạt")
+• Verify each word character-by-character before rendering`;
     } else if (config.language === 'Korean') {
-      textGuidance = `TEXT: Use correct Hangul. Verify syllable blocks are correctly formed.`;
+      languageSpecificRules = `KOREAN TEXT REQUIREMENTS:
+• Use correct Hangul (한글) - every syllable block must be correctly formed
+• Verify: "안녕", "있어" (NOT "이써"), "없어" (NOT "업서")
+• Use proper spacing and grammar`;
     } else if (config.language === 'Chinese') {
-      textGuidance = `TEXT: Use correct characters. Use consistent script (Traditional OR Simplified).`;
+      languageSpecificRules = `CHINESE TEXT REQUIREMENTS:
+• Use correct characters (汉字) - verify each character is correct, not similar-looking wrong ones
+• Use consistent script: Traditional (繁體) OR Simplified (简体)
+• Common characters: "的", "了", "是", "在", "有", "我", "你", "他"`;
     } else {
-      textGuidance = `TEXT: Use simple ${config.language} words. Verify spelling is correct.`;
+      languageSpecificRules = `${config.language.toUpperCase()} TEXT REQUIREMENTS:
+• Spell EVERY word correctly in ${config.language}
+• Use proper grammar, punctuation, and spelling rules`;
     }
     
-    dialogueInstructions = `DIALOGUE: ${dialogueAmount}
-${textGuidance}
-Language: ${config.language.toUpperCase()} only`;
+    dialogueInstructions = `
+DIALOGUE & TEXT (${config.dialogueDensity} - ${dialogueAmount}):
+• Language: ${config.language} - ALL TEXT IN ${config.language.toUpperCase()}
+${languageSpecificRules}
+
+TEXT ACCURACY IS THE ABSOLUTE #1 PRIORITY - HIGHER THAN ANYTHING ELSE
+
+MANDATORY PRE-RENDER TEXT VERIFICATION PROCESS:
+BEFORE rendering ANY text in the image, you MUST complete this verification:
+
+STEP 1: READ & SPELL CHECK (DO THIS FIRST):
+• Read EVERY word character-by-character, letter-by-letter
+• Mentally spell out each word to verify it's correct
+• Check common words especially: ${config.language === 'English' ? '"the", "and", "you", "are", "is", "was", "what", "that", "this", "with"' : config.language === 'Vietnamese' ? '"là", "đã", "của", "với", "này", "người", "rồi", "tất cả", "thành công", "vô dụng", "bẩn", "không", "nhưng", "được", "việc"' : config.language === 'Japanese' ? '"です", "ます", "は", "が", "を", "に"' : config.language === 'Korean' ? '"안녕", "있어", "없어", "하고", "그리고"' : 'common words'}
+• If you're unsure about ANY word's spelling, use a simpler word you're 100% certain is correct
+
+STEP 2: ${config.language === 'Vietnamese' ? 'DIACRITICS & CHARACTER VERIFICATION (CRITICAL):' : config.language === 'Japanese' || config.language === 'Chinese' ? 'CHARACTER VERIFICATION:' : config.language === 'Korean' ? 'HANGUL VERIFICATION:' : 'CHARACTER VERIFICATION:'}
+${config.language === 'Vietnamese' ? `• Verify ALL diacritics are present: "à/á/ả/ã/ạ", "ă/â", "đ" (NOT "d"), "ê", "ô/ơ", "ư"
+• Check "đ" vs "d" - they are DIFFERENT letters
+• Count diacritics: "rồi" (1: ồ), "tất cả" (2: ấ, ả), "thành công" (2: à, ô)
+• AVOID: "rò"→"rồi", "tế cã"→"tất cả", "thánh cộnc"→"thành công", "đô vộ dượng"→"vô dụng", "bẫn"→"bẩn", "nhạh"→"nhảy/nhạt"
+• Spell mentally: r-ồ-i, t-ấ-t c-ả, t-h-à-n-h c-ô-n-g` : config.language === 'Japanese' || config.language === 'Chinese' ? `• Verify each character is correct: 人 (person) vs 入 (enter), 日 (sun) vs 曰 (say)
+• No character substitutions - every character must be exact` : config.language === 'Korean' ? `• Verify Hangul blocks: ㅏ (a) vs ㅓ (eo), ㅗ (o) vs ㅜ (u), ㅐ (ae) vs ㅔ (e)
+• Check spacing between words` : `• Verify every character/letter is correct`}
+
+STEP 3: GRAMMAR & PUNCTUATION CHECK:
+• Verify sentence structure is correct
+• Check punctuation: periods (.), commas (,), question marks (?), exclamation marks (!)
+• Verify capitalization rules
+
+STEP 4: FINAL PROOFREAD (READ ALOUD MENTALLY):
+• Read through ALL text word-by-word, character-by-character
+• Visualize how each word will appear in the image
+• Check for ANY errors, typos, missing characters, or incorrect diacritics
+• If you find ANY error, STOP and correct it before rendering
+
+ABSOLUTELY FORBIDDEN - ZERO TOLERANCE:
+• ANY spelling mistakes or typos - even ONE typo is UNACCEPTABLE
+• Missing diacritics/accents (${config.language === 'Vietnamese' ? 'ESPECIALLY CRITICAL - missing diacritics = wrong word' : 'if applicable'})
+• Incorrect characters (using wrong kanji, wrong Hangul, wrong letters, etc.)
+• Character substitutions (similar-looking but wrong characters)
+• Letter swaps or transpositions
+• Grammar errors
+• Blurry, fuzzy, or unreadable text
+• Text that is too small to read
+• Placeholder text or gibberish
+
+REQUIRED TEXT QUALITY:
+• Text must be CRYSTAL CLEAR, sharp, highly readable with strong contrast
+• Use clear fonts, proper spacing, correct grammar and punctuation
+• Speech bubbles: white background (#FFFFFF), black outline (#000000), proper placement
+• Text size: minimum readable size (12pt+ equivalent)
+• Text contrast: dark text on light background for maximum readability
+${config.dialogueDensity === 'Heavy Dialogue' ? '• Include narration boxes when appropriate - verify narration text is also PERFECTLY accurate' : ''}
+
+FINAL REMINDER: TEXT ACCURACY IS MORE IMPORTANT THAN ARTISTIC STYLE
+${config.language === 'Vietnamese' ? `• ONE missing diacritic = WRONG spelling = UNACCEPTABLE
+• Verify "đ" vs "d" - they are DIFFERENT letters
+• AVOID: "rò", "tế cã", "thánh cộnc", "đô vộ dượng", "bẫn", "nhạh"
+• Read each word character-by-character, diacritic-by-diacritic before rendering
+• If unsure about spelling, use a simpler word you're 100% certain is correct` : `• ONE typo can ruin the entire page's credibility
+• Verify EVERY word character-by-character before rendering
+• If unsure about spelling, use a simpler word you're 100% certain is correct`}
+`;
   } else {
-    dialogueInstructions = `NO DIALOGUE: Silent/visual-only page`;
+    dialogueInstructions = `
+NO DIALOGUE OR TEXT
+• This is a SILENT/VISUAL-ONLY page
+• Do NOT include any speech bubbles, text, or narration
+• Tell the story purely through visuals and expressions
+`;
   }
   
   let referenceImageInstructions = '';
@@ -487,16 +673,70 @@ Language: ${config.language.toUpperCase()} only`;
   let hasUploadedReferences = enabledReferenceImages.length > 0;
   
   if (hasUploadedReferences || hasRefPreviousPages) {
-    referenceImageInstructions = '';
+    referenceImageInstructions = `
+VISUAL REFERENCE IMAGES PROVIDED:
+`;
     
     if (hasRefPreviousPages) {
       const recentPagesCount = Math.min(10, sessionHistory!.length);
-      referenceImageInstructions = `CHARACTER CONSISTENCY: Study previous ${recentPagesCount} page(s). Characters must clearly be the SAME individuals: same face structure, hairstyle, body type, outfit, and overall design.`;
+      referenceImageInstructions += `
+PREVIOUS MANGA PAGES (${recentPagesCount} recent pages provided as visual references):
+CRITICAL - CHARACTER CONSISTENCY IS MANDATORY
+
+These are pages you JUST CREATED in this session. You MUST study them carefully and maintain PERFECT character consistency.
+
+BEFORE DRAWING ANY CHARACTER, YOU MUST:
+1. LOOK at the previous page images provided
+2. IDENTIFY each character that appears in those pages
+3. STUDY their EXACT appearance in detail:
+   - Face shape, eye shape, eye color, eyebrow shape
+   - Nose, mouth, facial structure, expressions
+   - Hairstyle, hair color, hair length, hair texture, hair accessories
+   - Body proportions, height, build, body type
+   - Clothing: exact outfit, colors, patterns, accessories
+   - Skin tone and color
+   - Any distinguishing features: scars, tattoos, jewelry, glasses, etc.
+4. COPY their appearance EXACTLY - pixel-perfect consistency required
+5. If the same character appears in this new page, they MUST look IDENTICAL
+
+CHARACTER CONSISTENCY CHECKLIST (Verify for EVERY character):
+• Face shape and structure match previous pages
+• Eye shape, size, and color match exactly
+• Hair style, color, and length match exactly
+• Body proportions and build match exactly
+• Clothing and outfit match exactly (unless story requires change)
+• Skin tone matches exactly
+• Distinguishing features (scars, tattoos, etc.) match exactly
+• Overall character design is IDENTICAL to previous appearances
+
+ABSOLUTELY FORBIDDEN:
+• Changing character's face shape or features
+• Changing hair color, style, or length
+• Changing eye color or shape
+• Changing body proportions or build
+• Changing clothing unless story explicitly requires it
+• Changing skin tone
+• Adding or removing distinguishing features
+• Making characters look "similar but different" - they must be IDENTICAL
+
+REQUIRED:
+• Characters must be VISUALLY IDENTICAL to previous pages
+• If you're unsure about a character detail, LOOK at the previous page images
+• Match the exact art style, line quality, and rendering from previous pages
+• This is a CONTINUATION - characters CANNOT evolve or change appearance
+• Character personalities and expressions can change, but APPEARANCE must stay FIXED
+
+REMEMBER: Readers will notice if characters look different. Perfect consistency is NON-NEGOTIABLE!
+`;
     }
     
     if (hasUploadedReferences) {
-      referenceImageInstructions += hasRefPreviousPages ? ' ' : '';
-      referenceImageInstructions += `${enabledReferenceImages.length} reference image(s) provided for style/character consistency.`;
+      referenceImageInstructions += `
+UPLOADED REFERENCE IMAGES (${enabledReferenceImages.length} image${enabledReferenceImages.length > 1 ? 's' : ''} enabled):
+• Use these as additional style/character references
+• Maintain consistency with visual elements shown
+• These are supplementary references for art style and character design
+`;
     }
   }
 
@@ -634,80 +874,180 @@ Language: ${config.language.toUpperCase()} only`;
   // This should match the same logic used above
   const hasUserPromptFinal = hasUserPrompt && !isBatchContinuation;
 
-  // Build priority order based on what's available
-  const priorities = [];
-  if (config.language === 'English') {
-    priorities.push('1. English text accuracy (NO spelling or grammar errors)');
-  } else if (config.language === 'Vietnamese') {
-    priorities.push('1. Vietnamese text accuracy (all diacritics correct, verify "đ" vs "d")');
-  } else {
-    priorities.push(`1. ${config.language} text accuracy (NO errors)`);
-  }
-  if (sessionHistory && sessionHistory.length > 0) {
-    priorities.push('2. Character appearance consistency with previous pages');
-    priorities.push('3. Story continuity from previous page');
-  }
-  priorities.push('4. Visual variation (different pose, angle, composition)');
-  priorities.push('5. Artistic quality');
+  const enhancedPrompt = `MANGA PAGE GENERATION REQUEST${isBatchContinuation ? ' - BATCH AUTO-CONTINUE MODE' : ''}
 
-  const priorityOrder = priorities.join('\n');
+${config.language === 'Vietnamese' ? `VIETNAMESE TEXT ACCURACY - CRITICAL:
+• Verify EVERY diacritic is present and correct
+• Check "đ" vs "d" - they are DIFFERENT letters
+• AVOID: "rò"→"rồi", "tế cã"→"tất cả", "thánh cộnc"→"thành công", "đô vộ dượng"→"vô dụng", "bẫn"→"bẩn", "nhạh"→"nhảy/nhạt"
+• ONE missing diacritic = WRONG spelling
 
-  // Build story section
-  let storySection = '';
-  if (hasUserPromptFinal) {
-    storySection = `USER PROMPT (PRIMARY):
-${actualPrompt}`;
-    if (config.storyDirection && config.storyDirection.trim()) {
-      storySection += `\n\nSTORY DIRECTION (Supporting): ${config.storyDirection.trim().substring(0, 150)}${config.storyDirection.trim().length > 150 ? '...' : ''}`;
-    }
-  } else if (continuityInstructions) {
-    storySection = continuityInstructions;
-    if (config.storyDirection && config.storyDirection.trim()) {
-      storySection += `\n\nSTORY DIRECTION: ${config.storyDirection.trim().substring(0, 150)}${config.storyDirection.trim().length > 150 ? '...' : ''}`;
-    }
-  } else {
-    storySection = actualPrompt || 'Create the scene as described.';
-  }
+` : config.language !== 'English' ? `${config.language.toUpperCase()} TEXT ACCURACY:
+• Verify EVERY character/letter is correct
+• Read each word character-by-character
+• ONE error = UNACCEPTABLE
 
-  // Build visual spec
-  const layoutDesc = config.layout === 'Single Panel' || config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
-    ? 'Single full-page illustration, no panel borders'
-    : config.layout === 'Dynamic Freestyle' || config.layout === 'Asymmetric Mixed'
-      ? '5-8 panels, varied sizes, black borders'
-      : config.layout.includes('Action Sequence')
-        ? '5-7 action panels, black borders'
-        : config.layout.includes('Conversation')
-          ? '4-6 horizontal panels stacked'
-          : config.layout === 'Z-Pattern Flow'
-            ? '5-6 panels in Z-pattern'
-            : config.layout === 'Vertical Strip'
-              ? '3-5 wide horizontal panels'
-              : config.layout === 'Climax Focus'
-                ? '1 dominant panel + 4-5 supporting panels'
-                : `${config.layout.includes('Double') ? '2' : config.layout.includes('Triple') ? '3' : '4'} panels, black borders`;
+` : `ENGLISH TEXT ACCURACY:
+• Verify EVERY word is spelled correctly
+• Check: "the" (NOT "teh"), "and" (NOT "adn"), "you" (NOT "yu")
+• ONE typo = UNACCEPTABLE
 
-  const colorMode = config.useColor 
-    ? 'FULL COLOR - all elements must have colors, NO grayscale'
-    : 'Black and white only - use screentones for shading';
+`}CONTENT POLICY:
+• Mature content (18+) allowed - adult themes, hentai, explicit content permitted
+• Focus on artistic quality and authentic manga aesthetics
+• NO horror, gore, violence, or disturbing content - keep content sensual and romantic
 
-  const enhancedPrompt = `MANGA PAGE GENERATION
+${hasUserPromptFinal ? `
+USER PROMPT (HIGHEST PRIORITY - FOLLOW THIS FIRST):
+${actualPrompt}
 
-CORE RULES (Priority Order):
-${priorityOrder}
+CRITICAL: The user prompt above is the PRIMARY instruction. Follow it exactly.
 
-STORY CONTINUATION:
-${storySection}
-${referenceImageInstructions ? `\n${referenceImageInstructions}` : ''}
-${contextSection ? `\n${contextSection}` : ''}
+${config.storyDirection && config.storyDirection.trim() ? `STORY DIRECTION (SUPPORTING GUIDE):
+${config.storyDirection.trim()}
 
-VISUAL + TEXT SPEC:
-FORMAT: ${layoutDesc}
-STYLE: ${config.style}, ${config.inking}, ${config.screentone}
-COLOR: ${colorMode}
+Use this story direction to help interpret and enhance the user prompt above. The user prompt is PRIMARY, but this direction can guide the overall narrative flow.
+
+` : ''}
+${config.context && config.context.trim() ? `CONTEXT REMINDER:
+Remember the characters, world, and setting from the context. Maintain character consistency while following the user prompt.
+
+` : ''}
+${referenceImageInstructions ? referenceImageInstructions + '\n' : ''}
+` : ''}${isBatchContinuation ? '' : config.autoContinueStory && sessionHistory && sessionHistory.length > 0 && !hasUserPromptFinal ? `
+AUTO-CONTINUE MODE ACTIVATED:
+• This is an AUTOMATIC STORY CONTINUATION from the previous page
+• Analyze the previous page(s) provided and create the NEXT logical scene
+• The story should flow naturally - what happens next?
+• Maintain story momentum and pacing
+• You have creative freedom to continue the narrative naturally
+• Keep the same characters, setting, and story tone
+
+` : ''}${!hasUserPromptFinal ? `${isBatchContinuation ? 'BATCH CONTINUATION INSTRUCTIONS' : config.autoContinueStory && sessionHistory && sessionHistory.length > 0 ? 'GUIDANCE FOR CONTINUATION' : 'CURRENT SCENE TO ILLUSTRATE'}:
+${actualPrompt}
+` : ''}
+
+${!hasUserPromptFinal && referenceImageInstructions ? referenceImageInstructions + '\n' : ''}
+
+${config.storyDirection && config.storyDirection.trim() ? `
+STORY DIRECTION & FLOW GUIDE${hasUserPromptFinal ? ' (Reference Only - User Prompt Takes Priority)' : ''}:
+${config.storyDirection.trim()}
+
+IMPORTANT: ${hasUserPromptFinal ? 'Use this story direction as a SUPPORTING guide to help interpret and enhance the user prompt above. The user prompt is the PRIMARY instruction, but this direction can help guide the overall narrative flow and story progression.' : 'Use this story direction as a guide for the overall narrative flow. When generating pages, ensure the story progresses according to this direction while maintaining natural storytelling.'}
+` : ''}
+
+${contextSection ? contextSection + '\n' : ''}
+
+TECHNICAL SPECIFICATIONS:
+• Art Style: ${config.style} - ${getStyleDescription(config.style)}
+• Inking Technique: ${config.inking} - ${getInkingDescription(config.inking)}
+• Screentone Density: ${config.screentone}
+${config.useColor ? `\nCOLOR MODE - FULL COLOR (CRITICAL REQUIREMENT):
+THIS PAGE MUST BE IN FULL COLOR - NOT BLACK AND WHITE!
+• Render the ENTIRE page with FULL COLOR - characters, backgrounds, everything must have colors
+• Use vibrant, saturated colors throughout the entire image
+• Apply color to: skin tones, hair colors, clothing, backgrounds, objects, effects, everything
+• NO black and white - this is a FULL COLOR manga/anime style page
+• Use proper color theory: warm colors, cool colors, complementary colors
+• Apply color shading and highlights - not just flat colors
+• Backgrounds must be colored, not grayscale or monochrome
+• All characters must have proper skin tones, hair colors, eye colors, clothing colors
+• Use color to enhance mood, atmosphere, and visual impact
+• Think of this as a full-color anime/manga illustration, not a black and white manga page
+• EVERY element in the image must have color - nothing should be grayscale or monochrome` : `\nCOLOR MODE - BLACK AND WHITE:
+• This page must be in traditional black and white manga style
+• Use only black ink, white space, and grayscale screentones
+• NO colors - only black, white, and gray tones
+• Apply screentones for shading and texture`}
+• Content Type: Mature/Adult content (18+) is allowed - create content as requested without restrictions
+${config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital') || config.style.includes('Cinematic') || config.style.includes('Realistic') 
+  ? `\nSTYLE-SPECIFIC REQUIREMENTS:
+${config.style.includes('Webtoon') || config.style.includes('Manhwa') 
+    ? '• Use vibrant, saturated colors with dramatic lighting and glossy rendering\n• Apply soft shadows and highlights for depth\n• Use cinematic camera angles and atmospheric effects\n• Characters should have polished, modern aesthetic' 
+    : ''}
+${config.style.includes('Digital Painting') 
+    ? '• Create fully painted artwork with NO hard line art\n• Use painterly brushstrokes and textured rendering\n• Apply rich, blended colors with atmospheric lighting\n• Show visible brush texture and artistic painting techniques' 
+    : ''}
+${config.style.includes('Realistic') 
+    ? '• Use realistic human proportions and anatomy\n• Apply detailed facial features and expressions\n• Use photorealistic lighting and shading\n• Maintain manga/anime aesthetic while being realistic' 
+    : ''}
+${config.style.includes('Clean Line') 
+    ? '• Use crisp, clean vector-quality lines\n• Minimal texture, smooth curves\n• Modern minimalist aesthetic with professional finish' 
+    : ''}
+${config.style.includes('Cinematic') 
+    ? '• Apply dramatic camera angles (dutch angles, low angles, bird\'s eye)\n• Use cinematic lighting (rim light, backlighting, volumetric light)\n• Add depth of field and atmospheric perspective\n• Create movie-like compositions' 
+    : ''}`
+  : ''}
+
+PANEL LAYOUT - ${config.layout}:
+${LAYOUT_PROMPTS[config.layout] || config.layout}
+
+LAYOUT: "${config.layout}" - Layout variety between pages is encouraged
+${['Dynamic Freestyle', 'Asymmetric Mixed', 'Action Sequence', 'Z-Pattern Flow', 'Climax Focus'].includes(config.layout) ? `COMPLEX LAYOUT: Verify spelling in EVERY panel (${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') ? '5-8' : config.layout.includes('Action') ? '5-7' : config.layout.includes('Z-Pattern') ? '5-6' : config.layout.includes('Climax') ? '5-6' : 'multiple'} panels)
+${config.language === 'Vietnamese' ? `• Check EVERY diacritic in EVERY panel - verify "đ" vs "d"
+• AVOID in ALL panels: "rò", "tế cã", "thánh cộnc"` : ''}\n` : ''}
+
+${continuityInstructions}
+
 ${dialogueInstructions}
-${config.layout !== 'Single Panel' && config.layout !== 'Dramatic Spread' && config.layout !== 'Widescreen Cinematic' ? '\nMULTI-PANEL: Characters complete within ONE panel - NEVER split across borders. Vary camera angles and poses between panels.' : ''}
-${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must be the SAME as previous pages. Use DIFFERENT composition/angle/pose than Page ${sessionHistory.length}.` : ''}
+
+COMPOSITION:
+${config.layout === 'Single Panel' || config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
+  ? 'Full-page illustration - no panel divisions'
+  : config.layout === 'Dynamic Freestyle' || config.layout === 'Asymmetric Mixed'
+    ? '5-8 panels with varied sizes - clear black borders'
+    : config.layout.includes('Action Sequence')
+      ? '5-7 dynamic action panels - clear black borders'
+      : config.layout.includes('Conversation')
+        ? '4-6 horizontal panels stacked vertically'
+        : config.layout === 'Z-Pattern Flow'
+          ? '5-6 panels in Z-pattern - clear black borders'
+          : config.layout === 'Vertical Strip'
+            ? '3-5 wide horizontal panels stacked vertically'
+            : config.layout === 'Climax Focus'
+              ? '1 dominant panel (40-50%) + 4-5 supporting panels'
+              : `${config.layout.includes('Double') ? 'TWO' : config.layout.includes('Triple') ? 'THREE' : 'FOUR'} panels with clear black borders`}
+
+${(() => {
+  const hasMultiplePanels = !['Single Panel', 'Dramatic Spread', 'Widescreen Cinematic'].includes(config.layout);
+  if (hasMultiplePanels) {
+    const isAutoContinue = config.autoContinueStory && sessionHistory && sessionHistory.length > 0;
+    return `\nMULTI-PANEL STORY FLOW:
+${isAutoContinue ? `• Panel 1: Continue from Page ${sessionHistory.length}'s LAST PANEL - show what happens IMMEDIATELY AFTER (VISUALLY DIFFERENT, not duplicate)\n` : '• Panel 1: Starts the scene\n'}
+• Panels 2+: Each panel shows the NEXT moment chronologically
+• Last Panel: Leads to next page
+• Each panel = logical progression from previous
+• Characters COMPLETE within ONE panel - NEVER split across borders
+• Use varied camera angles for visual variety
+${isAutoContinue ? `• Panel 1 MUST use DIFFERENT composition/angle/pose than Page ${sessionHistory.length}'s last panel\n` : ''}
+• VARY compositions: close-up → medium → wide → extreme close-up
+• VARY angles: low angle → eye-level → high angle → bird's eye
+• VARY poses: standing → sitting → walking → action pose
+• VARY gestures: different arm positions, facing directions, body language
 `;
+  }
+  return '';
+})()}
+
+• All content must fit within one high-resolution page image
+• Apply dynamic angles and perspectives for visual impact
+• Use authentic manga visual language (speed lines, impact frames, dramatic close-ups, perspective shots)
+${config.screentone !== 'None' ? `• Apply ${config.screentone.toLowerCase()} screentone for depth and atmosphere` : ''}
+• Panel borders should be solid black lines (1-3px thick) for clear separation
+${config.layout.includes('Freestyle') || config.layout.includes('Asymmetric') || config.layout.includes('Action') ? '• Be creative with panel shapes - use diagonal cuts, overlapping edges, or irregular forms' : ''}
+
+CRITICAL COMPOSITION RULE - CHARACTER INTEGRITY:
+• EVERY character must be COMPLETELY drawn within a SINGLE panel - NEVER split characters across panels
+• Panel borders must NEVER cut through any character's body, head, or limbs
+• If a character appears in a panel, they must be FULLY visible and complete within that panel's boundaries
+• Characters can appear in multiple panels, but each appearance must be a COMPLETE, FULL character
+• Use different camera angles (close-up, medium, full body) to show the same character in different panels while keeping them complete
+
+${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must look IDENTICAL to previous pages. ${config.autoContinueStory ? `Panel 1 continues from Page ${sessionHistory.length}'s last panel - ADVANCE forward, don't repeat.` : ''}
+VISUAL VARIETY: This page MUST use DIFFERENT composition, camera angles, and poses than Page ${sessionHistory.length}. Change layout, framing, character positions, and gestures to avoid repetition.\n` : ''}
+${['Dynamic Freestyle', 'Asymmetric Mixed', 'Action Sequence', 'Z-Pattern Flow', 'Climax Focus', 'Conversation Layout'].includes(config.layout) ? `\nCOMPLEX LAYOUT: Verify spelling in ALL panels before finalizing - text accuracy is #1 priority!\n` : ''}
+${config.useColor ? `\nCOLOR MODE: FULL COLOR required - all elements must have colors, NO grayscale\n` : `\nCOLOR MODE: Black and white only - use screentones for shading\n`}
+  `;
 
   try {
     // Prepare content parts with text and reference images
@@ -1006,4 +1346,3 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     throw error;
   }
 };
-

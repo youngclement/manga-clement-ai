@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Sparkles, Eye, Settings, Layers, MessageSquare, X } from 'lucide-react';
 import { safeArray, generateId, normalizeSession } from '@/lib/utils/react-utils';
 import { extractErrorMessage } from '@/lib/utils/error-handler';
+import { cleanUserPrompt } from '@/lib/utils/prompt-utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -324,7 +325,7 @@ const MangaGeneratorV2 = () => {
           setCurrentSession(updatedSession);
           setProject(prev => ({
             ...prev,
-            sessions: safeArray(prev.sessions).map(s => 
+            sessions: safeArray(prev.sessions).map(s =>
               s.id === currentSession.id ? updatedSession : s
             )
           }));
@@ -455,10 +456,14 @@ const MangaGeneratorV2 = () => {
     setLoading(true);
     setError(null);
 
+    // Clean user prompt before using it
+    const cleanedUserPrompt = prompt ? cleanUserPrompt(prompt) : '';
+    const finalPrompt = cleanedUserPrompt || (isAutoContinue ? 'Continue the story naturally' : '');
+
     const userMessage = {
       id: Date.now().toString() + Math.random().toString(36).substring(2),
       role: 'user' as const,
-      content: prompt || (isAutoContinue ? 'Continue the story naturally' : ''),
+      content: finalPrompt,
       timestamp: Date.now(),
       config: { ...config, context: context || config.context }
     };
@@ -479,7 +484,8 @@ const MangaGeneratorV2 = () => {
     try {
       const sessionHistory = workingSession.pages || [];
       const configWithContext = { ...config, context: context || config.context };
-      const imageUrl = await generateMangaImage(prompt, configWithContext, sessionHistory);
+      // Use cleaned prompt for generation
+      const imageUrl = await generateMangaImage(finalPrompt, configWithContext, sessionHistory);
       setCurrentImage(imageUrl);
 
       const assistantMessage = {
@@ -1016,12 +1022,12 @@ const MangaGeneratorV2 = () => {
     }
   };
 
-  const pagesToShow = useMemo(() => 
+  const pagesToShow = useMemo(() =>
     currentSession ? currentSession.pages : project.pages,
     [currentSession, project.pages]
   );
 
-  const exportCount = useMemo(() => 
+  const exportCount = useMemo(() =>
     pagesToShow.filter(p => p.markedForExport).length,
     [pagesToShow]
   );

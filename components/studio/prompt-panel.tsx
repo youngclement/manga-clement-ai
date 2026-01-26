@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sparkles, Zap, X, Wand2 } from 'lucide-react';
 import { MangaSession, MangaConfig } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { cleanUserPrompt } from '@/lib/utils/prompt-utils';
 
 interface PromptPanelProps {
     prompt: string;
@@ -71,7 +72,26 @@ export default function PromptPanel({
                 {/* Prompt Textarea */}
                 <textarea
                     value={prompt}
-                    onChange={(e) => onPromptChange(e.target.value)}
+                    onChange={(e) => {
+                        // Clean prompt on paste to remove formatting
+                        const value = e.target.value;
+                        // Only clean if it looks like a copied enhanced prompt (very long with special chars)
+                        if (value.length > 200 && (value.includes('╔') || value.includes('⚠️') || value.includes('CRITICAL'))) {
+                            const cleaned = cleanUserPrompt(value);
+                            onPromptChange(cleaned);
+                        } else {
+                            onPromptChange(value);
+                        }
+                    }}
+                    onPaste={(e) => {
+                        // Clean pasted content
+                        const pastedText = e.clipboardData.getData('text');
+                        if (pastedText.length > 200 && (pastedText.includes('╔') || pastedText.includes('⚠️') || pastedText.includes('CRITICAL'))) {
+                            e.preventDefault();
+                            const cleaned = cleanUserPrompt(pastedText);
+                            onPromptChange(cleaned);
+                        }
+                    }}
                     placeholder={isAutoContinue
                         ? "Gợi ý hướng phát triển story (optional)... VD: 'The hero discovers a secret', 'A battle begins', 'They meet a new character'..."
                         : hasPages
