@@ -406,9 +406,17 @@ const MangaGeneratorV2 = () => {
       projectSaveTimerRef.current = setTimeout(async () => {
         try {
           await saveProject(project);
-        } catch (err) {
+        } catch (err: any) {
           console.error("Failed to save project", err);
-          setError("Storage error: Could not save your progress.");
+          const errorMessage = err?.message || "Could not save your progress.";
+
+          // Don't show error for 413/content too large - it's handled by the service
+          // Only show persistent errors
+          if (errorMessage.includes('too large')) {
+            setError("Project is too large. Some images may not have been saved. Try removing some pages.");
+          } else {
+            setError(`Storage error: ${errorMessage}`);
+          }
         }
       }, 1000); // Wait 1 second after last change
     }
