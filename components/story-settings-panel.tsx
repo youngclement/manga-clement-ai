@@ -264,7 +264,7 @@ export default function StorySettingsPanel({
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Art Style</span>
-                                {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital')) && (
+                                {(config.style && (config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital'))) && (
                                     <span className="text-[9px] text-zinc-500 font-normal normal-case">Modern</span>
                                 )}
                             </label>
@@ -318,7 +318,7 @@ export default function StorySettingsPanel({
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1" style={{ fontFamily: 'var(--font-inter)' }}>
                                     <span>Screentone</span>
-                                    {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital')) && config.screentone !== 'None' && (
+                                    {(config.style && (config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital'))) && config.screentone !== 'None' && (
                                         <span className="text-[8px] text-zinc-500 font-normal normal-case">None</span>
                                     )}
                                 </label>
@@ -417,7 +417,7 @@ export default function StorySettingsPanel({
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-1" style={{ fontFamily: 'var(--font-inter)' }}>
                                     <span>Color Mode</span>
-                                    {(config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital') || config.style.includes('Cinematic')) && !config.useColor && (
+                                    {(config.style && (config.style.includes('Webtoon') || config.style.includes('Manhwa') || config.style.includes('Digital') || config.style.includes('Cinematic'))) && !config.useColor && (
                                         <span className="text-[8px] text-zinc-500 font-normal normal-case">Try COLOR!</span>
                                     )}
                                 </label>

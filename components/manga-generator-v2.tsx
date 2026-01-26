@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Eye, Settings, Layers, MessageSquare, X } from 'lucide-react';
+import { safeArray, generateId, normalizeSession } from '@/lib/utils/react-utils';
+import { extractErrorMessage } from '@/lib/utils/error-handler';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -238,14 +240,14 @@ const MangaGeneratorV2 = () => {
     init();
   }, []);
 
-  const createSession = (name: string) => {
+  const createSession = useCallback((name: string) => {
     const newSession: MangaSession = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
+      id: generateId(),
       name,
       context: context || '',
       pages: [],
       chatHistory: [],
-      config: { ...config }, // Save current config including storyDirection
+      config: { ...config },
       createdAt: Date.now(),
       updatedAt: Date.now()
     };
@@ -253,21 +255,17 @@ const MangaGeneratorV2 = () => {
     setCurrentSession(newSession);
     setProject(prev => ({
       ...prev,
-      sessions: Array.isArray(prev.sessions) ? [...prev.sessions, newSession] : [newSession],
+      sessions: [...safeArray(prev.sessions), newSession],
       currentSessionId: newSession.id
     }));
-  };
+  }, [context, config]);
 
-  const switchSession = (sessionId: string) => {
-    const session = (Array.isArray(project.sessions) ? project.sessions : []).find(s => s.id === sessionId);
+  const switchSession = useCallback((sessionId: string) => {
+    const session = safeArray(project.sessions).find(s => s.id === sessionId);
     if (session) {
-      const normalizedSession = {
-        ...session,
-        chatHistory: Array.isArray(session.chatHistory) ? session.chatHistory : []
-      };
+      const normalizedSession = normalizeSession(session);
       setCurrentSession(normalizedSession);
       setContext(normalizedSession.context);
-      // Load config from session (including storyDirection), or use default with context
       if (normalizedSession.config) {
         setConfig({ ...normalizedSession.config, context: normalizedSession.context });
       } else {
@@ -275,72 +273,68 @@ const MangaGeneratorV2 = () => {
       }
       setProject(prev => ({ ...prev, currentSessionId: sessionId }));
     }
-  };
+  }, [project.sessions]);
 
   // Debounce timer for context updates to prevent lag
   const contextUpdateTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Update config and save to session (including storyDirection)
-  const updateConfig = (newConfig: MangaConfig) => {
+  const updateConfig = useCallback((newConfig: MangaConfig) => {
     setConfig(newConfig);
 
-    // Save config to current session
     if (currentSession) {
       const updatedSession = {
         ...currentSession,
-        config: { ...newConfig }, // Save full config including storyDirection
+        config: { ...newConfig },
         updatedAt: Date.now()
       };
       setCurrentSession(updatedSession);
       setProject(prev => ({
         ...prev,
-        sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s =>
+        sessions: safeArray(prev.sessions).map(s =>
           s.id === currentSession.id ? updatedSession : s
         )
       }));
     }
-  };
+  }, [currentSession]);
 
-  const updateSessionContext = (newContext: string) => {
+  const updateSessionContext = useCallback((newContext: string) => {
     try {
-      // Limit context length to prevent issues (e.g., 10000 characters)
       const maxContextLength = 10000;
       const trimmedContext = newContext.length > maxContextLength
         ? newContext.substring(0, maxContextLength)
         : newContext;
 
-      // Update UI immediately (no lag for typing)
       setContext(trimmedContext);
       const newConfig = { ...config, context: trimmedContext };
       setConfig(newConfig);
 
-      // Clear previous timer
       if (contextUpdateTimerRef.current) {
         clearTimeout(contextUpdateTimerRef.current);
       }
 
-      // Debounce the expensive operations (session/project updates)
-      // Only update session and project after user stops typing for 500ms
       contextUpdateTimerRef.current = setTimeout(() => {
         if (currentSession) {
           const updatedSession = {
             ...currentSession,
             context: trimmedContext,
-            config: { ...newConfig }, // Save config including storyDirection
+            config: { ...newConfig },
             updatedAt: Date.now()
           };
           setCurrentSession(updatedSession);
           setProject(prev => ({
             ...prev,
-            sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s => s.id === currentSession.id ? updatedSession : s)
+            sessions: safeArray(prev.sessions).map(s => 
+              s.id === currentSession.id ? updatedSession : s
+            )
           }));
         }
-      }, 500); // Wait 500ms after user stops typing
+      }, 500);
     } catch (error) {
       console.error("Error updating context:", error);
-      setError("Failed to update context. Please try again.");
+      setError(extractErrorMessage(error) || "Failed to update context. Please try again.");
     }
-  };
+  }, [config, currentSession]);
 
   const confirmDeleteSession = (sessionId: string) => {
     setSessionToDelete(sessionId);
@@ -1022,10 +1016,15 @@ const MangaGeneratorV2 = () => {
     }
   };
 
-  const pagesToShow = currentSession ? currentSession.pages : project.pages;
-  const exportCount = currentSession
-    ? currentSession.pages.filter(p => p.markedForExport).length
-    : project.pages.filter(p => p.markedForExport).length;
+  const pagesToShow = useMemo(() => 
+    currentSession ? currentSession.pages : project.pages,
+    [currentSession, project.pages]
+  );
+
+  const exportCount = useMemo(() => 
+    pagesToShow.filter(p => p.markedForExport).length,
+    [pagesToShow]
+  );
 
   return (
     <div className="h-screen flex flex-col bg-zinc-950">
