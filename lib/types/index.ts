@@ -107,6 +107,7 @@ export interface MangaSession {
   pages: GeneratedManga[];
   chatHistory: ChatMessage[];
   config?: MangaConfig; // Store config including storyDirection
+  selectedReferencePageIds?: string[]; // Page IDs selected as reference for continuation
   createdAt: number;
   updatedAt: number;
 }

@@ -3,7 +3,7 @@ import { authStore } from './auth-client';
 authStore.loadFromStorage();
 
 const BACKEND_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+  process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
 
 function resolveBackendUrl(input: RequestInfo): RequestInfo {
   if (typeof input === 'string' && input.startsWith('/api/')) {

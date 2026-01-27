@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react';
-import { Layers, Trash2, Plus, FileText, Maximize2, CheckSquare, Square, Image as ImageIcon, X } from 'lucide-react';
+import { Layers, Trash2, Plus, FileText, Maximize2, CheckSquare, Square, Image as ImageIcon, X, Star } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -25,6 +25,7 @@ interface SessionSidebarProps {
     onDeletePages: (pageIds: string[]) => void;
     onOpenFullscreen: (imageUrl: string) => void;
     onConfigChange?: (config: MangaConfig) => void;
+    onToggleReferencePage?: (pageId: string) => void; // New callback for toggling reference pages
     leftWidth: number;
 }
 
@@ -42,10 +43,15 @@ export default function SessionSidebar({
     onDeletePages,
     onOpenFullscreen,
     onConfigChange,
+    onToggleReferencePage,
     leftWidth,
 }: SessionSidebarProps) {
     const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
     const [showReferencePanel, setShowReferencePanel] = useState(false);
+    
+    // Get selected reference page IDs from session
+    const selectedReferencePageIds = currentSession?.selectedReferencePageIds || [];
+    const isReferencePage = (pageId: string) => selectedReferencePageIds.includes(pageId);
 
     // Helper to normalize image format
     const normalizeImage = (img: string | ReferenceImage): ReferenceImage => {
@@ -336,7 +342,31 @@ export default function SessionSidebar({
                                 <div className="px-2 py-1 bg-black/80 backdrop-blur-sm rounded text-[10px] font-bold text-amber-500">
                                     P.{idx + 1}
                                 </div>
+                                {/* Reference Toggle Button */}
+                                {onToggleReferencePage && (
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onToggleReferencePage(page.id);
+                                        }}
+                                        className={`p-1 bg-black/80 backdrop-blur-sm rounded hover:bg-black/90 transition-all ${
+                                            isReferencePage(page.id)
+                                                ? 'text-amber-400 ring-1 ring-amber-400/50'
+                                                : 'text-zinc-400 hover:text-amber-400'
+                                        }`}
+                                        title={isReferencePage(page.id) ? "Remove from reference (used for continuation)" : "Set as reference (used for continuation)"}
+                                    >
+                                        <Star size={14} className={isReferencePage(page.id) ? 'fill-current' : ''} />
+                                    </button>
+                                )}
                             </div>
+                            {/* Reference Badge */}
+                            {isReferencePage(page.id) && (
+                                <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-br from-amber-500/90 to-amber-600/90 backdrop-blur-sm rounded text-[10px] font-bold text-black flex items-center gap-1 shadow-lg">
+                                    <Star size={10} className="fill-current" />
+                                    REF
+                                </div>
+                            )}
                             {page.markedForExport && (
                                 <div className="absolute top-2 right-2 px-2 py-1 bg-green-500/90 backdrop-blur-sm rounded text-[10px] font-bold text-white">
                                     PDF

@@ -28,7 +28,7 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
-            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+            const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
             const res = await fetch(`${baseUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

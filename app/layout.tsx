@@ -4,6 +4,7 @@ import { Geist_Mono, Bangers, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthRefresher } from '@/components/app/auth-refresher'
+import { Toaster } from '@/components/ui/sonner'
 
 const _bangers = Bangers({ weight: '400', subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-white`}>
         <AuthRefresher />
         {children}
+        <Toaster />
         <Analytics />
       </body>
     </html>

@@ -17,7 +17,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3000';
+      const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

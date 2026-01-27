@@ -383,7 +383,8 @@ function calculatePromptSimilarity(prompt1: string, prompt2: string): number {
 export const generateMangaImage = async (
   prompt: string,
   config: MangaConfig,
-  sessionHistory?: GeneratedManga[]
+  sessionHistory?: GeneratedManga[],
+  selectedReferencePageIds?: string[] // Optional: specific page IDs to use as reference
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyCWdZeeNGdHbRGqoisSNI4_nj2hHpCQqiI' });
   
@@ -599,7 +600,68 @@ Language: ${config.language.toUpperCase()} only`;
     return inkingGuides[inking] || inking;
   };
 
-  // Function to sanitize prompt for retry (make it less explicit)
+  // Function to use AI to intelligently adjust prompt when blocked
+  const adjustPromptWithAI = async (originalPrompt: string, blockReason: string, attempt: number): Promise<string> => {
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || 'AIzaSyCWdZeeNGdHbRGqoisSNI4_nj2hHpCQqiI' });
+      
+      const adjustmentRequest = `You are a prompt engineering assistant. A manga image generation prompt was blocked by Google's content policy with reason: ${blockReason}.
+
+ORIGINAL PROMPT:
+"${originalPrompt}"
+
+YOUR TASK:
+Rewrite this prompt to maintain the same artistic intent and story elements while making it compliant with content policies. 
+
+REQUIREMENTS:
+1. Keep the core story, characters, and scene description
+2. Use more artistic, abstract, or stylized language instead of explicit terms
+3. Focus on visual storytelling, composition, and manga aesthetics
+4. Remove or replace any terms that might trigger content filters
+5. Maintain the emotional tone and narrative intent
+6. Use professional manga terminology
+
+IMPORTANT:
+- Do NOT change the fundamental story or scene
+- Do NOT remove important character or setting details
+- Do NOT make it completely generic
+- DO make it more artistic and policy-compliant
+- DO preserve the creative intent
+
+Return ONLY the rewritten prompt, nothing else. No explanations, no meta-commentary.`;
+
+      const response = await ai.models.generateContent({
+        model: TEXT_GENERATION_MODEL,
+        contents: { parts: [{ text: adjustmentRequest }] },
+        config: {
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+            { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
+          ] as any,
+        },
+      });
+
+      const adjustedPrompt = response.text?.trim() || '';
+      
+      if (adjustedPrompt && adjustedPrompt.length > 10) {
+        console.log(`✅ AI-adjusted prompt (attempt ${attempt}):`, adjustedPrompt.substring(0, 100) + '...');
+        return adjustedPrompt;
+      } else {
+        // Fallback to sanitize method if AI fails
+        console.warn(`⚠️ AI adjustment failed, falling back to sanitize method`);
+        return sanitizePromptForRetry(originalPrompt, attempt);
+      }
+    } catch (error) {
+      console.error('Error adjusting prompt with AI:', error);
+      // Fallback to sanitize method if AI fails
+      console.warn(`⚠️ AI adjustment error, falling back to sanitize method`);
+      return sanitizePromptForRetry(originalPrompt, attempt);
+    }
+  };
+
+  // Function to sanitize prompt for retry (make it less explicit) - Fallback method
   const sanitizePromptForRetry = (originalPrompt: string, attempt: number): string => {
     if (attempt === 1) {
       // First retry: Use more artistic/abstract language - replace explicit terms
@@ -788,36 +850,49 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: enhancedPrompt }];
     
-    // Add previous manga pages as visual references (limit to last 3 nearest pages) using base64 from backend
+    // Add previous manga pages as visual references
+    // Use selected reference pages if provided, otherwise use last 3 pages
     if (sessionHistory && sessionHistory.length > 0) {
-      // When generating multiple pages, always use only the 3 most recent pages
-      const recentPages = sessionHistory.slice(-3);
-      const sources = recentPages.map((p) => p.url);
-      const imageMap = await resolveImagesToBase64(sources);
+      let pagesToUse: GeneratedManga[] = [];
       
-      for (const page of recentPages) {
-        if (!page.url) continue;
-        const raw = imageMap[page.url];
-        if (!raw) continue;
+      if (selectedReferencePageIds && selectedReferencePageIds.length > 0) {
+        // Use user-selected reference pages
+        pagesToUse = sessionHistory.filter(page => selectedReferencePageIds.includes(page.id));
+        console.log(`📸 Using ${pagesToUse.length} user-selected reference pages:`, selectedReferencePageIds);
+      } else {
+        // Fallback: use last 3 pages (default behavior)
+        pagesToUse = sessionHistory.slice(-3);
+        console.log(`📸 Using last 3 pages as reference (no specific selection)`);
+      }
+      
+      if (pagesToUse.length > 0) {
+        const sources = pagesToUse.map((p) => p.url);
+        const imageMap = await resolveImagesToBase64(sources);
+        
+        for (const page of pagesToUse) {
+          if (!page.url) continue;
+          const raw = imageMap[page.url];
+          if (!raw) continue;
 
-        const base64Data = raw.includes('base64,')
-          ? raw.split('base64,')[1]
-          : raw;
-        
-        let mimeType = 'image/jpeg';
-        if (raw.includes('data:image/')) {
-          const mimeMatch = raw.match(/data:(image\/[^;]+)/);
-          if (mimeMatch) {
-            mimeType = mimeMatch[1];
+          const base64Data = raw.includes('base64,')
+            ? raw.split('base64,')[1]
+            : raw;
+          
+          let mimeType = 'image/jpeg';
+          if (raw.includes('data:image/')) {
+            const mimeMatch = raw.match(/data:(image\/[^;]+)/);
+            if (mimeMatch) {
+              mimeType = mimeMatch[1];
+            }
           }
+          
+          contentParts.push({
+            inlineData: {
+              data: base64Data,
+              mimeType: mimeType
+            }
+          });
         }
-        
-        contentParts.push({
-          inlineData: {
-            data: base64Data,
-            mimeType: mimeType
-          }
-        });
       }
     }
     
@@ -867,15 +942,16 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     // Retry logic for PROHIBITED_CONTENT - automatically modify prompt and retry
     let lastError: Error | null = null;
     let retryAttempt = 0;
-    const maxRetries = 3;
+    const maxRetries = 5; // Increased to 5 retries
     let response: any = null;
     let currentContentParts = contentParts;
     let currentActualPrompt = actualPrompt;
+    let aiAdjusted = false; // Track if AI adjustment was used
     
     while (retryAttempt <= maxRetries) {
       try {
-        // If this is a retry, modify the prompt to be less explicit
-        if (retryAttempt > 0) {
+        // If this is a retry and AI adjustment wasn't used, use sanitize as fallback
+        if (retryAttempt > 0 && !aiAdjusted) {
           console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
           const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
           currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
@@ -883,6 +959,9 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
           // Update contentParts with sanitized prompt
           currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
         }
+        
+        // Reset AI adjusted flag for next iteration
+        aiAdjusted = false;
         
         // Also handle temporary overloads from Gemini (UNAVAILABLE / 503)
         let innerAttempts = 0;
@@ -922,19 +1001,77 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     // Check for errors in response
     if (response.promptFeedback?.blockReason) {
           if (response.promptFeedback.blockReason === 'PROHIBITED_CONTENT' && retryAttempt < maxRetries) {
-            console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (promptFeedback). Retrying with modified prompt...`);
+            console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (promptFeedback). Using AI to adjust prompt...`);
             retryAttempt++;
             lastError = new Error(`Content blocked: ${response.promptFeedback.blockReason}. ${response.promptFeedback.blockReasonMessage || ''}`);
+            
+            // Use AI to intelligently adjust the prompt
+            try {
+              const adjustedPrompt = await adjustPromptWithAI(
+                actualPrompt,
+                response.promptFeedback.blockReason,
+                retryAttempt
+              );
+              
+              // Update the actual prompt with AI-adjusted version
+              currentActualPrompt = adjustedPrompt;
+              
+              // Rebuild enhanced prompt with adjusted actual prompt
+              // Extract the user prompt section and replace it
+              const userPromptSectionMatch = enhancedPrompt.match(/WRITE YOUR PROMPT \(USER INPUT\):\n(.*?)(?=\n|$)/s);
+              let newEnhancedPrompt = enhancedPrompt;
+              
+              if (userPromptSectionMatch) {
+                // Replace the user prompt section
+                newEnhancedPrompt = enhancedPrompt.replace(
+                  userPromptSectionMatch[0],
+                  `WRITE YOUR PROMPT (USER INPUT):\n${adjustedPrompt}`
+                );
+              } else {
+                // If no user prompt section, replace the story continuation section
+                const storySectionMatch = enhancedPrompt.match(/STORY CONTINUATION:\n(.*?)(?=\n[A-Z])/s);
+                if (storySectionMatch) {
+                  newEnhancedPrompt = enhancedPrompt.replace(
+                    storySectionMatch[1],
+                    adjustedPrompt
+                  );
+                } else {
+                  // Last resort: append adjusted prompt
+                  newEnhancedPrompt = enhancedPrompt.replace(
+                    actualPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+                    adjustedPrompt
+                  );
+                }
+              }
+              
+              // Update contentParts with adjusted prompt
+              currentContentParts = [{ text: newEnhancedPrompt }, ...contentParts.slice(1)];
+              aiAdjusted = true; // Mark that AI adjustment was used
+              
+              console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
+            } catch (adjustError) {
+              console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
+              // Fallback to sanitize method
+              const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+              currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+              currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+              aiAdjusted = false; // AI failed, will use sanitize
+            }
+            
             // Wait a bit before retry
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 1500));
             continue; // Retry with modified prompt
           } else {
             // Either not PROHIBITED_CONTENT or max retries reached
             console.error("Prompt feedback:", response.promptFeedback);
             if (response.promptFeedback.blockReason === 'PROHIBITED_CONTENT') {
-              console.warn("Content was blocked as PROHIBITED_CONTENT after all retry attempts.");
+              console.warn(`Content was blocked as PROHIBITED_CONTENT after ${retryAttempt} retry attempts.`);
               console.warn("Note: Even with safety settings disabled, Gemini API may still block certain content types.");
               console.warn("Consider using alternative APIs or models that support adult content generation.");
+              const error = new Error(`Content blocked after ${retryAttempt} attempts: ${response.promptFeedback.blockReason}. ${response.promptFeedback.blockReasonMessage || 'The prompt violated Google\'s content policy.'}`);
+              (error as any).retryCount = retryAttempt;
+              (error as any).maxRetries = maxRetries;
+              throw error;
             }
             throw new Error(`Content blocked: ${response.promptFeedback.blockReason}. ${response.promptFeedback.blockReasonMessage || ''}`);
           }
@@ -950,35 +1087,116 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     
     // Check for PROHIBITED_CONTENT in finishReason
     if (candidate.finishReason === 'PROHIBITED_CONTENT' && retryAttempt < maxRetries) {
-      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (finishReason). Retrying with modified prompt...`);
+      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: PROHIBITED_CONTENT (finishReason). Using AI to adjust prompt...`);
       retryAttempt++;
       lastError = new Error(`Content blocked: PROHIBITED_CONTENT. ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
       
-      // Sanitize prompt for next retry
-      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
-      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      // Use AI to intelligently adjust the prompt
+      try {
+        const adjustedPrompt = await adjustPromptWithAI(
+          actualPrompt,
+          'PROHIBITED_CONTENT',
+          retryAttempt
+        );
+        
+        // Update the actual prompt with AI-adjusted version
+        currentActualPrompt = adjustedPrompt;
+        
+        // Rebuild enhanced prompt with adjusted actual prompt
+        const userPromptSectionMatch = enhancedPrompt.match(/WRITE YOUR PROMPT \(USER INPUT\):\n(.*?)(?=\n|$)/s);
+        let newEnhancedPrompt = enhancedPrompt;
+        
+        if (userPromptSectionMatch) {
+          newEnhancedPrompt = enhancedPrompt.replace(
+            userPromptSectionMatch[0],
+            `WRITE YOUR PROMPT (USER INPUT):\n${adjustedPrompt}`
+          );
+        } else {
+          const storySectionMatch = enhancedPrompt.match(/STORY CONTINUATION:\n(.*?)(?=\n[A-Z])/s);
+          if (storySectionMatch) {
+            newEnhancedPrompt = enhancedPrompt.replace(
+              storySectionMatch[1],
+              adjustedPrompt
+            );
+          } else {
+            newEnhancedPrompt = enhancedPrompt.replace(
+              actualPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+              adjustedPrompt
+            );
+          }
+        }
+        
+        currentContentParts = [{ text: newEnhancedPrompt }, ...contentParts.slice(1)];
+        aiAdjusted = true;
+        
+        console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
+      } catch (adjustError) {
+        console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
+        // Fallback to sanitize method
+        const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+        currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+        currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+        aiAdjusted = false;
+      }
       
       // Wait a bit before retry
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       continue; // Retry with modified prompt
     }
     
     // Check for IMAGE_SAFETY in finishReason (similar to PROHIBITED_CONTENT)
     if (candidate.finishReason === 'IMAGE_SAFETY' && retryAttempt < maxRetries) {
-      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY (finishReason). Retrying with modified prompt...`);
+      console.warn(`⚠️ Attempt ${retryAttempt + 1} blocked: IMAGE_SAFETY (finishReason). Using AI to adjust prompt...`);
       retryAttempt++;
       lastError = new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
       
-      // Sanitize prompt for next retry
-      console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
-      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      // Use AI to intelligently adjust the prompt
+      try {
+        const adjustedPrompt = await adjustPromptWithAI(
+          actualPrompt,
+          'IMAGE_SAFETY',
+          retryAttempt
+        );
+        
+        currentActualPrompt = adjustedPrompt;
+        
+        const userPromptSectionMatch = enhancedPrompt.match(/WRITE YOUR PROMPT \(USER INPUT\):\n(.*?)(?=\n|$)/s);
+        let newEnhancedPrompt = enhancedPrompt;
+        
+        if (userPromptSectionMatch) {
+          newEnhancedPrompt = enhancedPrompt.replace(
+            userPromptSectionMatch[0],
+            `WRITE YOUR PROMPT (USER INPUT):\n${adjustedPrompt}`
+          );
+        } else {
+          const storySectionMatch = enhancedPrompt.match(/STORY CONTINUATION:\n(.*?)(?=\n[A-Z])/s);
+          if (storySectionMatch) {
+            newEnhancedPrompt = enhancedPrompt.replace(
+              storySectionMatch[1],
+              adjustedPrompt
+            );
+          } else {
+            newEnhancedPrompt = enhancedPrompt.replace(
+              actualPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+              adjustedPrompt
+            );
+          }
+        }
+        
+        currentContentParts = [{ text: newEnhancedPrompt }, ...contentParts.slice(1)];
+        aiAdjusted = true;
+        
+        console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
+      } catch (adjustError) {
+        console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
+        const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+        currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+        currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+        aiAdjusted = false;
+      }
       
       // Wait a bit before retry
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       continue; // Retry with modified prompt
     }
     
@@ -989,14 +1207,17 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       
       // If IMAGE_SAFETY and max retries reached
       if (candidate.finishReason === 'IMAGE_SAFETY') {
-        console.error("Image was blocked by IMAGE_SAFETY filter after all retry attempts");
+        console.error(`Image was blocked by IMAGE_SAFETY filter after ${retryAttempt} retry attempts`);
         console.warn("The generated image violated Google's Generative AI Prohibited Use policy");
         console.warn("This can happen even with safety settings disabled due to Google's content policy");
         console.warn("Suggestions:");
         console.warn("1. Try rephrasing the prompt to be less explicit");
         console.warn("2. Use more artistic/abstract descriptions");
         console.warn("3. Consider using alternative APIs that support adult content");
-        throw new Error(`Image blocked by safety filter (IMAGE_SAFETY): ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
+        const error = new Error(`Image blocked by safety filter (IMAGE_SAFETY) after ${retryAttempt} attempts: ${candidate.finishMessage || 'The image violated Google\'s content policy. Try rephrasing the prompt or using alternative APIs.'}`);
+        (error as any).retryCount = retryAttempt;
+        (error as any).maxRetries = maxRetries;
+        throw error;
       }
       
       // For other finish reasons, throw error
@@ -1010,18 +1231,57 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
         // If it's a PROHIBITED_CONTENT or IMAGE_SAFETY error and we haven't reached max retries, retry
         if ((error.message?.includes('PROHIBITED_CONTENT') || error.message?.includes('IMAGE_SAFETY')) && retryAttempt < maxRetries) {
           const errorType = error.message?.includes('IMAGE_SAFETY') ? 'IMAGE_SAFETY' : 'PROHIBITED_CONTENT';
-          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: ${errorType}. Retrying with modified prompt...`);
+          console.warn(`⚠️ Attempt ${retryAttempt + 1} failed: ${errorType}. Using AI to adjust prompt...`);
           retryAttempt++;
           lastError = error;
           
-          // Sanitize prompt for next retry
-          console.warn(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Modifying prompt to be less explicit...`);
-          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+          // Use AI to intelligently adjust the prompt
+          try {
+            const adjustedPrompt = await adjustPromptWithAI(
+              actualPrompt,
+              errorType,
+              retryAttempt
+            );
+            
+            currentActualPrompt = adjustedPrompt;
+            
+            const userPromptSectionMatch = enhancedPrompt.match(/WRITE YOUR PROMPT \(USER INPUT\):\n(.*?)(?=\n|$)/s);
+            let newEnhancedPrompt = enhancedPrompt;
+            
+            if (userPromptSectionMatch) {
+              newEnhancedPrompt = enhancedPrompt.replace(
+                userPromptSectionMatch[0],
+                `WRITE YOUR PROMPT (USER INPUT):\n${adjustedPrompt}`
+              );
+            } else {
+              const storySectionMatch = enhancedPrompt.match(/STORY CONTINUATION:\n(.*?)(?=\n[A-Z])/s);
+              if (storySectionMatch) {
+                newEnhancedPrompt = enhancedPrompt.replace(
+                  storySectionMatch[1],
+                  adjustedPrompt
+                );
+              } else {
+                newEnhancedPrompt = enhancedPrompt.replace(
+                  actualPrompt.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+                  adjustedPrompt
+                );
+              }
+            }
+            
+            currentContentParts = [{ text: newEnhancedPrompt }, ...contentParts.slice(1)];
+            aiAdjusted = true;
+            
+            console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
+          } catch (adjustError) {
+            console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
+            const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+            currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+            currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+            aiAdjusted = false;
+          }
           
           // Wait a bit before retry
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise(resolve => setTimeout(resolve, 1500));
           continue;
         }
         // Otherwise, throw the error
@@ -1029,13 +1289,19 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       }
     }
     
-    // If we exhausted retries, throw the last error
+    // If we exhausted retries, throw the last error with retry info
     if (lastError && !response) {
-      throw lastError;
+      const error = new Error(`Failed to generate after ${retryAttempt} attempts: ${lastError.message}`);
+      (error as any).retryCount = retryAttempt;
+      (error as any).maxRetries = maxRetries;
+      throw error;
     }
     
     if (!response) {
-      throw new Error("Failed to generate content after all retry attempts");
+      const error = new Error(`Failed to generate content after ${retryAttempt} retry attempts`);
+      (error as any).retryCount = retryAttempt;
+      (error as any).maxRetries = maxRetries;
+      throw error;
     }
 
     // Check if we have candidates (should already be checked in retry loop, but double-check)
@@ -1053,9 +1319,13 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       console.error("Finish message:", candidate.finishMessage);
       
       if (candidate.finishReason === 'PROHIBITED_CONTENT' || candidate.finishReason === 'IMAGE_SAFETY') {
-        console.warn("Content was blocked after all retry attempts.");
+        console.warn(`Content was blocked after ${retryAttempt} retry attempts.`);
         console.warn("Note: Even with safety settings disabled, Gemini API may still block certain content types.");
         console.warn("Consider using alternative APIs or models that support adult content generation.");
+        const error = new Error(`Generation stopped after ${retryAttempt} attempts: ${candidate.finishReason}. ${candidate.finishMessage || 'The image violated Google\'s content policy.'}`);
+        (error as any).retryCount = retryAttempt;
+        (error as any).maxRetries = maxRetries;
+        throw error;
       }
       
       throw new Error(`Generation stopped: ${candidate.finishReason}. ${candidate.finishMessage || ''}`);

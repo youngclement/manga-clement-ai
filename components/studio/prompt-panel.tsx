@@ -5,6 +5,7 @@ import { Sparkles, Zap, X, Wand2 } from 'lucide-react';
 import { MangaSession, MangaConfig } from '@/lib/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cleanUserPrompt } from '@/lib/utils/prompt-utils';
+import { GenerationProgress } from '@/components/ui/generation-progress';
 
 interface PromptPanelProps {
     prompt: string;
@@ -13,6 +14,8 @@ interface PromptPanelProps {
     error: string | null;
     batchLoading: boolean;
     batchProgress: { current: number; total: number } | null;
+    generationProgress?: number;
+    retryCount?: number;
     config: MangaConfig;
     onPromptChange: (value: string) => void;
     onGenerate: () => void;
@@ -27,6 +30,8 @@ export default function PromptPanel({
     error,
     batchLoading,
     batchProgress,
+    generationProgress = 0,
+    retryCount = 0,
     config,
     onPromptChange,
     onGenerate,
@@ -46,21 +51,21 @@ export default function PromptPanel({
     };
 
     return (
-        <div className="h-1/2 bg-zinc-900 p-4 flex flex-col">
-            <div className="flex-1 flex flex-col gap-3">
+        <div className="h-full bg-transparent p-4 sm:p-5 flex flex-col">
+            <div className="flex-1 flex flex-col gap-4">
                 {/* Step 3 Header */}
-                <div className="flex items-center gap-3 pb-2">
-                    <div className="w-7 h-7 rounded-full bg-amber-500 text-black font-bold text-sm flex items-center justify-center shrink-0">
+                <div className="flex items-center gap-3 pb-1">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-black font-bold text-sm flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/30 ring-2 ring-amber-500/20">
                         3
                     </div>
                     <div className="flex-1">
-                        <label className="text-sm font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
+                        <label className="text-sm font-bold text-zinc-200 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                             <span>Write Your Prompt</span>
                             {currentSession && currentSession.pages.length > 0 && (
                                 <span className="text-[9px] text-zinc-500 font-normal normal-case">(Page {currentSession.pages.length + 1})</span>
                             )}
                             {isAutoContinue && (
-                                <span className="text-[9px] text-zinc-400 font-normal normal-case flex items-center gap-1">
+                                <span className="text-[9px] text-amber-400/80 font-normal normal-case flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
                                     <Wand2 size={10} />
                                     Auto-Continue ON
                                 </span>
@@ -97,7 +102,7 @@ export default function PromptPanel({
                         : hasPages
                             ? "Continue the story with the SAME characters from Context..."
                             : "Describe the scene: A hero standing on a rooftop, looking at the sunset..."}
-                    className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg p-4 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-xs focus:outline-none focus:border-amber-500 transition-colors resize-none custom-scrollbar"
+                    className="flex-1 bg-zinc-950/60 border border-zinc-800/60 rounded-xl p-3 sm:p-4 text-sm sm:text-base leading-relaxed text-zinc-200 placeholder:text-zinc-600 placeholder:text-xs sm:placeholder:text-sm focus:outline-none focus:border-amber-500/60 focus:ring-2 focus:ring-amber-500/20 transition-all resize-none custom-scrollbar backdrop-blur-sm shadow-inner min-h-[120px] sm:min-h-[140px]"
                     style={{ fontFamily: 'var(--font-inter)' }}
                     disabled={batchLoading}
                     onKeyDown={(e) => {
@@ -106,6 +111,15 @@ export default function PromptPanel({
                         }
                     }}
                 />
+
+                {/* Single Generation Progress */}
+                {loading && !batchLoading && (
+                    <GenerationProgress 
+                        progress={generationProgress}
+                        retryCount={retryCount}
+                        label="Generating image..."
+                    />
+                )}
 
                 {/* Batch Progress */}
                 {batchLoading && batchProgress && (
@@ -142,11 +156,11 @@ export default function PromptPanel({
                 )}
 
                 {/* Generate Buttons */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <button
                         onClick={onGenerate}
                         disabled={loading || batchLoading || (!prompt.trim() && !isAutoContinue)}
-                        className="px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-base rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0"
+                        className="px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-sm sm:text-base rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0 disabled:cursor-not-allowed ring-2 ring-transparent hover:ring-amber-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
                     >
                         {loading ? 'GEN...' : isAutoContinue ? 'CONTINUE' : 'GENERATE'}
                     </button>
@@ -154,49 +168,51 @@ export default function PromptPanel({
                     {batchLoading ? (
                         <button
                             onClick={onCancelBatch}
-                            className="px-6 py-3 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(153,27,27)] hover:shadow-[0_4px_0_0_rgb(153,27,27)] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1"
+                            className="px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(153,27,27)] hover:shadow-[0_4px_0_0_rgb(153,27,27)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1 ring-2 ring-transparent hover:ring-red-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
                             style={{ fontFamily: 'var(--font-inter)' }}
                         >
-                            <X size={16} />
-                            CANCEL
+                            <X size={14} className="sm:w-4 sm:h-4" />
+                            <span className="hidden sm:inline">CANCEL</span>
+                            <span className="sm:hidden">STOP</span>
                         </button>
                     ) : (
                         <Popover open={batchPopoverOpen} onOpenChange={setBatchPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <button
                                     disabled={loading || batchLoading || (!prompt.trim() && !isAutoContinue)}
-                                    className="px-6 py-3 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-base rounded-lg transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0"
+                                    className="px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-sm sm:text-base rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(180,83,9)] hover:shadow-[0_4px_0_0_rgb(180,83,9)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(180,83,9)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0 disabled:cursor-not-allowed ring-2 ring-transparent hover:ring-amber-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
                                 >
-                                    <Zap size={16} />
-                                    MULTIPLE
+                                    <Zap size={14} className="sm:w-4 sm:h-4" />
+                                    <span className="hidden sm:inline">MULTIPLE</span>
+                                    <span className="sm:hidden">BATCH</span>
                                 </button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-48 bg-zinc-900 border-zinc-800 p-2" align="end">
+                            <PopoverContent className="w-48 bg-zinc-950/95 border-zinc-800/60 backdrop-blur-md p-2 shadow-xl" align="end">
                                 <div className="space-y-1">
                                     <button
                                         onClick={() => handleBatchSelect(10)}
-                                        className="w-full px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 rounded transition-colors text-left"
+                                        className="w-full px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-amber-400 rounded-lg transition-all text-left font-medium"
                                         style={{ fontFamily: 'var(--font-inter)' }}
                                     >
                                         x10 Pages
                                     </button>
                                     <button
                                         onClick={() => handleBatchSelect(15)}
-                                        className="w-full px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 rounded transition-colors text-left"
+                                        className="w-full px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-amber-400 rounded-lg transition-all text-left font-medium"
                                         style={{ fontFamily: 'var(--font-inter)' }}
                                     >
                                         x15 Pages
                                     </button>
                                     <button
                                         onClick={() => handleBatchSelect(20)}
-                                        className="w-full px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 rounded transition-colors text-left"
+                                        className="w-full px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-amber-400 rounded-lg transition-all text-left font-medium"
                                         style={{ fontFamily: 'var(--font-inter)' }}
                                     >
                                         x20 Pages
                                     </button>
                                     <button
                                         onClick={() => handleBatchSelect(30)}
-                                        className="w-full px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800 hover:text-zinc-200 rounded transition-colors text-left"
+                                        className="w-full px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800/60 hover:text-amber-400 rounded-lg transition-all text-left font-medium"
                                         style={{ fontFamily: 'var(--font-inter)' }}
                                     >
                                         x30 Pages
@@ -209,7 +225,7 @@ export default function PromptPanel({
 
                 {/* Error Message */}
                 {error && (
-                    <div className="p-2 bg-red-900/20 border border-red-900/50 rounded text-red-400 text-[10px] text-center" style={{ fontFamily: 'var(--font-inter)' }}>
+                    <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-xl text-red-400 text-xs text-center backdrop-blur-sm shadow-lg shadow-red-900/10" style={{ fontFamily: 'var(--font-inter)' }}>
                         {error}
                     </div>
                 )}
