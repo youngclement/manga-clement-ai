@@ -2,6 +2,46 @@ import { GoogleGenAI } from "@google/genai";
 import { MANGA_SYSTEM_INSTRUCTION, LAYOUT_PROMPTS } from "@/lib/constants";
 import { MangaConfig, GeneratedManga } from "@/lib/types";
 import { cleanUserPrompt, isUserProvidedPrompt, extractUserIntent } from "@/lib/utils/prompt-utils";
+import { loadProjectImages } from "@/lib/services/storage-service";
+
+// Helper: resolve a list of image URLs/IDs to base64 data URLs using backend
+async function resolveImagesToBase64(
+  sources: (string | undefined | null)[],
+): Promise<Record<string, string>> {
+  const result: Record<string, string> = {};
+
+  const valid = (sources || []).filter(
+    (s): s is string => !!s && typeof s === "string",
+  );
+
+  if (valid.length === 0) return result;
+
+  // Short‑circuit for values that are already data URLs
+  const nonBase64: string[] = [];
+  for (const src of valid) {
+    if (src.startsWith("data:image/")) {
+      result[src] = src;
+    } else {
+      nonBase64.push(src);
+    }
+  }
+
+  if (nonBase64.length > 0) {
+    try {
+      const images = await loadProjectImages(nonBase64);
+      for (const key of Object.keys(images)) {
+        const value = images[key];
+        if (typeof value === "string" && value.length > 0) {
+          result[key] = value;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load project images for Gemini references:", err);
+    }
+  }
+
+  return result;
+}
 
 // Model configuration - easily changeable
 const TEXT_GENERATION_MODEL = 'gemini-2.5-flash'; // For prompt generation
@@ -178,32 +218,36 @@ Now generate the prompt for page ${pageNumber}:`;
   try {
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: promptGenerationRequest }];
-    
-    // Add previous manga pages as visual references
+
+    // Add previous manga pages as visual references (use base64, not Cloudinary URL)
     if (sessionHistory && sessionHistory.length > 0) {
       const recentPageImages = sessionHistory.slice(-2); // Last 2 pages for visual reference
-      
+      const sources = recentPageImages.map((p) => p.url);
+      const imageMap = await resolveImagesToBase64(sources);
+
       for (const page of recentPageImages) {
-        if (page.url) {
-          const base64Data = page.url.includes('base64,') 
-            ? page.url.split('base64,')[1] 
-            : page.url;
-          
-          let mimeType = 'image/jpeg';
-          if (page.url.includes('data:image/')) {
-            const mimeMatch = page.url.match(/data:(image\/[^;]+)/);
-            if (mimeMatch) {
-              mimeType = mimeMatch[1];
-            }
+        if (!page.url) continue;
+        const raw = imageMap[page.url];
+        if (!raw) continue;
+
+        const base64Data = raw.includes('base64,')
+          ? raw.split('base64,')[1]
+          : raw;
+
+        let mimeType = 'image/jpeg';
+        if (raw.includes('data:image/')) {
+          const mimeMatch = raw.match(/data:(image\/[^;]+)/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
           }
-          
-          contentParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          });
         }
+
+        contentParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType,
+          },
+        });
       }
     }
 
@@ -652,21 +696,31 @@ Language: ${config.language.toUpperCase()} only`;
 
   const priorityOrder = priorities.join('\n');
 
-  // Build story section
-  let storySection = '';
-  if (hasUserPromptFinal) {
-    storySection = `USER PROMPT (PRIMARY):
-${actualPrompt}`;
-    if (config.storyDirection && config.storyDirection.trim()) {
-      storySection += `\n\nSTORY DIRECTION (Supporting): ${config.storyDirection.trim().substring(0, 150)}${config.storyDirection.trim().length > 150 ? '...' : ''}`;
-    }
-  } else if (continuityInstructions) {
-    storySection = continuityInstructions;
-    if (config.storyDirection && config.storyDirection.trim()) {
-      storySection += `\n\nSTORY DIRECTION: ${config.storyDirection.trim().substring(0, 150)}${config.storyDirection.trim().length > 150 ? '...' : ''}`;
-    }
+  // Build story sections in strict priority:
+  // 1) System continuation text
+  // 2) WRITE YOUR PROMPT (user prompt)
+  // 3) CONTEXT (already in contextSection)
+  // 4) STORY FLOW DIRECTION (guide auto-continue)
+  let storyBaseSection = '';
+  let userPromptSection = '';
+  let storyDirectionSection = '';
+
+  // 1) System continuation text / fallback narrative instruction
+  if (continuityInstructions) {
+    storyBaseSection = continuityInstructions;
   } else {
-    storySection = actualPrompt || 'Create the scene as described.';
+    storyBaseSection = actualPrompt || 'Create the scene as described.';
+  }
+
+  // 2) User prompt from "Write Your Prompt" (only when user really typed something)
+  if (hasUserPromptFinal) {
+    userPromptSection = `\nWRITE YOUR PROMPT (USER INPUT):\n${actualPrompt}`;
+  }
+
+  // 4) Story flow direction as a separate, lowest‑priority block
+  if (config.storyDirection && config.storyDirection.trim()) {
+    const trimmed = config.storyDirection.trim();
+    storyDirectionSection = `\nSTORY FLOW DIRECTION (GUIDE AUTO-CONTINUE):\n${trimmed.substring(0, 500)}${trimmed.length > 500 ? '...' : ''}`;
   }
 
   // Build visual spec
@@ -696,9 +750,9 @@ CORE RULES (Priority Order):
 ${priorityOrder}
 
 STORY CONTINUATION:
-${storySection}
+${storyBaseSection}${userPromptSection}
+${contextSection ? `\n${contextSection}` : ''}${storyDirectionSection}
 ${referenceImageInstructions ? `\n${referenceImageInstructions}` : ''}
-${contextSection ? `\n${contextSection}` : ''}
 
 VISUAL + TEXT SPEC:
 FORMAT: ${layoutDesc}
@@ -713,31 +767,35 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: enhancedPrompt }];
     
-    // Add previous manga pages as visual references (last 10 pages)
+    // Add previous manga pages as visual references (last 10 pages) using base64 from backend
     if (sessionHistory && sessionHistory.length > 0) {
       const recentPages = sessionHistory.slice(-10); // Get last 10 pages
+      const sources = recentPages.map((p) => p.url);
+      const imageMap = await resolveImagesToBase64(sources);
       
       for (const page of recentPages) {
-        if (page.url) {
-          const base64Data = page.url.includes('base64,') 
-            ? page.url.split('base64,')[1] 
-            : page.url;
-          
-          let mimeType = 'image/jpeg';
-          if (page.url.includes('data:image/')) {
-            const mimeMatch = page.url.match(/data:(image\/[^;]+)/);
-            if (mimeMatch) {
-              mimeType = mimeMatch[1];
-            }
+        if (!page.url) continue;
+        const raw = imageMap[page.url];
+        if (!raw) continue;
+
+        const base64Data = raw.includes('base64,')
+          ? raw.split('base64,')[1]
+          : raw;
+        
+        let mimeType = 'image/jpeg';
+        if (raw.includes('data:image/')) {
+          const mimeMatch = raw.match(/data:(image\/[^;]+)/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
           }
-          
-          contentParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          });
         }
+        
+        contentParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        });
       }
     }
     

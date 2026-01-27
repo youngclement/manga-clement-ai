@@ -29,7 +29,7 @@ import {
   Language,
   MangaSession,
 } from '@/lib/types';
-import { loadProject, saveProject } from '@/lib/services/storage-service';
+import { loadProject, updateProjectMeta, saveProject, saveSession, deleteProject, deleteSession as deleteSessionApi, deletePages, deleteImage, deleteImages, addPageToSession } from '@/lib/services/storage-service';
 import { generateMangaImage, generateNextPrompt } from '@/lib/services/gemini-service';
 import StorySettingsPanel from '@/components/story-settings-panel';
 import SessionSidebar from '@/components/studio/session-sidebar';
@@ -129,29 +129,37 @@ const MangaGeneratorV2 = () => {
     }
   }, [project?.preferences]);
 
-  // Save leftWidth to MongoDB via project preferences
+  // Save leftWidth to MongoDB via project preferences (small API)
   useEffect(() => {
     if (project && project.id) {
+      const newPreferences = {
+        ...(project.preferences || {}),
+        leftWidth,
+      };
       setProject(prev => ({
         ...prev,
-        preferences: {
-          ...prev.preferences,
-          leftWidth
-        }
+        preferences: newPreferences,
       }));
+      updateProjectMeta(project.id, { preferences: newPreferences }).catch(err =>
+        console.error('Failed to update preferences (leftWidth)', err),
+      );
     }
   }, [leftWidth, project?.id]);
 
-  // Save middleWidth to MongoDB via project preferences
+  // Save middleWidth to MongoDB via project preferences (small API)
   useEffect(() => {
     if (project && project.id) {
+      const newPreferences = {
+        ...(project.preferences || {}),
+        middleWidth,
+      };
       setProject(prev => ({
         ...prev,
-        preferences: {
-          ...prev.preferences,
-          middleWidth
-        }
+        preferences: newPreferences,
       }));
+      updateProjectMeta(project.id, { preferences: newPreferences }).catch(err =>
+        console.error('Failed to update preferences (middleWidth)', err),
+      );
     }
   }, [middleWidth, project?.id]);
 
@@ -259,7 +267,13 @@ const MangaGeneratorV2 = () => {
       sessions: [...safeArray(prev.sessions), newSession],
       currentSessionId: newSession.id
     }));
-  }, [context, config]);
+
+    if (project && project.id) {
+      saveSession(project.id, newSession).catch(err =>
+        console.error('Failed to save new session', err),
+      );
+    }
+  }, [context, config, project?.id]);
 
   const switchSession = useCallback((sessionId: string) => {
     const session = safeArray(project.sessions).find(s => s.id === sessionId);
@@ -342,7 +356,7 @@ const MangaGeneratorV2 = () => {
     setDeleteDialogOpen(true);
   };
 
-  const deleteSession = () => {
+  const deleteSession = async () => {
     if (!sessionToDelete) return;
 
     const sessions = Array.isArray(project.sessions) ? project.sessions : [];
@@ -362,6 +376,16 @@ const MangaGeneratorV2 = () => {
       sessions: filteredSessions,
       currentSessionId: currentSession?.id === sessionToDelete ? (filteredSessions[0]?.id || undefined) : prev.currentSessionId
     }));
+
+    // Backend delete
+    if (project && project.id) {
+      try {
+        await deleteSessionApi(project.id, sessionToDelete);
+      } catch (err) {
+        console.error('Failed to delete session on backend', err);
+        setError(extractErrorMessage(err) || 'Failed to delete session on server.');
+      }
+    }
 
     setDeleteDialogOpen(false);
     setSessionToDelete(null);
@@ -383,38 +407,18 @@ const MangaGeneratorV2 = () => {
     if (pageIds.length === 0) return;
     if (window.confirm(`Are you sure you want to delete ${pageIds.length} page(s)? This action cannot be undone.`)) {
       await removePages(pageIds);
+      // Optionally inform backend to delete many pages by IDs
+      if (project && project.id) {
+        try {
+          await deletePages(project.id, pageIds);
+        } catch (err) {
+          console.error('Failed to delete pages on backend', err);
+        }
+      }
     }
   };
 
-  // Debounce project saving to prevent lag when typing context
-  const projectSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    // Clear previous timer
-    if (projectSaveTimerRef.current) {
-      clearTimeout(projectSaveTimerRef.current);
-    }
-
-    // Only save if there's actual content
-    if (project.pages.length > 0 || project.title !== 'New Chapter' || project.sessions.length > 0) {
-      // Debounce saving - only save after 1 second of no changes
-      projectSaveTimerRef.current = setTimeout(async () => {
-        try {
-          await saveProject(project);
-        } catch (err) {
-          console.error("Failed to save project", err);
-          setError("Storage error: Could not save your progress.");
-        }
-      }, 1000); // Wait 1 second after last change
-    }
-
-    // Cleanup on unmount
-    return () => {
-      if (projectSaveTimerRef.current) {
-        clearTimeout(projectSaveTimerRef.current);
-      }
-    };
-  }, [project]);
+  // Removed global project auto-save; updates now go through smaller APIs (meta, session, pages)
 
   const handleGenerate = async () => {
     // Guard: Prevent multiple simultaneous generations
@@ -451,6 +455,16 @@ const MangaGeneratorV2 = () => {
         sessions: Array.isArray(prev.sessions) ? [...prev.sessions, newSession] : [newSession],
         currentSessionId: newSessionId
       }));
+      if (project && project.id) {
+        saveSession(project.id, newSession).catch(err =>
+          console.error('Failed to save new session (batch generate)', err),
+        );
+      }
+      if (project && project.id) {
+        saveSession(project.id, newSession).catch(err =>
+          console.error('Failed to save new session (single generate)', err),
+        );
+      }
     }
 
     setLoading(true);
@@ -755,6 +769,13 @@ const MangaGeneratorV2 = () => {
           };
         });
 
+        // Persist new page to backend so it behaves like single "ADD TO PDF" (added to session & export) after batch
+        if (project && project.id) {
+          addPageToSession(project.id, sessionId, newPage).catch(err =>
+            console.error('Failed to persist batch-generated page to backend', err),
+          );
+        }
+
         generatedCount++;
         // Update progress
         setBatchProgress({ current: i + 1, total: totalPages });
@@ -809,24 +830,44 @@ const MangaGeneratorV2 = () => {
       markedForExport: markForExport
     };
 
+    // Build updated objects explicitly so we can persist the same payload we render.
+    const baseProject = project;
+    const sessions = Array.isArray(baseProject.sessions) ? baseProject.sessions : [];
+
+    let updatedProject: MangaProject;
+    let updatedSession: MangaSession | null = null;
+
     if (currentSession) {
-      const updatedSession = {
+      updatedSession = {
         ...currentSession,
         pages: [...currentSession.pages, newPage],
         updatedAt: Date.now()
       };
+
+      updatedProject = {
+        ...baseProject,
+        pages: [...baseProject.pages, newPage],
+        sessions: sessions.map(s => (s.id === currentSession.id ? updatedSession! : s)),
+        currentSessionId: baseProject.currentSessionId ?? currentSession.id,
+      };
+
       setCurrentSession(updatedSession);
-      setProject(prev => ({
-        ...prev,
-        pages: [...prev.pages, newPage],
-        sessions: (Array.isArray(prev.sessions) ? prev.sessions : []).map(s => s.id === currentSession.id ? updatedSession : s)
-      }));
+      setProject(updatedProject);
     } else {
-      setProject(prev => ({
-        ...prev,
-        pages: [...prev.pages, newPage]
-      }));
+      // Fallback: no session loaded; still persist the project pages so the image isn't lost on refresh.
+      updatedProject = {
+        ...baseProject,
+        pages: [...baseProject.pages, newPage],
+        sessions,
+      };
+
+      setProject(updatedProject);
     }
+
+    // Persist to backend. Note: repo currently only implements /api/projects, so we use saveProject.
+    saveProject(updatedProject).catch(err =>
+      console.error('Failed to persist project after ADD TO PDF', err),
+    );
 
     setCurrentImage(null);
     setPrompt('');

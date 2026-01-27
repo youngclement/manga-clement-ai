@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MangaProject, GeneratedManga, MangaSession } from '@/lib/types';
-import { loadProject, saveProject } from '@/lib/services/storage-service';
+import { loadProject, saveProject, addPageToSession, markPageForExport } from '@/lib/services/storage-service';
 import { Plus, X, Layers, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
 
@@ -35,9 +35,15 @@ export default function PreviewPage() {
           };
           setProject(normalizedProject);
 
-          const session = normalizedProject.currentSessionId
-            ? normalizedProject.sessions.find(s => s.id === normalizedProject.currentSessionId)
-            : null;
+          let session =
+            normalizedProject.currentSessionId
+              ? normalizedProject.sessions.find(s => s.id === normalizedProject.currentSessionId)
+              : null;
+
+          // Fallback: if no currentSessionId but there are sessions, use the first one
+          if (!session && normalizedProject.sessions.length > 0) {
+            session = normalizedProject.sessions[0];
+          }
 
           setCurrentSession(session || null);
 
@@ -58,8 +64,17 @@ export default function PreviewPage() {
   useEffect(() => {
     const handleFocus = async () => {
       const saved = await loadProject('default');
-      if (saved && saved.currentSessionId) {
-        const session = saved.sessions?.find(s => s.id === saved.currentSessionId);
+      if (saved) {
+        const sessions = Array.isArray(saved.sessions) ? saved.sessions : [];
+        let session =
+          saved.currentSessionId
+            ? sessions.find(s => s.id === saved.currentSessionId)
+            : null;
+
+        if (!session && sessions.length > 0) {
+          session = sessions[0];
+        }
+
         if (session) {
           setCurrentSession(session);
           setExportPages(session.pages.filter(p => p.markedForExport));
@@ -73,6 +88,12 @@ export default function PreviewPage() {
 
   const togglePageExport = async (pageId: string) => {
     if (!project || !currentSession) return;
+
+    try {
+      await markPageForExport(project.id, currentSession.id, pageId, !currentSession.pages.find(p => p.id === pageId)?.markedForExport);
+    } catch (err) {
+      console.error('Failed to update export flag on backend', err);
+    }
 
     const updatedSession = {
       ...currentSession,
@@ -88,7 +109,6 @@ export default function PreviewPage() {
       )
     };
 
-    await saveProject(updatedProject);
     setProject(updatedProject);
     setCurrentSession(updatedSession);
     setExportPages(updatedSession.pages.filter(p => p.markedForExport));
@@ -217,8 +237,8 @@ export default function PreviewPage() {
                 <button
                   onClick={() => setPdfQuality('high')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${pdfQuality === 'high'
-                      ? 'bg-green-500 text-white shadow-lg'
-                      : 'bg-white text-zinc-600 hover:bg-zinc-50'
+                    ? 'bg-green-500 text-white shadow-lg'
+                    : 'bg-white text-zinc-600 hover:bg-zinc-50'
                     }`}
                 >
                   HIGH
@@ -226,8 +246,8 @@ export default function PreviewPage() {
                 <button
                   onClick={() => setPdfQuality('low')}
                   className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${pdfQuality === 'low'
-                      ? 'bg-blue-500 text-white shadow-lg'
-                      : 'bg-white text-zinc-600 hover:bg-zinc-50'
+                    ? 'bg-blue-500 text-white shadow-lg'
+                    : 'bg-white text-zinc-600 hover:bg-zinc-50'
                     }`}
                 >
                   LOW
@@ -303,7 +323,8 @@ export default function PreviewPage() {
                                           s.id === currentSession.id ? updatedSession : s
                                         )
                                       };
-                                      saveProject(updatedProject);
+                                      addPageToSession(project.id, currentSession.id, newPage)
+                                        .catch(err => console.error('Failed to add page to session on backend', err));
                                       setProject(updatedProject);
                                       setCurrentSession(updatedSession);
                                       setExportPages(updatedSession.pages.filter(p => p.markedForExport));
