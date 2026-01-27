@@ -72,6 +72,7 @@ const MangaGeneratorV2 = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
   const [pageToDelete, setPageToDelete] = useState<string | null>(null);
+  const [pagesToDelete, setPagesToDelete] = useState<string[] | null>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const [showMobileSettings, setShowMobileSettings] = useState(false);
@@ -389,6 +390,7 @@ const MangaGeneratorV2 = () => {
 
     setDeleteDialogOpen(false);
     setSessionToDelete(null);
+    setPagesToDelete(null);
   };
 
   const confirmDeletePage = (pageId: string) => {
@@ -401,21 +403,30 @@ const MangaGeneratorV2 = () => {
     await removePage(pageToDelete);
     setDeleteDialogOpen(false);
     setPageToDelete(null);
+    setPagesToDelete(null);
   };
 
   const confirmDeletePages = async (pageIds: string[]) => {
     if (pageIds.length === 0) return;
-    if (window.confirm(`Are you sure you want to delete ${pageIds.length} page(s)? This action cannot be undone.`)) {
-      await removePages(pageIds);
-      // Optionally inform backend to delete many pages by IDs
-      if (project && project.id) {
-        try {
-          await deletePages(project.id, pageIds);
-        } catch (err) {
-          console.error('Failed to delete pages on backend', err);
-        }
+    setPagesToDelete(pageIds);
+    setDeleteDialogOpen(true);
+  };
+
+  const deleteSelectedPages = async () => {
+    if (!pagesToDelete || pagesToDelete.length === 0) return;
+    const ids = pagesToDelete;
+    await removePages(ids);
+    if (project && project.id) {
+      try {
+        await deletePages(project.id, ids);
+      } catch (err) {
+        console.error('Failed to delete pages on backend', err);
       }
     }
+    setDeleteDialogOpen(false);
+    setPagesToDelete(null);
+    setPageToDelete(null);
+    setSessionToDelete(null);
   };
 
   // Removed global project auto-save; updates now go through smaller APIs (meta, session, pages)
@@ -456,13 +467,9 @@ const MangaGeneratorV2 = () => {
         currentSessionId: newSessionId
       }));
       if (project && project.id) {
+        // Single save is enough for both single-generate and batch flows
         saveSession(project.id, newSession).catch(err =>
-          console.error('Failed to save new session (batch generate)', err),
-        );
-      }
-      if (project && project.id) {
-        saveSession(project.id, newSession).catch(err =>
-          console.error('Failed to save new session (single generate)', err),
+          console.error('Failed to save new session', err),
         );
       }
     }
@@ -769,11 +776,13 @@ const MangaGeneratorV2 = () => {
           };
         });
 
-        // Persist new page to backend so it behaves like single "ADD TO PDF" (added to session & export) after batch
+        // Persist new page to backend and WAIT for it to complete so refresh (F5) doesn't cancel the save.
         if (project && project.id) {
-          addPageToSession(project.id, sessionId, newPage).catch(err =>
-            console.error('Failed to persist batch-generated page to backend', err),
-          );
+          try {
+            await addPageToSession(project.id, sessionId, newPage);
+          } catch (err) {
+            console.error('Failed to persist batch-generated page to backend', err);
+          }
         }
 
         generatedCount++;
@@ -1397,13 +1406,19 @@ const MangaGeneratorV2 = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-zinc-900 border border-zinc-800">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-zinc-100 font-manga text-xl">
-              {sessionToDelete ? 'Delete Session?' : 'Delete Page?'}
-            </AlertDialogTitle>
+              <AlertDialogTitle className="text-zinc-100 font-manga text-xl">
+              {sessionToDelete
+                ? 'Delete Session?'
+                : pagesToDelete
+                  ? 'Delete Pages?'
+                  : 'Delete Page?'}
+              </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
               {sessionToDelete
                 ? 'This will permanently delete this session and all its pages. This action cannot be undone.'
-                : 'This will permanently delete this page. This action cannot be undone.'}
+                : pagesToDelete
+                  ? `Bạn có chắc chắn muốn xóa ${pagesToDelete.length} ảnh? Hành động này không thể hoàn tác.`
+                  : 'This will permanently delete this page. This action cannot be undone.'}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1415,11 +1430,13 @@ const MangaGeneratorV2 = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (sessionToDelete) {
+              if (sessionToDelete) {
                   deleteSession();
-                } else if (pageToDelete) {
+              } else if (pagesToDelete && pagesToDelete.length > 0) {
+                  deleteSelectedPages();
+              } else if (pageToDelete) {
                   deletePage();
-                }
+              }
               }}
               className="bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white shadow-[0_3px_0_0_rgb(153,27,27)]"
               style={{ fontFamily: 'var(--font-inter)' }}

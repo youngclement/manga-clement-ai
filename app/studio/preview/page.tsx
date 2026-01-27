@@ -310,7 +310,7 @@ export default function PreviewPage() {
                                   className="w-full aspect-[3/4] object-cover rounded-lg border-2 border-zinc-200"
                                 />
                                 <button
-                                  onClick={() => {
+                                  onClick={async () => {
                                     if (currentSession) {
                                       const newPage = { ...page, id: `${page.id}-copy-${Date.now()}`, markedForExport: true };
                                       const updatedSession = {
@@ -323,8 +323,12 @@ export default function PreviewPage() {
                                           s.id === currentSession.id ? updatedSession : s
                                         )
                                       };
-                                      addPageToSession(project.id, currentSession.id, newPage)
-                                        .catch(err => console.error('Failed to add page to session on backend', err));
+                                      try {
+                                        // Wait for backend save so refresh doesn't lose this copied page
+                                        await addPageToSession(project.id, currentSession.id, newPage);
+                                      } catch (err) {
+                                        console.error('Failed to add page to session on backend', err);
+                                      }
                                       setProject(updatedProject);
                                       setCurrentSession(updatedSession);
                                       setExportPages(updatedSession.pages.filter(p => p.markedForExport));

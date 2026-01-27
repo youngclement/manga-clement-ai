@@ -4,6 +4,23 @@ import { MangaConfig, GeneratedManga } from "@/lib/types";
 import { cleanUserPrompt, isUserProvidedPrompt, extractUserIntent } from "@/lib/utils/prompt-utils";
 import { loadProjectImages } from "@/lib/services/storage-service";
 
+// Simple helpers for retries
+function isOverloadedError(error: any): boolean {
+  if (!error) return false;
+  const msg = (error.message || error.toString?.() || '').toString();
+  return (
+    error.code === 503 ||
+    error.status === 'UNAVAILABLE' ||
+    msg.includes('The model is overloaded') ||
+    msg.includes('UNAVAILABLE') ||
+    msg.includes('503')
+  );
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 // Helper: resolve a list of image URLs/IDs to base64 data URLs using backend
 async function resolveImagesToBase64(
   sources: (string | undefined | null)[],
@@ -221,7 +238,8 @@ Now generate the prompt for page ${pageNumber}:`;
 
     // Add previous manga pages as visual references (use base64, not Cloudinary URL)
     if (sessionHistory && sessionHistory.length > 0) {
-      const recentPageImages = sessionHistory.slice(-2); // Last 2 pages for visual reference
+      // Only need the very last page as reference for text continuation
+      const recentPageImages = sessionHistory.slice(-1);
       const sources = recentPageImages.map((p) => p.url);
       const imageMap = await resolveImagesToBase64(sources);
 
@@ -251,32 +269,35 @@ Now generate the prompt for page ${pageNumber}:`;
       }
     }
 
-    const response = await ai.models.generateContent({
-      model: TEXT_GENERATION_MODEL,
-      contents: {
-        parts: contentParts
-      },
-      config: {
-        safetySettings: [
-          {
-            category: 'HARM_CATEGORY_HARASSMENT' as any,
-            threshold: 'BLOCK_NONE' as any
+    // Lightweight retry on temporary overloads
+    let response: any;
+    let attempts = 0;
+    const maxAttempts = 3;
+    while (true) {
+      try {
+        response = await ai.models.generateContent({
+          model: TEXT_GENERATION_MODEL,
+          contents: { parts: contentParts },
+          config: {
+            safetySettings: [
+              { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
+              { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
+            ] as any,
           },
-          {
-            category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-            threshold: 'BLOCK_NONE' as any
-          },
-          {
-            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-            threshold: 'BLOCK_NONE' as any
-          },
-          {
-            category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-            threshold: 'BLOCK_NONE' as any
-          }
-        ] as any
+        });
+        break;
+      } catch (err: any) {
+        attempts += 1;
+        if (!isOverloadedError(err) || attempts >= maxAttempts) {
+          throw err;
+        }
+        const backoffMs = 500 * Math.pow(2, attempts - 1);
+        console.warn(`Gemini text model overloaded, retrying in ${backoffMs}ms (attempt ${attempts}/${maxAttempts})`);
+        await delay(backoffMs);
       }
-    });
+    }
 
     let generatedPrompt = response.text?.trim() || '';
     
@@ -767,9 +788,10 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
     // Prepare content parts with text and reference images
     const contentParts: any[] = [{ text: enhancedPrompt }];
     
-    // Add previous manga pages as visual references (last 10 pages) using base64 from backend
+    // Add previous manga pages as visual references (limit to last 3 nearest pages) using base64 from backend
     if (sessionHistory && sessionHistory.length > 0) {
-      const recentPages = sessionHistory.slice(-10); // Get last 10 pages
+      // When generating multiple pages, always use only the 3 most recent pages
+      const recentPages = sessionHistory.slice(-3);
       const sources = recentPages.map((p) => p.url);
       const imageMap = await resolveImagesToBase64(sources);
       
@@ -862,36 +884,40 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
           currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
         }
         
-        response = await ai.models.generateContent({
-      model: IMAGE_GENERATION_MODEL,
-      contents: {
-            parts: currentContentParts
-      },
-      config: {
-        systemInstruction: MANGA_SYSTEM_INSTRUCTION,
-        imageConfig: {
-          aspectRatio: config.aspectRatio as any
-            },
-            safetySettings: [
-              {
-                category: 'HARM_CATEGORY_HARASSMENT' as any,
-                threshold: 'BLOCK_NONE' as any
+        // Also handle temporary overloads from Gemini (UNAVAILABLE / 503)
+        let innerAttempts = 0;
+        const innerMaxAttempts = 3;
+        while (true) {
+          try {
+            response = await ai.models.generateContent({
+              model: IMAGE_GENERATION_MODEL,
+              contents: { parts: currentContentParts },
+              config: {
+                systemInstruction: MANGA_SYSTEM_INSTRUCTION,
+                imageConfig: {
+                  aspectRatio: config.aspectRatio as any,
+                },
+                safetySettings: [
+                  { category: 'HARM_CATEGORY_HARASSMENT' as any, threshold: 'BLOCK_NONE' as any },
+                  { category: 'HARM_CATEGORY_HATE_SPEECH' as any, threshold: 'BLOCK_NONE' as any },
+                  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any, threshold: 'BLOCK_NONE' as any },
+                  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any, threshold: 'BLOCK_NONE' as any },
+                ] as any,
               },
-              {
-                category: 'HARM_CATEGORY_HATE_SPEECH' as any,
-                threshold: 'BLOCK_NONE' as any
-              },
-              {
-                category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT' as any,
-                threshold: 'BLOCK_NONE' as any
-              },
-              {
-                category: 'HARM_CATEGORY_DANGEROUS_CONTENT' as any,
-                threshold: 'BLOCK_NONE' as any
-              }
-            ] as any
-      }
-    });
+            });
+            break;
+          } catch (overErr: any) {
+            innerAttempts += 1;
+            if (!isOverloadedError(overErr) || innerAttempts >= innerMaxAttempts) {
+              throw overErr;
+            }
+            const backoffMs = 1000 * Math.pow(2, innerAttempts - 1);
+            console.warn(
+              `Gemini image model overloaded, retrying in ${backoffMs}ms (attempt ${innerAttempts}/${innerMaxAttempts})`,
+            );
+            await delay(backoffMs);
+          }
+        }
 
     // Check for errors in response
     if (response.promptFeedback?.blockReason) {
