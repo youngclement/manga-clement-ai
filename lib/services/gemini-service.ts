@@ -867,31 +867,31 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       
       if (pagesToUse.length > 0) {
         const sources = pagesToUse.map((p) => p.url);
-        const imageMap = await resolveImagesToBase64(sources);
-        
+      const imageMap = await resolveImagesToBase64(sources);
+      
         for (const page of pagesToUse) {
-          if (!page.url) continue;
-          const raw = imageMap[page.url];
-          if (!raw) continue;
+        if (!page.url) continue;
+        const raw = imageMap[page.url];
+        if (!raw) continue;
 
-          const base64Data = raw.includes('base64,')
-            ? raw.split('base64,')[1]
-            : raw;
-          
-          let mimeType = 'image/jpeg';
-          if (raw.includes('data:image/')) {
-            const mimeMatch = raw.match(/data:(image\/[^;]+)/);
-            if (mimeMatch) {
-              mimeType = mimeMatch[1];
-            }
+        const base64Data = raw.includes('base64,')
+          ? raw.split('base64,')[1]
+          : raw;
+        
+        let mimeType = 'image/jpeg';
+        if (raw.includes('data:image/')) {
+          const mimeMatch = raw.match(/data:(image\/[^;]+)/);
+          if (mimeMatch) {
+            mimeType = mimeMatch[1];
           }
-          
-          contentParts.push({
-            inlineData: {
-              data: base64Data,
-              mimeType: mimeType
-            }
-          });
+        }
+        
+        contentParts.push({
+          inlineData: {
+            data: base64Data,
+            mimeType: mimeType
+          }
+        });
         }
       }
     }
@@ -1133,9 +1133,9 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       } catch (adjustError) {
         console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
         // Fallback to sanitize method
-        const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-        currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-        currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
         aiAdjusted = false;
       }
       
@@ -1189,9 +1189,9 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
         console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
       } catch (adjustError) {
         console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
-        const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-        currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-        currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+      const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+      currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+      currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
         aiAdjusted = false;
       }
       
@@ -1274,9 +1274,9 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
             console.log(`🔄 Retry attempt ${retryAttempt}/${maxRetries}: Using AI-adjusted prompt`);
           } catch (adjustError) {
             console.error('Error adjusting prompt with AI, falling back to sanitize:', adjustError);
-            const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
-            currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
-            currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
+          const sanitizedEnhancedPrompt = sanitizeEnhancedPromptForRetry(enhancedPrompt, actualPrompt, retryAttempt);
+          currentActualPrompt = sanitizePromptForRetry(actualPrompt, retryAttempt);
+          currentContentParts = [{ text: sanitizedEnhancedPrompt }, ...contentParts.slice(1)];
             aiAdjusted = false;
           }
           

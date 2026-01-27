@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Eye, Settings, Layers, MessageSquare, X } from 'lucide-react';
+import { Sparkles, Eye, Settings, Layers, MessageSquare, X, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeArray, generateId, normalizeSession } from '@/lib/utils/react-utils';
 import { extractErrorMessage } from '@/lib/utils/error-handler';
 import { cleanUserPrompt } from '@/lib/utils/prompt-utils';
+import { authStore } from '@/lib/services/auth-client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1295,6 +1296,23 @@ const MangaGeneratorV2 = () => {
             <span className="hidden sm:inline">PREVIEW</span>
             <span className="sm:hidden font-bold">({exportCount})</span>
             {exportCount > 0 && <span className="hidden sm:inline text-[10px] lg:text-xs ml-0.5">({exportCount})</span>}
+          </button>
+          <button
+            onClick={() => {
+              // Clear tokens from localStorage and state
+              authStore.clear();
+              authStore.setError(null); // Clear any error messages
+              toast.success('Signed out successfully', {
+                description: 'You have been logged out',
+                duration: 2000,
+              });
+              // Redirect to login page
+              router.push('/auth/login');
+            }}
+            className="p-2 sm:p-2.5 rounded-lg hover:bg-zinc-800/60 active:bg-zinc-800 transition-all group touch-manipulation"
+            title="Sign Out"
+          >
+            <LogOut size={18} className="sm:w-5 sm:h-5 text-zinc-300 group-hover:text-red-400 transition-colors" />
           </button>
         </div>
       </header>

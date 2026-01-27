@@ -40,13 +40,18 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   clear: () => {
     if (typeof window !== 'undefined') {
+      // Remove tokens from localStorage
       window.localStorage.removeItem('accessToken');
       window.localStorage.removeItem('refreshToken');
+      // Also clear any other auth-related data if exists
+      window.localStorage.removeItem('authError');
     }
+    // Reset all auth state
     set({
       accessToken: null,
       refreshToken: null,
       isAuthenticated: false,
+      error: null,
     });
   },
   setError: (err: string | null) => set({ error: err }),

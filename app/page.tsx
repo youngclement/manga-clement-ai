@@ -9,7 +9,7 @@ import { Footer } from '@/components/landing/footer';
 
 export default function LandingPage() {
     return (
-        <div className=" lg:px-30 sm:px-10 ">
+        <div className=" lg:px-50 sm:px-10 ">
             <Header />
             <Hero />
             <AutoContinueSection />

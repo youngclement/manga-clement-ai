@@ -1,9 +1,29 @@
 "use client";
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { AnimatedShinyButton } from '@/components/ui/animated-shiny-button';
+import { useAuthStore, authStore } from '@/lib/services/auth-client';
 
 export function Header() {
+  const router = useRouter();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const loadFromStorage = useAuthStore((state) => state.loadFromStorage);
+
+  useEffect(() => {
+    loadFromStorage();
+  }, [loadFromStorage]);
+
+  const handleSignOut = () => {
+    // Clear tokens from localStorage and state
+    authStore.clear();
+    authStore.setError(null); // Clear any error messages
+    // Redirect to home page
+    router.push('/');
+    router.refresh(); // Refresh to update UI state
+  };
+
   return (
     <header className="h-16 flex items-center justify-between">
       <div className="flex items-center gap-8">
@@ -32,12 +52,25 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-3">
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/auth/login">Sign In</Link>
-        </Button>
-        <AnimatedShinyButton url="/studio" className="text-sm">
-          <span style={{ fontFamily: 'var(--font-inter)' }}>Start Creating</span>
-        </AnimatedShinyButton>
+        {isAuthenticated ? (
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/studio">Studio</Link>
+            </Button>
+            <Button onClick={handleSignOut} variant="ghost" size="sm">
+              Sign Out
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button asChild variant="ghost" size="sm">
+              <Link href="/auth/login">Sign In</Link>
+            </Button>
+            <AnimatedShinyButton url="/auth/register" className="text-sm">
+              <span style={{ fontFamily: 'var(--font-inter)' }}>Get Started</span>
+            </AnimatedShinyButton>
+          </>
+        )}
       </div>
     </header>
   );

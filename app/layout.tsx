@@ -13,7 +13,9 @@ const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 export const metadata: Metadata = {
   title: 'Manga Studio - Create AI Manga Art',
   description: 'Generate stunning manga illustrations with AI. Design custom manga pages with professional inking styles, screentones, and layouts.',
-  generator: 'v0.app',
+  generator: 'ClementHoang',
+  authors: [{ name: 'ClementHoang', url: 'https://x.com/younngclement' }],
+  creator: 'ClementHoang',
   icons: {
     icon: [
       {
