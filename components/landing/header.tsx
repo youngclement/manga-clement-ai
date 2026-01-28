@@ -48,6 +48,9 @@ export function Header() {
           <Link href="#pricing" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
             Pricing
           </Link>
+          <Link href="/community" className="text-muted-foreground text-sm hover:text-foreground transition-colors">
+            Community
+          </Link>
         </nav>
       </div>
 
@@ -57,6 +60,12 @@ export function Header() {
             <Button asChild variant="ghost" size="sm">
               <Link href="/studio">Studio</Link>
             </Button>
+            <AnimatedShinyButton
+              url="/community"
+              className="hidden sm:inline-flex text-xs sm:text-sm [--shiny-cta-highlight:#38bdf8] [--shiny-cta-highlight-subtle:#0ea5e9]"
+            >
+              <span style={{ fontFamily: 'var(--font-inter)' }}>Community</span>
+            </AnimatedShinyButton>
             <Button onClick={handleSignOut} variant="ghost" size="sm">
               Sign Out
             </Button>
@@ -66,6 +75,12 @@ export function Header() {
             <Button asChild variant="ghost" size="sm">
               <Link href="/auth/login">Sign In</Link>
             </Button>
+            <AnimatedShinyButton
+              url="/community"
+              className="hidden sm:inline-flex text-xs sm:text-sm [--shiny-cta-highlight:#38bdf8] [--shiny-cta-highlight-subtle:#0ea5e9]"
+            >
+              <span style={{ fontFamily: 'var(--font-inter)' }}>Community</span>
+            </AnimatedShinyButton>
             <AnimatedShinyButton url="/auth/register" className="text-sm">
               <span style={{ fontFamily: 'var(--font-inter)' }}>Get Started</span>
             </AnimatedShinyButton>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MangaProject, GeneratedManga, MangaSession } from '@/lib/types';
 import { loadProject, saveProject, addPageToSession, markPageForExport } from '@/lib/services/storage-service';
 import { Plus, X, Layers, Download } from 'lucide-react';
@@ -10,12 +10,14 @@ import { generateId } from '@/lib/utils/id';
 
 export default function PreviewPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [project, setProject] = useState<MangaProject | null>(null);
   const [currentSession, setCurrentSession] = useState<MangaSession | null>(null);
   const [exportPages, setExportPages] = useState<GeneratedManga[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSessionPicker, setShowSessionPicker] = useState(false);
   const [pdfQuality, setPdfQuality] = useState<'high' | 'low'>('high');
+  const [autoDownloaded, setAutoDownloaded] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'auto';
@@ -23,6 +25,20 @@ export default function PreviewPage() {
       document.body.style.overflow = '';
     };
   }, []);
+
+  // Auto-download when coming from studio with ?autoDownload=1
+  useEffect(() => {
+    const fromStudio = searchParams.get('autoDownload') === '1';
+    if (!fromStudio) return;
+    if (autoDownloaded) return;
+    if (!currentSession) return;
+    if (exportPages.length === 0) return;
+
+    setAutoDownloaded(true);
+    // Fire and forget; internal loading state is handled in downloadPDF
+    downloadPDF();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, currentSession, exportPages.length, autoDownloaded]);
 
   useEffect(() => {
     const loadData = async () => {

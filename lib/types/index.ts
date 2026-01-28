@@ -123,6 +123,7 @@ export interface GeneratedManga {
 
 export interface MangaProject {
   id: string;
+  ownerId?: string;
   title: string;
   pages: GeneratedManga[];
   sessions: MangaSession[];
@@ -131,4 +132,32 @@ export interface MangaProject {
     leftWidth?: number;
     middleWidth?: number;
   };
+  description?: string;
+  coverImageUrl?: string;
+  isPublic?: boolean;
+  ownerDisplayName?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  displayName?: string;
+  bio?: string;
+  avatarUrl?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface ProjectComment {
+  id: string;
+  ownerId: string;
+  projectId: string;
+  parentId?: string | null;
+  authorId: string;
+  authorName: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
 }

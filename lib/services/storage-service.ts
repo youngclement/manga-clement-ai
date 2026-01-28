@@ -26,7 +26,13 @@ export const saveProject = async (project: MangaProject): Promise<void> => {
  */
 export const updateProjectMeta = async (
   projectId: string,
-  meta: { title?: string; preferences?: MangaProject['preferences'] }
+  meta: {
+    title?: string;
+    preferences?: MangaProject['preferences'];
+    isPublic?: boolean;
+    description?: string;
+    coverImageUrl?: string;
+  }
 ): Promise<void> => {
   const response = await apiFetch(`/api/projects/meta`, {
     method: 'POST',
@@ -39,6 +45,73 @@ export const updateProjectMeta = async (
   if (!response.ok) {
     await handleApiError(response);
   }
+};
+
+export const fetchMyProjects = async (): Promise<MangaProject[]> => {
+  return safeAsync(async () => {
+    const response = await apiFetch(`/api/projects/my`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      await handleApiError(response);
+    }
+
+    const data = await response.json();
+    const projects = data?.data?.projects ?? data?.projects ?? [];
+    return projects as MangaProject[];
+  }, []) as Promise<MangaProject[]>;
+};
+
+export const fetchPublicProjects = async (
+  limit: number = 50,
+  offset: number = 0
+): Promise<MangaProject[]> => {
+  return safeAsync(async () => {
+    const params = new URLSearchParams({
+      limit: String(limit),
+      offset: String(offset),
+    });
+    const response = await apiFetch(`/api/projects/public?${params.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      await handleApiError(response);
+    }
+
+    const data = await response.json();
+    const projects = data?.data?.projects ?? data?.projects ?? [];
+    return projects as MangaProject[];
+  }, []) as Promise<MangaProject[]>;
+};
+
+export const fetchPublicProjectDetail = async (
+  ownerId: string,
+  projectId: string
+): Promise<MangaProject | null> => {
+  return safeAsync(async () => {
+    const response = await apiFetch(`/api/projects/public/${encodeURIComponent(ownerId)}/${encodeURIComponent(projectId)}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      await handleApiError(response);
+    }
+
+    const data = await response.json();
+    const project = data?.data?.project ?? data?.project ?? null;
+    return project as MangaProject | null;
+  }, null) as Promise<MangaProject | null>;
 };
 
 /**

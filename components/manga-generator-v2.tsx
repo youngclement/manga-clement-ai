@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Eye, Settings, Layers, MessageSquare, X, LogOut } from 'lucide-react';
+import { Sparkles, Eye, Settings, Layers, MessageSquare, X, LogOut, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeArray, generateId, normalizeSession } from '@/lib/utils/react-utils';
 import { extractErrorMessage } from '@/lib/utils/error-handler';
@@ -1296,6 +1296,14 @@ const MangaGeneratorV2 = () => {
             {exportCount > 0 && <span className="hidden sm:inline text-[10px] lg:text-xs ml-0.5">({exportCount})</span>}
           </button>
           <button
+            onClick={() => router.push('/studio/preview?autoDownload=1')}
+            className="hidden sm:flex px-3 lg:px-4 py-1.5 bg-zinc-900 border border-zinc-700 text-zinc-100 rounded-lg text-xs lg:text-sm font-semibold items-center gap-1.5 hover:bg-zinc-800 hover:border-zinc-500 transition-all"
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            <Download size={14} className="lg:w-4 lg:h-4" />
+            <span>Download PDF</span>
+          </button>
+          <button
             onClick={() => {
               // Clear tokens from localStorage and state
               authStore.clear();
@@ -1735,6 +1743,14 @@ const MangaGeneratorV2 = () => {
                   {exportCount}
                 </span>
               )}
+            </button>
+            {/* Download Button (mobile) */}
+            <button
+              onClick={() => router.push('/studio/preview?autoDownload=1')}
+              className="flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300"
+            >
+              <Download size={20} />
+              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Download</span>
             </button>
           </div>
         </div>
