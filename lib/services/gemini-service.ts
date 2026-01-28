@@ -569,17 +569,17 @@ Language: ${config.language.toUpperCase()} only`;
   // Enhanced style descriptions
   const getStyleDescription = (style: string) => {
     const styleGuides: Record<string, string> = {
-      'Modern Webtoon': 'Korean webtoon style with vibrant colors, dramatic lighting, glossy rendering, soft shadows, and cinematic atmosphere',
-      'Korean Manhwa': 'Korean manhwa style with detailed facial features, realistic proportions, dynamic lighting, semi-realistic rendering',
-      'Digital Painting': 'Fully painted digital art style with painterly brushstrokes, rich colors, atmospheric lighting, and textured rendering',
-      'Realistic Manga': 'Realistic proportions and anatomy with manga aesthetics, detailed shading, lifelike facial features',
-      'Clean Line Art': 'Crisp, clean lines with minimal detail, modern aesthetic, smooth curves, professional vector-like quality',
-      'Cinematic Style': 'Movie-like composition with dramatic camera angles, cinematic lighting, depth of field effects, atmospheric rendering',
-      'Semi-Realistic': 'Balance between anime/manga and realistic art, detailed features with stylized expressions',
-      'Shonen': 'Dynamic action-focused style with bold lines, intense expressions, and energetic compositions',
-      'Shoujo': 'Elegant style with soft lines, beautiful characters, decorative elements, and emotional expressions',
-      'Seinen': 'Mature, detailed style with realistic proportions, complex shading, and sophisticated compositions',
-      'Josei': 'Refined adult-oriented style with realistic characters, subtle emotions, and elegant linework',
+      'Modern Webtoon': 'Modern Korean WEBTOON style: vertical-reading composition, clean polished digital rendering, vibrant pastel colors, soft shading, thin elegant line art, subtle gradients, cinematic lighting, focus on faces and emotions.',
+      'Korean Manhwa': 'Traditional Korean MANHWA style: semi-realistic proportions, detailed faces, sharp but elegant line art, rich color palettes, dramatic lighting, fashion-focused clothing, smooth gradient shading.',
+      'Digital Painting': 'Full DIGITAL PAINTING style: painterly brush strokes, visible texture, blended edges, strong light and shadow shapes, rich color harmonies, atmospheric perspective, soft but detailed rendering.',
+      'Realistic Manga': 'REALISTIC manga style: accurate human anatomy, realistic proportions, detailed facial features, strong three-dimensional shading, subtle screentones, grounded camera angles while keeping manga aesthetics.',
+      'Clean Line Art': 'CLEAN LINE ART style: crisp vector-like outlines, uniform line weight or very controlled variation, minimal hatching, flat or very simple shading, graphic and modern look with clear silhouettes.',
+      'Cinematic Style': 'CINEMATIC style: movie-like framing, extreme close-ups and wide shots, dramatic contrast lighting, depth of field blur, lens effects, dynamic perspective, very atmospheric backgrounds.',
+      'Semi-Realistic': 'SEMI-REALISTIC style: balance between anime and realism, believable anatomy but stylized faces, detailed rendering of hair and skin, controlled line work, soft but accurate lighting.',
+      'Shonen': 'SHONEN manga style: high-energy action, exaggerated expressions, strong dynamic poses, thick energetic line art, speed lines, impact frames, high contrast screentones, youthful character designs.',
+      'Shoujo': 'SHOUJO manga style: delicate graceful line art, large sparkling eyes, thin flowing hair, elegant poses, decorative screentones (flowers, sparkles), soft shading, focus on romance and emotion.',
+      'Seinen': 'SEINEN manga style: mature and detailed, realistic body proportions, complex hatching and screentones, gritty textures, grounded camera angles, subtle but powerful expressions.',
+      'Josei': 'JOSEI manga style: adult slice-of-life tone, realistic but gentle proportions, fashionable clothing, clean refined line art, soft screentones, nuanced facial expressions and body language.',
     };
     return styleGuides[style] || style;
   };
