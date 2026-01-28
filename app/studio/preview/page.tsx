@@ -6,6 +6,7 @@ import { MangaProject, GeneratedManga, MangaSession } from '@/lib/types';
 import { loadProject, saveProject, addPageToSession, markPageForExport } from '@/lib/services/storage-service';
 import { Plus, X, Layers, Download } from 'lucide-react';
 import jsPDF from 'jspdf';
+import { generateId } from '@/lib/utils/id';
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -312,7 +313,7 @@ export default function PreviewPage() {
                                 <button
                                   onClick={async () => {
                                     if (currentSession) {
-                                      const newPage = { ...page, id: `${page.id}-copy-${Date.now()}`, markedForExport: true };
+                                      const newPage = { ...page, id: generateId(), markedForExport: true };
                                       const updatedSession = {
                                         ...currentSession,
                                         pages: [...currentSession.pages, newPage]

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMangaImage, generateNextPrompt } from '@/lib/services/gemini-service';
 import { MangaConfig, GeneratedManga } from '@/lib/types';
+import { generateId } from '@/lib/utils/id';
 
 // POST - Generate single page
 export async function POST(request: NextRequest) {
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Create generated manga object
     const generatedManga: GeneratedManga = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
+      id: generateId(),
       prompt: finalPrompt,
       imageUrl: imageUrl,
       timestamp: Date.now(),

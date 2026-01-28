@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
+import { generateId } from './id';
 
 /**
  * Custom hook for debounced values
@@ -65,9 +66,7 @@ export function safeObject<T>(obj: T | undefined | null, defaultValue: T): T {
 /**
  * Generate unique ID
  */
-export function generateId(): string {
-  return Date.now().toString() + Math.random().toString(36).substring(2);
-}
+export { generateId };
 
 /**
  * Normalize session data

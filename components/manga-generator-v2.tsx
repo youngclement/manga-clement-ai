@@ -464,7 +464,7 @@ const MangaGeneratorV2 = () => {
 
     let workingSession = currentSession;
     if (!workingSession) {
-      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2);
+      const newSessionId = generateId();
       const newSession: MangaSession = {
         id: newSessionId,
         name: 'Session ' + new Date().toLocaleDateString(),
@@ -499,7 +499,7 @@ const MangaGeneratorV2 = () => {
     const finalPrompt = cleanedUserPrompt || (isAutoContinue ? 'Continue the story naturally' : '');
 
     const userMessage = {
-      id: Date.now().toString() + Math.random().toString(36).substring(2),
+      id: generateId(),
       role: 'user' as const,
       content: finalPrompt,
       timestamp: Date.now(),
@@ -573,7 +573,7 @@ const MangaGeneratorV2 = () => {
       setCurrentImage(imageUrl);
 
       const assistantMessage = {
-        id: Date.now().toString() + Math.random().toString(36).substring(2),
+        id: generateId(),
         role: 'assistant' as const,
         content: 'Generated manga page',
         imageUrl: imageUrl,
@@ -656,12 +656,12 @@ const MangaGeneratorV2 = () => {
     }
 
     // Set unique ID for tracking
-    const batchId = Date.now().toString() + Math.random().toString(36).substring(2);
+    const batchId = generateId();
     console.log(`🚀 Starting batch generation [${batchId}]: ${totalPages} pages`);
 
     let workingSession = currentSession;
     if (!workingSession) {
-      const newSessionId = Date.now().toString() + Math.random().toString(36).substring(2);
+      const newSessionId = generateId();
       const newSession: MangaSession = {
         id: newSessionId,
         name: 'Batch ' + new Date().toLocaleTimeString(),
@@ -824,7 +824,7 @@ const MangaGeneratorV2 = () => {
 
         // Create page object
         const newPage: GeneratedManga = {
-          id: Date.now().toString() + Math.random().toString(36).substring(2),
+          id: generateId(),
           url: imageUrl,
           prompt: currentPrompt, // Use the actual prompt (original or AI-generated)
           timestamp: Date.now(),
@@ -922,10 +922,8 @@ const MangaGeneratorV2 = () => {
   const addToProject = (markForExport = true) => {
     if (!currentImage) return;
 
-    const safeId = Date.now().toString() + Math.random().toString(36).substring(2);
-
     const newPage: GeneratedManga = {
-      id: safeId,
+      id: generateId(),
       url: currentImage,
       prompt,
       timestamp: Date.now(),
