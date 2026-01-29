@@ -135,6 +135,10 @@ export interface MangaProject {
   description?: string;
   coverImageUrl?: string;
   isPublic?: boolean;
+  tags?: string[]; // Tags for categorization
+  viewCount?: number; // Number of views
+  likeCount?: number; // Number of likes (cached)
+  commentCount?: number; // Number of comments (cached)
   ownerDisplayName?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -146,6 +150,34 @@ export interface UserProfile {
   displayName?: string;
   bio?: string;
   avatarUrl?: string;
+  email?: string;
+  phone?: string;
+  location?: string;
+  website?: string;
+  socialLinks?: {
+    twitter?: string;
+    instagram?: string;
+    facebook?: string;
+    youtube?: string;
+    tiktok?: string;
+  };
+  preferences?: {
+    theme?: 'light' | 'dark' | 'auto';
+    language?: string;
+    notifications?: {
+      email?: boolean;
+      push?: boolean;
+      comments?: boolean;
+      likes?: boolean;
+    };
+  };
+  stats?: {
+    totalProjects?: number;
+    totalLikes?: number;
+    totalComments?: number;
+    followers?: number;
+    following?: number;
+  };
   createdAt?: number;
   updatedAt?: number;
 }

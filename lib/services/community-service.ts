@@ -113,4 +113,49 @@ export const addComment = async (
   }, null) as Promise<ProjectComment | null>;
 };
 
+export const fetchTrendingProjects = async (
+  limit: number = 10
+): Promise<MangaProject[]> => {
+  return safeAsync(async () => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const res = await apiFetch(`/api/projects/public/trending?${params.toString()}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!res.ok) {
+      await handleApiError(res);
+    }
+
+    const data = await res.json();
+    const projects = data?.data?.projects ?? data?.projects ?? [];
+    return projects as MangaProject[];
+  }, []) as Promise<MangaProject[]>;
+};
+
+export const fetchRelatedProjects = async (
+  ownerId: string,
+  projectId: string,
+  limit: number = 6
+): Promise<MangaProject[]> => {
+  return safeAsync(async () => {
+    const params = new URLSearchParams({ limit: String(limit) });
+    const res = await apiFetch(
+      `/api/projects/public/${encodeURIComponent(ownerId)}/${encodeURIComponent(projectId)}/related?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (!res.ok) {
+      await handleApiError(res);
+    }
+
+    const data = await res.json();
+    const projects = data?.data?.projects ?? data?.projects ?? [];
+    return projects as MangaProject[];
+  }, []) as Promise<MangaProject[]>;
+};
+
 

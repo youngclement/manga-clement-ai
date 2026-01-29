@@ -22,7 +22,32 @@ export const getMyProfile = async (): Promise<UserProfile | null> => {
 };
 
 export const updateMyProfile = async (
-  payload: { displayName?: string; bio?: string; avatarUrl?: string }
+  payload: {
+    displayName?: string;
+    bio?: string;
+    avatarUrl?: string;
+    email?: string;
+    phone?: string;
+    location?: string;
+    website?: string;
+    socialLinks?: {
+      twitter?: string;
+      instagram?: string;
+      facebook?: string;
+      youtube?: string;
+      tiktok?: string;
+    };
+    preferences?: {
+      theme?: 'light' | 'dark' | 'auto';
+      language?: string;
+      notifications?: {
+        email?: boolean;
+        push?: boolean;
+        comments?: boolean;
+        likes?: boolean;
+      };
+    };
+  }
 ): Promise<UserProfile | null> => {
   return safeAsync(async () => {
     const res = await apiFetch('/api/users/me', {

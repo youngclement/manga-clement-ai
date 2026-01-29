@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import type { MangaProject, ProjectComment } from '@/lib/types'
 import { fetchPublicProjectDetail } from '@/lib/services/storage-service'
-import { fetchLikes, toggleLike, fetchComments, addComment } from '@/lib/services/community-service'
-import { Heart, MessageCircle } from 'lucide-react'
+import { fetchLikes, toggleLike, fetchComments, addComment, fetchRelatedProjects } from '@/lib/services/community-service'
+import { Heart, MessageCircle, Eye, TrendingUp } from 'lucide-react'
+import Link from 'next/link'
 
 export default function CommunityProjectDetailPage() {
   const params = useParams<{ ownerId: string; projectId: string }>()
@@ -18,6 +19,7 @@ export default function CommunityProjectDetailPage() {
   const [newComment, setNewComment] = useState('')
   const [replyTo, setReplyTo] = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [relatedProjects, setRelatedProjects] = useState<MangaProject[]>([])
 
   useEffect(() => {
     const load = async () => {
@@ -26,15 +28,22 @@ export default function CommunityProjectDetailPage() {
         return
       }
       try {
-        const [projectData, likesData, commentsData] = await Promise.all([
-          fetchPublicProjectDetail(params.ownerId, params.projectId),
+        const [projectData, likesData, commentsData, relatedData] = await Promise.all([
+          fetchPublicProjectDetail(params.ownerId, params.projectId, true), // Track view
           fetchLikes(params.ownerId, params.projectId),
           fetchComments(params.ownerId, params.projectId),
+          fetchRelatedProjects(params.ownerId, params.projectId, 6),
         ])
         setProject(projectData)
         setLikeTotal(likesData.total)
         setLikedByUser(likesData.likedByUser)
         setComments(commentsData)
+        setRelatedProjects(relatedData)
+        
+        // Update like total from project stats if available
+        if (projectData?.likeCount !== undefined) {
+          setLikeTotal(projectData.likeCount)
+        }
       } finally {
         setLoading(false)
       }
@@ -211,10 +220,26 @@ export default function CommunityProjectDetailPage() {
               {project.description}
             </p>
           )}
+          {/* Tags */}
+          {project.tags && project.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {project.tags.map(tag => (
+                <span
+                  key={tag}
+                  className="px-2 py-1 rounded-md bg-zinc-800 text-xs text-amber-300"
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+          
           <div className="text-xs text-zinc-500">
             {totalSessions} sessions · {totalPages} pages
           </div>
-          <div className="flex items-center gap-3 pt-2">
+          
+          {/* Stats */}
+          <div className="flex items-center gap-4 pt-2">
             <button
               onClick={handleToggleLike}
               className="inline-flex items-center gap-1.5 rounded-full border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/70 transition-colors"
@@ -223,8 +248,16 @@ export default function CommunityProjectDetailPage() {
                 size={14}
                 className={likedByUser ? 'fill-red-500 text-red-500' : 'text-zinc-400'}
               />
-              <span>{likeTotal} lượt thích</span>
+              <span>{project.likeCount ?? likeTotal}</span>
             </button>
+            <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+              <Eye size={14} />
+              <span>{project.viewCount || 0} lượt xem</span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
+              <MessageCircle size={14} />
+              <span>{project.commentCount ?? comments.length} bình luận</span>
+            </div>
           </div>
         </div>
       </div>
@@ -289,6 +322,58 @@ export default function CommunityProjectDetailPage() {
           </p>
         )}
       </div>
+
+      {/* Related Projects */}
+      {relatedProjects.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg md:text-xl font-manga text-zinc-100 flex items-center gap-2">
+            <TrendingUp size={18} className="text-amber-400" />
+            Truyện liên quan
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {relatedProjects.map(related => (
+              <Link
+                key={`related-${related.ownerId}-${related.id}`}
+                href={`/community/${encodeURIComponent(related.ownerId!)}/${encodeURIComponent(related.id)}`}
+                className="group rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-amber-400/70 transition-all"
+              >
+                <div className="h-32 bg-zinc-800/80 flex items-center justify-center">
+                  {related.coverImageUrl ? (
+                    <img
+                      src={related.coverImageUrl}
+                      alt={related.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : related.pages?.[0]?.url ? (
+                    <img
+                      src={related.pages[0].url}
+                      alt={related.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <span className="text-[10px] text-zinc-500">No preview</span>
+                  )}
+                </div>
+                <div className="px-2 py-2">
+                  <div className="text-xs font-semibold truncate mb-1">
+                    {related.title || 'Untitled'}
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-zinc-500">
+                    <span className="flex items-center gap-0.5">
+                      <Eye className="h-3 w-3" />
+                      {related.viewCount || 0}
+                    </span>
+                    <span className="flex items-center gap-0.5">
+                      <Heart className="h-3 w-3" />
+                      {related.likeCount || 0}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

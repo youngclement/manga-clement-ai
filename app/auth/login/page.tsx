@@ -1,28 +1,51 @@
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authStore } from '@/lib/services/auth-client';
+import { loginSchema, type LoginFormData } from '@/lib/validations/auth';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  const form = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      username: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
+
+  const onSubmit = async (data: LoginFormData) => {
     setError(null);
+    form.clearErrors();
 
     try {
       const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
       const res = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username: data.username,
+          password: data.password
+        }),
       });
 
       const body = await res.json().catch(() => null);
@@ -31,26 +54,43 @@ export default function LoginPage() {
         const msg = body?.message || 'Invalid credentials';
         setError(msg);
         authStore.setError(msg);
-        setLoading(false);
+        toast.error('Đăng nhập thất bại', {
+          description: msg,
+        });
         return;
       }
 
       const tokens = body.data;
       if (tokens?.accessToken && tokens?.refreshToken) {
         authStore.setTokens(tokens.accessToken, tokens.refreshToken);
+
+        // Handle remember me
+        if (data.rememberMe && typeof window !== 'undefined') {
+          // Tokens are already stored in localStorage by authStore
+          // You can add additional logic here if needed
+        }
+
+        toast.success('Đăng nhập thành công!', {
+          description: 'Chào mừng bạn trở lại!',
+        });
+
         router.push('/studio');
       } else {
         const msg = 'Unexpected response from server';
         setError(msg);
         authStore.setError(msg);
+        toast.error('Đăng nhập thất bại', {
+          description: msg,
+        });
       }
     } catch (err) {
       console.error(err);
       const msg = 'Login failed. Please try again.';
       setError(msg);
       authStore.setError(msg);
-    } finally {
-      setLoading(false);
+      toast.error('Đăng nhập thất bại', {
+        description: 'Vui lòng thử lại sau.',
+      });
     }
   };
 
@@ -70,71 +110,118 @@ export default function LoginPage() {
       </p>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-8">
-        <div className="h-full w-full rounded-2xl">
-          <label className="text-zinc-300 flex items-center gap-2 text-sm leading-none font-medium select-none dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
-            Username
-          </label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="flex h-9 w-full min-w-0 rounded-md px-3 py-1 text-base transition-[color,box-shadow] outline-none md:text-sm dark:bg-neutral-800 focus-visible:ring-amber-500/50 focus-visible:ring-[3px] mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus:ring-amber-500/50"
-            placeholder="Enter your username"
-            autoComplete="username"
-            disabled={loading}
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-6">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem className="h-full w-full rounded-2xl">
+                <FormLabel className="text-zinc-300 dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
+                  Username
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    className="mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500/50"
+                    placeholder="Enter your username"
+                    autoComplete="username"
+                    disabled={form.formState.isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage className="text-red-400" />
+              </FormItem>
+            )}
           />
-        </div>
 
-        <div className="h-full w-full rounded-2xl">
-          <label className="text-zinc-300 flex items-center gap-2 text-sm leading-none font-medium select-none dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
-            Password
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="flex h-9 w-full min-w-0 rounded-md px-3 py-1 text-base transition-[color,box-shadow] outline-none md:text-sm dark:bg-neutral-800 focus-visible:ring-amber-500/50 focus-visible:ring-[3px] mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus:ring-amber-500/50"
-            placeholder="Enter your password"
-            autoComplete="current-password"
-            disabled={loading}
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="h-full w-full rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <FormLabel className="text-zinc-300 dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
+                    Password
+                  </FormLabel>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-xs text-amber-400 hover:text-amber-300 hover:underline"
+                    style={{ fontFamily: 'var(--font-inter)' }}
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="password"
+                    className="mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500/50"
+                    placeholder="Enter your password"
+                    autoComplete="current-password"
+                    disabled={form.formState.isSubmitting}
+                  />
+                </FormControl>
+                <FormMessage className="text-red-400" />
+              </FormItem>
+            )}
           />
-        </div>
 
-        {error && (
-          <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-xl text-red-400 text-sm text-center backdrop-blur-sm" style={{ fontFamily: 'var(--font-inter)' }}>
-            {error}
-          </div>
-        )}
+          <FormField
+            control={form.control}
+            name="rememberMe"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    disabled={form.formState.isSubmitting}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className="text-zinc-300 dark:text-neutral-100 cursor-pointer" style={{ fontFamily: 'var(--font-inter)' }}>
+                    Remember me
+                  </FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
 
-        <button
-          type="submit"
-          disabled={loading || !username || !password}
-          className="block rounded-xl px-6 py-2 text-center text-sm font-medium transition duration-150 active:scale-[0.98] sm:text-base bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ fontFamily: 'var(--font-inter)' }}
-        >
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Signing in...
-            </span>
-          ) : (
-            'Sign in'
+          {error && (
+            <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-xl text-red-400 text-sm text-center backdrop-blur-sm" style={{ fontFamily: 'var(--font-inter)' }}>
+              {error}
+            </div>
           )}
-        </button>
 
-        {/* Divider */}
-        <div className="mt-2 flex items-center">
-          <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
-          <span className="px-4 text-sm text-zinc-500 dark:text-neutral-400">or</span>
-          <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
-        </div>
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting}
+            className="block rounded-xl px-6 py-2 text-center text-sm font-medium transition duration-150 active:scale-[0.98] sm:text-base bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ fontFamily: 'var(--font-inter)' }}
+          >
+            {form.formState.isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Signing in...
+              </span>
+            ) : (
+              'Sign in'
+            )}
+          </Button>
 
-        {/* Social Login Placeholder - Optional */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Placeholder buttons - can be implemented later */}
-        </div>
-      </form>
+          {/* Divider */}
+          <div className="mt-2 flex items-center">
+            <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
+            <span className="px-4 text-sm text-zinc-500 dark:text-neutral-400">or</span>
+            <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
+          </div>
+
+          {/* Social Login Placeholder - Optional */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {/* Placeholder buttons - can be implemented later */}
+          </div>
+        </form>
+      </Form>
 
       {/* Footer Link */}
       <div className="mt-6 text-center">

@@ -3,37 +3,52 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { authStore } from '@/lib/services/auth-client';
+import { registerSchema, type RegisterFormData } from '@/lib/validations/auth';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+    FormDescription,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { PasswordStrengthIndicator } from '@/components/auth/password-strength';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
     const router = useRouter();
-    const [username, setUsername] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const form = useForm<RegisterFormData>({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            username: '',
+            password: '',
+            confirmPassword: '',
+        },
+    });
+
+    const passwordValue = form.watch('password');
+
+    const onSubmit = async (data: RegisterFormData) => {
         setError(null);
-
-        if (!username || !password) {
-            setError('Username and password are required');
-            return;
-        }
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
-
-        setLoading(true);
+        form.clearErrors();
 
         try {
             const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
             const res = await fetch(`${baseUrl}/api/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({
+                    username: data.username,
+                    password: data.password
+                }),
             });
 
             const body = await res.json().catch(() => null);
@@ -42,26 +57,36 @@ export default function RegisterPage() {
                 const msg = body?.message || 'Registration failed';
                 setError(msg);
                 authStore.setError(msg);
-                setLoading(false);
+                toast.error('Đăng ký thất bại', {
+                    description: msg,
+                });
                 return;
             }
 
             const tokens = body.data;
             if (tokens?.accessToken && tokens?.refreshToken) {
                 authStore.setTokens(tokens.accessToken, tokens.refreshToken);
-                router.push('/studio');
+                toast.success('Đăng ký thành công!', {
+                    description: 'Chào mừng bạn đến với Manga Studio!',
+                });
+                // Redirect to profile page to complete profile information
+                router.push('/profile?welcome=true');
             } else {
                 const msg = 'Unexpected response from server';
                 setError(msg);
                 authStore.setError(msg);
+                toast.error('Đăng ký thất bại', {
+                    description: msg,
+                });
             }
         } catch (err) {
             console.error(err);
             const msg = 'Registration failed. Please try again.';
             setError(msg);
             authStore.setError(msg);
-        } finally {
-            setLoading(false);
+            toast.error('Đăng ký thất bại', {
+                description: 'Vui lòng thử lại sau.',
+            });
         }
     };
 
@@ -81,86 +106,123 @@ export default function RegisterPage() {
             </p>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-8">
-                <div className="h-full w-full rounded-2xl">
-                    <label className="text-zinc-300 flex items-center gap-2 text-sm leading-none font-medium select-none dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
-                        Username
-                    </label>
-                    <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value)}
-                        className="flex h-9 w-full min-w-0 rounded-md px-3 py-1 text-base transition-[color,box-shadow] outline-none md:text-sm dark:bg-neutral-800 focus-visible:ring-amber-500/50 focus-visible:ring-[3px] mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus:ring-amber-500/50"
-                        placeholder="Choose a username"
-                        autoComplete="username"
-                        disabled={loading}
+            <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-6 flex flex-col gap-6">
+                    <FormField
+                        control={form.control}
+                        name="username"
+                        render={({ field }) => (
+                            <FormItem className="h-full w-full rounded-2xl">
+                                <FormLabel className="text-zinc-300 dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
+                                    Username
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        className="mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500/50"
+                                        placeholder="Choose a username"
+                                        autoComplete="username"
+                                        disabled={form.formState.isSubmitting}
+                                    />
+                                </FormControl>
+                                <FormDescription className="text-zinc-500 text-xs mt-1">
+                                    Username can only contain letters, numbers, and underscores
+                                </FormDescription>
+                                <FormMessage className="text-red-400" />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div className="h-full w-full rounded-2xl">
-                    <label className="text-zinc-300 flex items-center gap-2 text-sm leading-none font-medium select-none dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
-                        Password
-                    </label>
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="flex h-9 w-full min-w-0 rounded-md px-3 py-1 text-base transition-[color,box-shadow] outline-none md:text-sm dark:bg-neutral-800 focus-visible:ring-amber-500/50 focus-visible:ring-[3px] mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus:ring-amber-500/50"
-                        placeholder="Create a password"
-                        autoComplete="new-password"
-                        disabled={loading}
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem className="h-full w-full rounded-2xl">
+                                <FormLabel className="text-zinc-300 dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
+                                    Password
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        type="password"
+                                        className="mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500/50"
+                                        placeholder="Create a password"
+                                        autoComplete="new-password"
+                                        disabled={form.formState.isSubmitting}
+                                    />
+                                </FormControl>
+                                {passwordValue && (
+                                    <PasswordStrengthIndicator
+                                        password={passwordValue}
+                                        className="mt-2"
+                                    />
+                                )}
+                                <FormDescription className="text-zinc-500 text-xs mt-1">
+                                    Password must be at least 8 characters and contain uppercase, lowercase, number, and special character
+                                </FormDescription>
+                                <FormMessage className="text-red-400" />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                <div className="h-full w-full rounded-2xl">
-                    <label className="text-zinc-300 flex items-center gap-2 text-sm leading-none font-medium select-none dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
-                        Confirm Password
-                    </label>
-                    <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="flex h-9 w-full min-w-0 rounded-md px-3 py-1 text-base transition-[color,box-shadow] outline-none md:text-sm dark:bg-neutral-800 focus-visible:ring-amber-500/50 focus-visible:ring-[3px] mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus:ring-amber-500/50"
-                        placeholder="Confirm your password"
-                        autoComplete="new-password"
-                        disabled={loading}
+                    <FormField
+                        control={form.control}
+                        name="confirmPassword"
+                        render={({ field }) => (
+                            <FormItem className="h-full w-full rounded-2xl">
+                                <FormLabel className="text-zinc-300 dark:text-neutral-100" style={{ fontFamily: 'var(--font-inter)' }}>
+                                    Confirm Password
+                                </FormLabel>
+                                <FormControl>
+                                    <Input
+                                        {...field}
+                                        type="password"
+                                        className="mt-4 border border-zinc-700/60 bg-zinc-950/60 text-white placeholder:text-zinc-500 focus-visible:ring-amber-500/50"
+                                        placeholder="Confirm your password"
+                                        autoComplete="new-password"
+                                        disabled={form.formState.isSubmitting}
+                                    />
+                                </FormControl>
+                                <FormMessage className="text-red-400" />
+                            </FormItem>
+                        )}
                     />
-                </div>
 
-                {error && (
-                    <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-xl text-red-400 text-sm text-center backdrop-blur-sm" style={{ fontFamily: 'var(--font-inter)' }}>
-                        {error}
-                    </div>
-                )}
-
-                <button
-                    type="submit"
-                    disabled={loading || !username || !password || !confirmPassword}
-                    className="block rounded-xl px-6 py-2 text-center text-sm font-medium transition duration-150 active:scale-[0.98] sm:text-base bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ fontFamily: 'var(--font-inter)' }}
-                >
-                    {loading ? (
-                        <span className="flex items-center justify-center gap-2">
-                            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Creating account...
-                        </span>
-                    ) : (
-                        'Sign up'
+                    {error && (
+                        <div className="p-3 bg-red-900/20 border border-red-800/50 rounded-xl text-red-400 text-sm text-center backdrop-blur-sm" style={{ fontFamily: 'var(--font-inter)' }}>
+                            {error}
+                        </div>
                     )}
-                </button>
 
-                {/* Divider */}
-                <div className="mt-2 flex items-center">
-                    <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
-                    <span className="px-4 text-sm text-zinc-500 dark:text-neutral-400">or</span>
-                    <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
-                </div>
+                    <Button
+                        type="submit"
+                        disabled={form.formState.isSubmitting}
+                        className="block rounded-xl px-6 py-2 text-center text-sm font-medium transition duration-150 active:scale-[0.98] sm:text-base bg-zinc-900 text-white dark:bg-white dark:text-black hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ fontFamily: 'var(--font-inter)' }}
+                    >
+                        {form.formState.isSubmitting ? (
+                            <span className="flex items-center justify-center gap-2">
+                                <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                                Creating account...
+                            </span>
+                        ) : (
+                            'Sign up'
+                        )}
+                    </Button>
 
-                {/* Social Login Placeholder - Optional */}
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                    {/* Placeholder buttons - can be implemented later */}
-                </div>
-            </form>
+                    {/* Divider */}
+                    <div className="mt-2 flex items-center">
+                        <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
+                        <span className="px-4 text-sm text-zinc-500 dark:text-neutral-400">or</span>
+                        <div className="h-px flex-1 bg-zinc-700 dark:bg-neutral-700"></div>
+                    </div>
+
+                    {/* Social Login Placeholder - Optional */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                        {/* Placeholder buttons - can be implemented later */}
+                    </div>
+                </form>
+            </Form>
 
             {/* Footer Link */}
             <div className="mt-6 text-center">

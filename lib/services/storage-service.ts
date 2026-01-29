@@ -32,6 +32,7 @@ export const updateProjectMeta = async (
     isPublic?: boolean;
     description?: string;
     coverImageUrl?: string;
+    tags?: string[];
   }
 ): Promise<void> => {
   const response = await apiFetch(`/api/projects/meta`, {
@@ -66,15 +67,36 @@ export const fetchMyProjects = async (): Promise<MangaProject[]> => {
   }, []) as Promise<MangaProject[]>;
 };
 
+export interface FetchPublicProjectsOptions {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  sortBy?: 'newest' | 'oldest' | 'mostLiked' | 'mostViewed' | 'mostCommented' | 'trending';
+  tags?: string[];
+  ownerId?: string;
+}
+
+export interface FetchPublicProjectsResult {
+  projects: MangaProject[];
+  total: number;
+}
+
 export const fetchPublicProjects = async (
-  limit: number = 50,
-  offset: number = 0
-): Promise<MangaProject[]> => {
+  options: FetchPublicProjectsOptions = {}
+): Promise<FetchPublicProjectsResult> => {
+  const { limit = 50, offset = 0, search, sortBy, tags, ownerId } = options;
+  
   return safeAsync(async () => {
     const params = new URLSearchParams({
       limit: String(limit),
       offset: String(offset),
     });
+    
+    if (search) params.append('search', search);
+    if (sortBy) params.append('sortBy', sortBy);
+    if (tags && tags.length > 0) params.append('tags', tags.join(','));
+    if (ownerId) params.append('ownerId', ownerId);
+    
     const response = await apiFetch(`/api/projects/public?${params.toString()}`, {
       method: 'GET',
       headers: {
@@ -88,21 +110,30 @@ export const fetchPublicProjects = async (
 
     const data = await response.json();
     const projects = data?.data?.projects ?? data?.projects ?? [];
-    return projects as MangaProject[];
-  }, []) as Promise<MangaProject[]>;
+    const total = data?.data?.total ?? data?.total ?? projects.length;
+    
+    return { projects: projects as MangaProject[], total };
+  }, { projects: [], total: 0 }) as Promise<FetchPublicProjectsResult>;
 };
 
 export const fetchPublicProjectDetail = async (
   ownerId: string,
-  projectId: string
+  projectId: string,
+  trackView: boolean = true
 ): Promise<MangaProject | null> => {
   return safeAsync(async () => {
-    const response = await apiFetch(`/api/projects/public/${encodeURIComponent(ownerId)}/${encodeURIComponent(projectId)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+    const params = new URLSearchParams();
+    if (trackView) params.append('trackView', 'true');
+    
+    const response = await apiFetch(
+      `/api/projects/public/${encodeURIComponent(ownerId)}/${encodeURIComponent(projectId)}?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       },
-    });
+    );
 
     if (!response.ok) {
       await handleApiError(response);
