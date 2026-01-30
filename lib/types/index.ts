@@ -5,6 +5,7 @@ export enum MangaStyle {
   JOSEI = 'Josei',
   WEBTOON = 'Modern Webtoon',
   MANHWA = 'Korean Manhwa',
+  MANHWA_3D = 'Manhwa 3D',
   DIGITAL_PAINTING = 'Digital Painting',
   REALISTIC = 'Realistic Manga',
   CLEAN_LINE = 'Clean Line Art',
@@ -71,6 +72,11 @@ export enum Language {
   FRENCH = 'French',
 }
 
+export enum PanelBorderStyle {
+  FULL_BORDER = 'Full Border',
+  NO_BORDER = 'No Border', // Full ảnh không viền trắng
+}
+
 export interface ReferenceImage {
   url: string; // Base64 or URL
   enabled: boolean; // Whether to use this image in generation
@@ -85,6 +91,7 @@ export interface MangaConfig {
   useColor: boolean;
   dialogueDensity: DialogueDensity | string;
   language: Language | string;
+  panelBorderStyle?: PanelBorderStyle | string; // Full Border or No Border
   context?: string;
   referenceImages?: (string | ReferenceImage)[]; // Support both old format (string) and new format (ReferenceImage)
   autoContinueStory?: boolean; // Auto-generate story continuation

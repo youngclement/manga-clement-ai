@@ -142,7 +142,9 @@ Your prompt must be UNIQUE and DIFFERENT from all ${allPreviousPrompts.length} p
   // Determine panel count requirement based on layout
   let panelCountRequirement = '';
   if (layout) {
-    if (layout === 'Single Panel' || layout === 'Dramatic Spread' || layout === 'Widescreen Cinematic') {
+    if (layout === 'Single Panel') {
+      panelCountRequirement = 'EXACTLY ONE PANEL ONLY - NO MULTIPLE PANELS - FORCE SINGLE PANEL';
+    } else if (layout === 'Dramatic Spread' || layout === 'Widescreen Cinematic') {
       panelCountRequirement = 'SINGLE PANEL or minimal panels';
     } else if (layout === 'Dynamic Freestyle' || layout === 'Asymmetric Mixed') {
       panelCountRequirement = '5-8 PANELS with varied sizes';
@@ -186,15 +188,15 @@ ${previousPagesInfo ? `PREVIOUS PAGES:
 ${previousPagesInfo}` : ''}
 ${promptUniquenessNote}
 
-${layout ? `📐 LAYOUT CONTEXT (for reference, but feel free to vary):
+${layout ? `📐 LAYOUT CONTEXT:
 The previous pages used "${layout}" layout with ${panelCountRequirement}.
-You can suggest a scene that works with various layouts - layout variety adds visual interest to manga.
+${layout === 'Single Panel' ? '⚠️ CRITICAL: This page MUST use SINGLE PANEL layout - EXACTLY ONE PANEL ONLY - NO MULTIPLE PANELS' : 'You can suggest a scene that works with various layouts - layout variety adds visual interest to manga.'}
 ${layoutInfo ? `Previous layout details: ${layoutInfo}` : ''}
 
 ` : ''}CURRENT STATUS:
 - You are creating the prompt for PAGE ${pageNumber} of ${totalPages}
 - ${sessionHistory.length > 0 ? `This page MUST continue DIRECTLY from Page ${sessionHistory.length} (the most recent page)` : 'This is the first page of the story'}
-- Layout can vary between pages - focus on the story, not matching previous layout exactly
+- ${layout === 'Single Panel' ? '⚠️ CRITICAL: This page MUST use SINGLE PANEL layout - EXACTLY ONE PANEL ONLY' : 'Layout can vary between pages - focus on the story, not matching previous layout exactly'}
 
 YOUR TASK:
 ${sessionHistory.length > 0 ? `⚠️ CRITICAL: Analyze what happened in Page ${sessionHistory.length} (the MOST RECENT page) and write a prompt for what happens NEXT.
@@ -212,7 +214,7 @@ The prompt should:
 3. Be specific about the scene, characters, and action
 4. Maintain story pacing appropriate for page ${pageNumber}/${totalPages}
 5. ${pageNumber >= totalPages * 0.8 ? 'Build towards the climax - we are approaching the end' : 'Continue building the story naturally'}
-6. Describe a scene that can work with various panel layouts - layout variety is encouraged
+6. ${layout === 'Single Panel' ? '⚠️ CRITICAL: Describe a SINGLE MOMENT/SCENE for ONE PANEL ONLY - this page will have EXACTLY ONE PANEL - do NOT describe multiple scenes or moments' : 'Describe a scene that can work with various panel layouts - layout variety is encouraged'}
 7. ${sessionHistory.length > 0 ? `DO NOT repeat what happened in Page ${sessionHistory.length} - always move forward` : ''}
 8. ${allPreviousPrompts.length > 0 ? `🚫 CRITICAL: Your prompt MUST be COMPLETELY DIFFERENT from all previous prompts. Check the list above and ensure your prompt is UNIQUE and DISTINCT.` : ''}
 ${layout && panelCountRequirement.includes('PANEL') && !panelCountRequirement.includes('SINGLE') ? `
@@ -571,6 +573,7 @@ Language: ${config.language.toUpperCase()} only`;
     const styleGuides: Record<string, string> = {
       'Modern Webtoon': 'Modern Korean WEBTOON style: vertical-reading composition, clean polished digital rendering, vibrant pastel colors, soft shading, thin elegant line art, subtle gradients, cinematic lighting, focus on faces and emotions.',
       'Korean Manhwa': 'Traditional Korean MANHWA style: semi-realistic proportions, detailed faces, sharp but elegant line art, rich color palettes, dramatic lighting, fashion-focused clothing, smooth gradient shading.',
+      'Manhwa 3D': 'MANHWA 3D style: three-dimensional rendering with depth and volume, semi-realistic proportions with 3D modeling aesthetics, detailed faces with dimensional lighting, sharp but elegant line art, rich vibrant color palettes, dramatic three-dimensional lighting with shadows and highlights, fashion-focused clothing with 3D texture rendering, SMOOTH GLOSSY SHINY POLISHED rendering with silky smooth surfaces, reflective glossy materials, sleek polished skin and hair, smooth gradient shading with volumetric effects and glossy highlights, ultra-smooth bóng mượt finish, cinematic depth of field, realistic perspective and camera angles, professional 3D game/animation quality rendering with glossy polished surfaces.',
       'Digital Painting': 'Full DIGITAL PAINTING style: painterly brush strokes, visible texture, blended edges, strong light and shadow shapes, rich color harmonies, atmospheric perspective, soft but detailed rendering.',
       'Realistic Manga': 'REALISTIC manga style: accurate human anatomy, realistic proportions, detailed facial features, strong three-dimensional shading, subtle screentones, grounded camera angles while keeping manga aesthetics.',
       'Clean Line Art': 'CLEAN LINE ART style: crisp vector-like outlines, uniform line weight or very controlled variation, minimal hatching, flat or very simple shading, graphic and modern look with clear silhouettes.',
@@ -806,22 +809,28 @@ Return ONLY the rewritten prompt, nothing else. No explanations, no meta-comment
     storyDirectionSection = `\nSTORY FLOW DIRECTION (GUIDE AUTO-CONTINUE):\n${trimmed.substring(0, 500)}${trimmed.length > 500 ? '...' : ''}`;
   }
 
+  // Determine border style
+  const hasBorder = config.panelBorderStyle === 'Full Border' || !config.panelBorderStyle; // Default to Full Border
+  const borderText = hasBorder ? 'with clear black borders' : 'no panel borders';
+  
   // Build visual spec
-  const layoutDesc = config.layout === 'Single Panel' || config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
-    ? 'Single full-page illustration, no panel borders'
+  const layoutDesc = config.layout === 'Single Panel'
+    ? `EXACTLY ONE SINGLE PANEL ONLY - Full-page illustration ${hasBorder ? 'with border frame' : 'with NO panel borders'} - FORCE SINGLE PANEL - DO NOT CREATE MULTIPLE PANELS`
+    : config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
+    ? `Single full-page illustration, ${hasBorder ? 'with border frame' : 'no panel borders'}`
     : config.layout === 'Dynamic Freestyle' || config.layout === 'Asymmetric Mixed'
-      ? '5-8 panels, varied sizes, black borders'
+      ? `5-8 panels, varied sizes, ${borderText}`
       : config.layout.includes('Action Sequence')
-        ? '5-7 action panels, black borders'
+        ? `5-7 action panels, ${borderText}`
         : config.layout.includes('Conversation')
-          ? '4-6 horizontal panels stacked'
+          ? `4-6 horizontal panels stacked${hasBorder ? ', with clear black borders' : ', no borders'}`
           : config.layout === 'Z-Pattern Flow'
-            ? '5-6 panels in Z-pattern'
+            ? `5-6 panels in Z-pattern${hasBorder ? ', with clear black borders' : ', no borders'}`
             : config.layout === 'Vertical Strip'
-              ? '3-5 wide horizontal panels'
+              ? `3-5 wide horizontal panels${hasBorder ? ', with clear black borders' : ', no borders'}`
               : config.layout === 'Climax Focus'
-                ? '1 dominant panel + 4-5 supporting panels'
-                : `${config.layout.includes('Double') ? '2' : config.layout.includes('Triple') ? '3' : '4'} panels, black borders`;
+                ? `1 dominant panel + 4-5 supporting panels${hasBorder ? ', with clear black borders' : ', no borders'}`
+                : `${config.layout.includes('Double') ? '2' : config.layout.includes('Triple') ? '3' : '4'} panels, ${borderText}`;
 
   const colorMode = config.useColor 
     ? 'FULL COLOR - all elements must have colors, NO grayscale'
@@ -839,10 +848,17 @@ ${referenceImageInstructions ? `\n${referenceImageInstructions}` : ''}
 
 VISUAL + TEXT SPEC:
 FORMAT: ${layoutDesc}
+${config.layout === 'Single Panel' ? `\n⚠️⚠️⚠️ CRITICAL PANEL REQUIREMENT ⚠️⚠️⚠️
+EXACTLY ONE PANEL ONLY - DO NOT CREATE MULTIPLE PANELS - FORCE SINGLE PANEL
+This page MUST have EXACTLY ONE SINGLE PANEL - NO panel divisions, NO multiple panels, NO panel borders (unless Full Border is selected)
+The entire page is ONE continuous illustration${hasBorder ? ' with a border frame around the entire page' : ' with NO panel borders'}`
+: ''}
+${config.layout === 'Single Panel' ? '' : hasBorder ? '\nBORDER STYLE: All panels must have clear black borders/frames around them' : '\nBORDER STYLE: NO panel borders - seamless panels without any border lines'}
 STYLE: ${config.style}, ${config.inking}, ${config.screentone}
 COLOR: ${colorMode}
 ${dialogueInstructions}
-${config.layout !== 'Single Panel' && config.layout !== 'Dramatic Spread' && config.layout !== 'Widescreen Cinematic' ? '\nMULTI-PANEL: Characters complete within ONE panel - NEVER split across borders. Vary camera angles and poses between panels.' : ''}
+${config.layout !== 'Single Panel' && config.layout !== 'Dramatic Spread' && config.layout !== 'Widescreen Cinematic' ? `\nMULTI-PANEL: Characters complete within ONE panel - NEVER split across ${hasBorder ? 'borders' : 'panel divisions'}. Vary camera angles and poses between panels.` : ''}
+${config.layout === 'Single Panel' ? '\n⚠️ FINAL REMINDER: This page has EXACTLY ONE PANEL - the entire page is a single continuous illustration. DO NOT create multiple panels or panel divisions.' : ''}
 ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must be the SAME as previous pages. Use DIFFERENT composition/angle/pose than Page ${sessionHistory.length}.` : ''}
 `;
 

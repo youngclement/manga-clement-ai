@@ -9,12 +9,14 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import {
     MangaStyle,
     InkingStyle,
     ScreentoneDensity,
     AspectRatio,
     PanelLayout,
+    PanelBorderStyle,
     DialogueDensity,
     Language,
     MangaConfig,
@@ -280,7 +282,7 @@ export default function StorySettingsPanel({
                                         </SelectItem>
                                     ))}
                                     <div className="px-2 py-1 mt-2 text-[9px] text-zinc-500 uppercase tracking-wider">Modern Styles</div>
-                                    {['Modern Webtoon', 'Korean Manhwa', 'Digital Painting', 'Realistic Manga', 'Semi-Realistic', 'Clean Line Art', 'Cinematic Style'].map(s => (
+                                    {['Manhwa 3D', 'Modern Webtoon', 'Korean Manhwa', 'Digital Painting', 'Realistic Manga', 'Semi-Realistic', 'Clean Line Art', 'Cinematic Style'].map(s => (
                                         <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer">
                                             {s}
                                         </SelectItem>
@@ -355,6 +357,29 @@ export default function StorySettingsPanel({
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+
+                        {/* Panel Border Style - Toggle */}
+                        <div className="flex items-center justify-between space-x-2">
+                            <div className="flex flex-col space-y-1">
+                                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
+                                    Panel Border
+                                </label>
+                                <span className="text-[9px] text-zinc-500 font-normal normal-case">
+                                    {(config.panelBorderStyle === PanelBorderStyle.FULL_BORDER || !config.panelBorderStyle)
+                                        ? 'Có viền đen' 
+                                        : 'Full ảnh không viền trắng'}
+                                </span>
+                            </div>
+                            <Switch
+                                checked={config.panelBorderStyle === PanelBorderStyle.FULL_BORDER}
+                                onCheckedChange={(checked) => {
+                                    onConfigChange({
+                                        ...config,
+                                        panelBorderStyle: checked ? PanelBorderStyle.FULL_BORDER : PanelBorderStyle.NO_BORDER
+                                    });
+                                }}
+                            />
                         </div>
 
                         {/* Dialogue & Language */}

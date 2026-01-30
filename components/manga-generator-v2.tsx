@@ -25,6 +25,7 @@ import {
   ScreentoneDensity,
   AspectRatio,
   PanelLayout,
+  PanelBorderStyle,
   GeneratedManga,
   MangaProject,
   MangaConfig,
@@ -48,7 +49,7 @@ const MangaGeneratorV2 = () => {
   const [prompt, setPrompt] = useState('');
   const [context, setContext] = useState('');
   const [config, setConfig] = useState<MangaConfig>({
-    style: MangaStyle.SHONEN,
+    style: MangaStyle.MANHWA_3D,
     inking: InkingStyle.GPEN,
     screentone: ScreentoneDensity.MEDIUM,
     layout: PanelLayout.SINGLE,
@@ -56,6 +57,7 @@ const MangaGeneratorV2 = () => {
     useColor: false,
     dialogueDensity: DialogueDensity.MEDIUM,
     language: Language.ENGLISH,
+    panelBorderStyle: PanelBorderStyle.FULL_BORDER,
     context: '',
     autoContinueStory: true
   });
