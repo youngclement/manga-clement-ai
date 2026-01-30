@@ -3,8 +3,7 @@ import type { Metadata } from 'next'
 import { Geist_Mono, Bangers, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
-import { AuthRefresher } from '@/components/app/auth-refresher'
-import { PasswordGate } from '@/components/app/password-gate'
+import { StoreProvider } from '@/components/providers/store-provider'
 import { Toaster } from '@/components/ui/sonner'
 
 const _bangers = Bangers({ weight: '400', subsets: ["latin"] });
@@ -36,10 +35,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} font-sans antialiased bg-zinc-950 text-white`}>
-        <AuthRefresher />
-        <PasswordGate>
+        <StoreProvider>
           {children}
-        </PasswordGate>
+        </StoreProvider>
         <Toaster />
         <Analytics />
       </body>
