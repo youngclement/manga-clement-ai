@@ -1,6 +1,7 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "manga-generator-app",
+  "version": "1.0.0",
+  "description": "Frontend application for Manga Generator",
   "private": true,
   "scripts": {
     "build": "next build",
