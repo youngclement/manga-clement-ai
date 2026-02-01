@@ -182,6 +182,84 @@ export class GenerateService {
   }>> {
     return apiClient.get('/generate/usage');
   }
+
+  // Generate clean panels without dialogue (for manual dialogue editing)
+  async generateClean(request: {
+    prompt?: string;
+    config: GenerateConfig;
+    sessionHistory?: SessionHistory[];
+    totalPages?: number;
+  }): Promise<ApiResponse<{
+    pages: GenerateResponse['page'][];
+    totalGenerated: number;
+    isClean: boolean;
+  }>> {
+    return apiClient.post(API_ENDPOINTS.GENERATE.CLEAN, request, {
+      timeout: 120000, // 2 minutes
+    });
+  }
+
+  // Add dialogue bubbles to a clean panel
+  async addDialogue(request: {
+    imageUrl: string;
+    dialogues: DialogueBubble[];
+    language?: string;
+    fontStyle?: 'manga' | 'comic' | 'handwritten' | 'clean';
+  }): Promise<ApiResponse<{
+    imageUrl: string;
+    originalImageUrl: string;
+    dialogues: DialogueBubble[];
+    language: string;
+    fontStyle: string;
+  }>> {
+    return apiClient.post(API_ENDPOINTS.GENERATE.ADD_DIALOGUE, request, {
+      timeout: 60000,
+    });
+  }
+
+  // Get AI-suggested dialogue for a panel
+  async suggestDialogue(request: {
+    imageUrl: string;
+    context?: string;
+    previousDialogues?: string[];
+    numberOfSuggestions?: number;
+  }): Promise<ApiResponse<{
+    suggestions: DialogueSuggestion[];
+    imageUrl: string;
+  }>> {
+    return apiClient.post(API_ENDPOINTS.GENERATE.SUGGEST_DIALOGUE, request, {
+      timeout: 30000,
+    });
+  }
+}
+
+// Dialogue bubble interface for adding to panels
+export interface DialogueBubble {
+  id?: string;
+  /** X position as percentage (0-100) from left */
+  x: number;
+  /** Y position as percentage (0-100) from top */
+  y: number;
+  /** Dialogue text content */
+  text: string;
+  /** Bubble style */
+  style?: 'speech' | 'thought' | 'shout' | 'whisper' | 'narrator';
+  /** Tail direction pointing to speaker */
+  tailDirection?: 'left' | 'right' | 'top' | 'bottom' | 'none';
+  /** Font size (optional) */
+  fontSize?: number;
+  /** Character name (optional) */
+  characterName?: string;
+}
+
+// AI-suggested dialogue
+export interface DialogueSuggestion {
+  text: string;
+  characterName?: string;
+  style: 'speech' | 'thought' | 'shout' | 'whisper' | 'narrator';
+  suggestedX: number;
+  suggestedY: number;
+  reasoning: string;
 }
 
 export const generateService = new GenerateService();

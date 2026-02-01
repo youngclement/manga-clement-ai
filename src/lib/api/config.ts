@@ -1,6 +1,6 @@
 // Frontend API Configuration
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api/v1',
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ,
   TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000'),
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
@@ -31,6 +31,9 @@ export const API_ENDPOINTS = {
   GENERATE: {
     SINGLE: '/generate/single',
     BATCH: '/generate/batch',
+    CLEAN: '/generate/clean',
+    ADD_DIALOGUE: '/generate/add-dialogue',
+    SUGGEST_DIALOGUE: '/generate/suggest-dialogue',
     STATUS: (id: string) => `/generate/status/${id}`,
     CANCEL: (id: string) => `/generate/cancel/${id}`,
     HISTORY: '/generate/history',
