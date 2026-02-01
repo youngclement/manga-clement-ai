@@ -576,6 +576,7 @@ Language: ${config.language.toUpperCase()} only`;
       'Manhwa 3D': 'MANHWA 3D style: three-dimensional rendering with depth and volume, semi-realistic proportions with 3D modeling aesthetics, detailed faces with dimensional lighting, sharp but elegant line art, rich vibrant color palettes, dramatic three-dimensional lighting with shadows and highlights, fashion-focused clothing with 3D texture rendering, SMOOTH GLOSSY SHINY POLISHED rendering with silky smooth surfaces, reflective glossy materials, sleek polished skin and hair, smooth gradient shading with volumetric effects and glossy highlights, ultra-smooth bóng mượt finish, cinematic depth of field, realistic perspective and camera angles, professional 3D game/animation quality rendering with glossy polished surfaces.',
       'Digital Painting': 'Full DIGITAL PAINTING style: painterly brush strokes, visible texture, blended edges, strong light and shadow shapes, rich color harmonies, atmospheric perspective, soft but detailed rendering.',
       'Realistic Manga': 'REALISTIC manga style: accurate human anatomy, realistic proportions, detailed facial features, strong three-dimensional shading, subtle screentones, grounded camera angles while keeping manga aesthetics.',
+      'Realistic People': 'REALISTIC PEOPLE style: photorealistic human anatomy and proportions, lifelike facial features and expressions, natural skin textures and hair, realistic lighting and shadows, authentic clothing and environments, true-to-life body language and poses, photographic quality rendering with detailed facial features, realistic eye reflections, natural skin imperfections, authentic material textures, cinematic depth of field, professional photography aesthetics.',
       'Clean Line Art': 'CLEAN LINE ART style: crisp vector-like outlines, uniform line weight or very controlled variation, minimal hatching, flat or very simple shading, graphic and modern look with clear silhouettes.',
       'Cinematic Style': 'CINEMATIC style: movie-like framing, extreme close-ups and wide shots, dramatic contrast lighting, depth of field blur, lens effects, dynamic perspective, very atmospheric backgrounds.',
       'Semi-Realistic': 'SEMI-REALISTIC style: balance between anime and realism, believable anatomy but stylized faces, detailed rendering of hair and skin, controlled line work, soft but accurate lighting.',
@@ -809,28 +810,28 @@ Return ONLY the rewritten prompt, nothing else. No explanations, no meta-comment
     storyDirectionSection = `\nSTORY FLOW DIRECTION (GUIDE AUTO-CONTINUE):\n${trimmed.substring(0, 500)}${trimmed.length > 500 ? '...' : ''}`;
   }
 
-  // Determine border style
-  const hasBorder = config.panelBorderStyle === 'Full Border' || !config.panelBorderStyle; // Default to Full Border
-  const borderText = hasBorder ? 'with clear black borders' : 'no panel borders';
+  // Determine spacing style
+  const hasSpacing = config.panelBorderStyle === 'Full Border' || !config.panelBorderStyle; // Default to spacing
+  const spacingText = hasSpacing ? 'có spacing' : 'không spacing';
   
   // Build visual spec
   const layoutDesc = config.layout === 'Single Panel'
-    ? `EXACTLY ONE SINGLE PANEL ONLY - Full-page illustration ${hasBorder ? 'with border frame' : 'with NO panel borders'} - FORCE SINGLE PANEL - DO NOT CREATE MULTIPLE PANELS`
+    ? `EXACTLY ONE SINGLE PANEL ONLY - Full-page illustration ${hasSpacing ? 'có spacing' : 'không spacing'} - FORCE SINGLE PANEL - DO NOT CREATE MULTIPLE PANELS`
     : config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
-    ? `Single full-page illustration, ${hasBorder ? 'with border frame' : 'no panel borders'}`
+    ? `Single full-page illustration, ${hasSpacing ? 'có spacing' : 'không spacing'}`
     : config.layout === 'Dynamic Freestyle' || config.layout === 'Asymmetric Mixed'
-      ? `5-8 panels, varied sizes, ${borderText}`
+      ? `5-8 panels, varied sizes, ${spacingText}`
       : config.layout.includes('Action Sequence')
-        ? `5-7 action panels, ${borderText}`
+        ? `5-7 action panels, ${spacingText}`
         : config.layout.includes('Conversation')
-          ? `4-6 horizontal panels stacked${hasBorder ? ', with clear black borders' : ', no borders'}`
+          ? `4-6 horizontal panels stacked${hasSpacing ? ', có spacing' : ', không spacing'}`
           : config.layout === 'Z-Pattern Flow'
-            ? `5-6 panels in Z-pattern${hasBorder ? ', with clear black borders' : ', no borders'}`
+            ? `5-6 panels in Z-pattern${hasSpacing ? ', có spacing' : ', không spacing'}`
             : config.layout === 'Vertical Strip'
-              ? `3-5 wide horizontal panels${hasBorder ? ', with clear black borders' : ', no borders'}`
+              ? `3-5 wide horizontal panels${hasSpacing ? ', có spacing' : ', không spacing'}`
               : config.layout === 'Climax Focus'
-                ? `1 dominant panel + 4-5 supporting panels${hasBorder ? ', with clear black borders' : ', no borders'}`
-                : `${config.layout.includes('Double') ? '2' : config.layout.includes('Triple') ? '3' : '4'} panels, ${borderText}`;
+                ? `1 dominant panel + 4-5 supporting panels${hasSpacing ? ', có spacing' : ', không spacing'}`
+                : `${config.layout.includes('Double') ? '2' : config.layout.includes('Triple') ? '3' : '4'} panels, ${spacingText}`;
 
   const colorMode = config.useColor 
     ? 'FULL COLOR - all elements must have colors, NO grayscale'
@@ -850,14 +851,14 @@ VISUAL + TEXT SPEC:
 FORMAT: ${layoutDesc}
 ${config.layout === 'Single Panel' ? `\n⚠️⚠️⚠️ CRITICAL PANEL REQUIREMENT ⚠️⚠️⚠️
 EXACTLY ONE PANEL ONLY - DO NOT CREATE MULTIPLE PANELS - FORCE SINGLE PANEL
-This page MUST have EXACTLY ONE SINGLE PANEL - NO panel divisions, NO multiple panels, NO panel borders (unless Full Border is selected)
-The entire page is ONE continuous illustration${hasBorder ? ' with a border frame around the entire page' : ' with NO panel borders'}`
+This page MUST have EXACTLY ONE SINGLE PANEL - NO panel divisions, NO multiple panels
+The entire page is ONE continuous illustration${hasSpacing ? ' có spacing' : ' không spacing'}`
 : ''}
-${config.layout === 'Single Panel' ? '' : hasBorder ? '\nBORDER STYLE: All panels must have clear black borders/frames around them' : '\nBORDER STYLE: NO panel borders - seamless panels without any border lines'}
+${config.layout === 'Single Panel' ? '' : hasSpacing ? '\nCó spacing k' : '\nKhông có spacing'}
 STYLE: ${config.style}, ${config.inking}, ${config.screentone}
 COLOR: ${colorMode}
 ${dialogueInstructions}
-${config.layout !== 'Single Panel' && config.layout !== 'Dramatic Spread' && config.layout !== 'Widescreen Cinematic' ? `\nMULTI-PANEL: Characters complete within ONE panel - NEVER split across ${hasBorder ? 'borders' : 'panel divisions'}. Vary camera angles and poses between panels.` : ''}
+${config.layout !== 'Single Panel' && config.layout !== 'Dramatic Spread' && config.layout !== 'Widescreen Cinematic' ? `\nMULTI-PANEL: Characters complete within ONE panel. Vary camera angles and poses between panels.` : ''}
 ${config.layout === 'Single Panel' ? '\n⚠️ FINAL REMINDER: This page has EXACTLY ONE PANEL - the entire page is a single continuous illustration. DO NOT create multiple panels or panel divisions.' : ''}
 ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must be the SAME as previous pages. Use DIFFERENT composition/angle/pose than Page ${sessionHistory.length}.` : ''}
 `;

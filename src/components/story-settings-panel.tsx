@@ -282,7 +282,7 @@ export default function StorySettingsPanel({
                                         </SelectItem>
                                     ))}
                                     <div className="px-2 py-1 mt-2 text-[9px] text-zinc-500 uppercase tracking-wider">Modern Styles</div>
-                                    {['Manhwa 3D', 'Modern Webtoon', 'Korean Manhwa', 'Digital Painting', 'Realistic Manga', 'Semi-Realistic', 'Clean Line Art', 'Cinematic Style'].map(s => (
+                                    {['Manhwa 3D', 'Modern Webtoon', 'Korean Manhwa', 'Digital Painting', 'Realistic Manga', 'Realistic People', 'Semi-Realistic', 'Clean Line Art', 'Cinematic Style'].map(s => (
                                         <SelectItem key={s} value={s} className="text-xs text-zinc-300 hover:bg-zinc-800 focus:bg-zinc-800 focus:text-white cursor-pointer">
                                             {s}
                                         </SelectItem>

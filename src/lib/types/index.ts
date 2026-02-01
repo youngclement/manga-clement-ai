@@ -8,6 +8,7 @@ export enum MangaStyle {
   MANHWA_3D = 'Manhwa 3D',
   DIGITAL_PAINTING = 'Digital Painting',
   REALISTIC = 'Realistic Manga',
+  REALISTIC_PEOPLE = 'Realistic People',
   CLEAN_LINE = 'Clean Line Art',
   CINEMATIC = 'Cinematic Style',
   SEMI_REALISTIC = 'Semi-Realistic',

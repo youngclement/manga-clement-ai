@@ -747,6 +747,7 @@ UPLOADED REFERENCE IMAGES (${enabledReferenceImages.length} image${enabledRefere
       'Korean Manhwa': 'Korean manhwa style with detailed facial features, realistic proportions, dynamic lighting, semi-realistic rendering',
       'Digital Painting': 'Fully painted digital art style with painterly brushstrokes, rich colors, atmospheric lighting, and textured rendering',
       'Realistic Manga': 'Realistic proportions and anatomy with manga aesthetics, detailed shading, lifelike facial features',
+      'Realistic People': 'Photorealistic human style with true-to-life anatomy, natural skin textures, realistic facial features, authentic expressions, natural lighting, and photographic quality rendering',
       'Clean Line Art': 'Crisp, clean lines with minimal detail, modern aesthetic, smooth curves, professional vector-like quality',
       'Cinematic Style': 'Movie-like composition with dramatic camera angles, cinematic lighting, depth of field effects, atmospheric rendering',
       'Semi-Realistic': 'Balance between anime/manga and realistic art, detailed features with stylized expressions',
@@ -995,18 +996,20 @@ COMPOSITION:
 ${config.layout === 'Single Panel' || config.layout === 'Dramatic Spread' || config.layout === 'Widescreen Cinematic'
   ? 'Full-page illustration - no panel divisions'
   : config.layout === 'Dynamic Freestyle' || config.layout === 'Asymmetric Mixed'
-    ? '5-8 panels with varied sizes - clear black borders'
+    ? '5-8 panels with varied sizes - có spacing'
     : config.layout.includes('Action Sequence')
-      ? '5-7 dynamic action panels - clear black borders'
+      ? '5-7 dynamic action panels - có spacing'
       : config.layout.includes('Conversation')
-        ? '4-6 horizontal panels stacked vertically'
+        ? '4-6 horizontal panels stacked vertically, có spacing'
         : config.layout === 'Z-Pattern Flow'
-          ? '5-6 panels in Z-pattern - clear black borders'
+          ? '5-6 panels in Z-pattern - có spacing'
           : config.layout === 'Vertical Strip'
-            ? '3-5 wide horizontal panels stacked vertically'
+            ? '3-5 wide horizontal panels stacked vertically, có spacing'
             : config.layout === 'Climax Focus'
-              ? '1 dominant panel (40-50%) + 4-5 supporting panels'
-              : `${config.layout.includes('Double') ? 'TWO' : config.layout.includes('Triple') ? 'THREE' : 'FOUR'} panels with clear black borders`}
+              ? '1 dominant panel (40-50%) + 4-5 supporting panels, có spacing'
+              : `${config.layout.includes('Double') ? 'TWO' : config.layout.includes('Triple') ? 'THREE' : 'FOUR'} panels with có spacing`}
+
+Có spacing k
 
 ${(() => {
   const hasMultiplePanels = !['Single Panel', 'Dramatic Spread', 'Widescreen Cinematic'].includes(config.layout);

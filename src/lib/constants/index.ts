@@ -19,6 +19,7 @@ ART & COMPOSITION GUIDELINES:
 - For webtoon/manhwa: Use vibrant colors, dramatic lighting, glossy rendering, cinematic atmosphere
 - For digital painting: Use painterly brushstrokes, blended colors, textured rendering, atmospheric lighting
 - For realistic styles: Use proper anatomy, photorealistic lighting, detailed features
+- For realistic people style: Use photorealistic human anatomy, lifelike facial features, natural skin textures and hair, realistic lighting and shadows, authentic material textures, true-to-life proportions and body language, cinematic depth of field, professional photography aesthetics
 - For adult/hentai content: Use authentic hentai manga aesthetics, detailed anatomy, expressive poses, and appropriate visual elements
 - Apply consistent techniques throughout the entire page
 - Ensure characters are emotionally expressive
