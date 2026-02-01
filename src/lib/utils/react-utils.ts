@@ -71,12 +71,13 @@ export { generateId };
 /**
  * Normalize session data
  */
-export function normalizeSession<T extends { chatHistory?: any[] }>(
+export function normalizeSession<T extends { chatHistory?: any[]; pages?: any[] }>(
   session: T
 ): T {
   return {
     ...session,
     chatHistory: safeArray(session.chatHistory),
+    pages: safeArray(session.pages),
   };
 }
 

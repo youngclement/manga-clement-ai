@@ -245,10 +245,11 @@ const MangaGeneratorV2 = () => {
           if (normalizedProject.currentSessionId) {
             const session = normalizedProject.sessions.find(s => s.id === normalizedProject.currentSessionId);
             if (session) {
-              const normalizedSession = {
+              const normalizedSession = normalizeSession({
                 ...session,
-                chatHistory: Array.isArray(session.chatHistory) ? session.chatHistory : []
-              };
+                chatHistory: Array.isArray(session.chatHistory) ? session.chatHistory : [],
+                pages: Array.isArray(session.pages) ? session.pages : []
+              });
               setCurrentSession(normalizedSession);
               setContext(normalizedSession.context);
               // Load config from session (including storyDirection), or use default with context
@@ -378,7 +379,16 @@ const MangaGeneratorV2 = () => {
     if (!sessionToDelete) return;
 
     const sessions = Array.isArray(project.sessions) ? project.sessions : [];
+    const sessionToRemove = sessions.find(s => s.id === sessionToDelete);
     const filteredSessions = sessions.filter(s => s.id !== sessionToDelete);
+
+    // Get page IDs from the session being deleted
+    const pageIdsToDelete = sessionToRemove?.pages?.map(p => p.id) || [];
+    
+    // Get image URLs to delete from Cloudinary
+    const imageUrlsToDelete = sessionToRemove?.pages
+      ?.map(p => p.url)
+      .filter(url => url && !url.startsWith('data:image')) || [];
 
     if (currentSession?.id === sessionToDelete) {
       if (filteredSessions.length > 0) {
@@ -392,13 +402,26 @@ const MangaGeneratorV2 = () => {
     setProject(prev => ({
       ...prev,
       sessions: filteredSessions,
+      // Also remove pages that belonged to this session from project.pages
+      pages: prev.pages.filter(p => !pageIdsToDelete.includes(p.id)),
       currentSessionId: currentSession?.id === sessionToDelete ? (filteredSessions[0]?.id || undefined) : prev.currentSessionId
     }));
 
     // Backend delete
     if (project && project.id) {
       try {
+        // Delete session from backend
         await deleteSessionApi(project.id, sessionToDelete);
+        
+        // Delete pages from backend
+        if (pageIdsToDelete.length > 0) {
+          await deletePages(project.id, pageIdsToDelete);
+        }
+        
+        // Delete images from Cloudinary
+        if (imageUrlsToDelete.length > 0) {
+          await deleteImages(imageUrlsToDelete);
+        }
       } catch (err) {
         console.error('Failed to delete session on backend', err);
         setError(extractErrorMessage(err) || 'Failed to delete session on server.');
@@ -418,6 +441,14 @@ const MangaGeneratorV2 = () => {
   const deletePage = async () => {
     if (!pageToDelete) return;
     await removePage(pageToDelete);
+    // Also delete from backend database
+    if (project && project.id) {
+      try {
+        await deletePages(project.id, [pageToDelete]);
+      } catch (err) {
+        console.error('Failed to delete page on backend', err);
+      }
+    }
     setDeleteDialogOpen(false);
     setPageToDelete(null);
     setPagesToDelete(null);
@@ -1044,13 +1075,13 @@ const MangaGeneratorV2 = () => {
     const pageToDelete = currentSession?.pages.find(p => p.id === id) ||
       project.pages.find(p => p.id === id);
 
-    // Delete image from MongoDB if it's stored there
-    if (pageToDelete?.url && !pageToDelete.url.startsWith('data:image') && !pageToDelete.url.startsWith('http')) {
+    // Delete image from backend (MongoDB or Cloudinary)
+    if (pageToDelete?.url && !pageToDelete.url.startsWith('data:image')) {
       try {
         const { deleteImage } = await import('@/lib/services/storage-service');
         await deleteImage(pageToDelete.url);
       } catch (error) {
-        console.error('Failed to delete image from MongoDB:', error);
+        console.error('Failed to delete image:', error);
         // Continue with page removal even if image delete fails
       }
     }
@@ -1109,18 +1140,18 @@ const MangaGeneratorV2 = () => {
       ...project.pages.filter(p => ids.includes(p.id) && !currentSession?.pages.some(sp => sp.id === p.id))
     ];
 
-    // Collect image IDs to delete
-    const imageIdsToDelete = pagesToDelete
+    // Collect image URLs to delete (exclude base64)
+    const imageUrlsToDelete = pagesToDelete
       .map(p => p.url)
-      .filter(url => url && !url.startsWith('data:image') && !url.startsWith('http'));
+      .filter(url => url && !url.startsWith('data:image'));
 
-    // Delete images from MongoDB
-    if (imageIdsToDelete.length > 0) {
+    // Delete images from backend (MongoDB or Cloudinary)
+    if (imageUrlsToDelete.length > 0) {
       try {
         const { deleteImages } = await import('@/lib/services/storage-service');
-        await deleteImages(imageIdsToDelete);
+        await deleteImages(imageUrlsToDelete);
       } catch (error) {
-        console.error('Failed to delete images from MongoDB:', error);
+        console.error('Failed to delete images:', error);
         // Continue with page removal even if image delete fails
       }
     }

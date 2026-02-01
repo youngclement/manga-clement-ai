@@ -162,9 +162,9 @@ export const loadProject = async (id: string = 'default'): Promise<MangaProject 
     }
 
     const data = await response.json();
-    // Nest backend wraps payload as { success, code, message, data: { project } }
-    // Fallback to plain { project } shape for compatibility.
-    const project = data?.data?.project ?? data?.project ?? null;
+    // Nest backend wraps payload as { success, data: MangaProject }
+    // or legacy format { success, data: { project } } or { project }
+    const project = data?.data?.project ?? data?.data ?? data?.project ?? null;
     return project as MangaProject | null;
   }, null) as Promise<MangaProject | null>;
 };
