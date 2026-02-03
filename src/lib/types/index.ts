@@ -201,3 +201,6 @@ export interface ProjectComment {
   createdAt: number;
   updatedAt: number;
 }
+
+// Re-export canvas types
+export * from './canvas';

@@ -3,6 +3,7 @@ export { useAuthStore } from './auth.store';
 export { useProjectsStore } from './projects.store';
 export { useGenerationStore } from './generation.store';
 export { useUIStore, useIsLoading } from './ui.store';
+export { useCanvasStore, createPanelElement, createImageElement, createTextElement, createDialogueElement } from './canvas-store';
 
 // Store types
 export type { LoadingKeys } from './ui.store';
