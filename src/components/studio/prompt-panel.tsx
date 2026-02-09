@@ -232,56 +232,6 @@ export default function PromptPanel({
                                 </PopoverContent>
                             </Popover>
 
-                            <Popover open={chapterPopoverOpen} onOpenChange={setChapterPopoverOpen}>
-                                <PopoverTrigger asChild>
-                                    <button
-                                        disabled={loading || batchLoading || (!hasPages && !prompt.trim())}
-                                        className="px-3 sm:px-4 py-3 sm:py-3.5 bg-gradient-to-b from-emerald-400 to-emerald-600 hover:from-emerald-500 hover:to-emerald-700 disabled:from-zinc-800 disabled:to-zinc-900 disabled:text-zinc-600 text-black font-manga text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 shadow-[0_4px_0_0_rgb(5,150,105)] hover:shadow-[0_4px_0_0_rgb(5,150,105)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(5,150,105)] disabled:shadow-none active:translate-y-1 disabled:translate-y-0 disabled:cursor-not-allowed ring-2 ring-transparent hover:ring-emerald-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
-                                    >
-                                        <BookOpen size={12} className="sm:w-3.5 sm:h-3.5" />
-                                        <span className="hidden sm:inline">CHAPTER</span>
-                                        <span className="sm:hidden">CH</span>
-                                    </button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-56 bg-zinc-950/95 border-zinc-800/60 backdrop-blur-md p-2 shadow-xl" align="end">
-                                    <div className="space-y-1">
-                                        <div className="px-3 py-1.5 text-[10px] text-zinc-500 uppercase tracking-wider font-semibold flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
-                                            <Target size={10} />
-                                            Complete Chapter To
-                                        </div>
-                                        {currentPageCount > 0 && (
-                                            <div className="px-3 py-1 text-[10px] text-emerald-400/80" style={{ fontFamily: 'var(--font-inter)' }}>
-                                                Current: {currentPageCount} pages
-                                            </div>
-                                        )}
-                                        {[40, 50, 60, 80, 100].map((target) => {
-                                            const remaining = getRemainingPages(target);
-                                            const isDisabled = remaining <= 0;
-                                            return (
-                                                <button
-                                                    key={target}
-                                                    onClick={() => !isDisabled && handleChapterSelect(target)}
-                                                    disabled={isDisabled}
-                                                    className={`w-full px-4 py-2 text-sm rounded-lg transition-all text-left font-medium flex items-center justify-between ${
-                                                        isDisabled
-                                                            ? 'text-zinc-600 cursor-not-allowed'
-                                                            : 'text-zinc-200 hover:bg-zinc-800/60 hover:text-emerald-400'
-                                                    }`}
-                                                    style={{ fontFamily: 'var(--font-inter)' }}
-                                                >
-                                                    <span>{target} Pages</span>
-                                                    {!isDisabled && (
-                                                        <span className="text-[10px] text-zinc-500">+{remaining}</span>
-                                                    )}
-                                                    {isDisabled && (
-                                                        <span className="text-[10px] text-emerald-500">✓ Done</span>
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </PopoverContent>
-                            </Popover>
                         </>
                     )}
                 </div>
