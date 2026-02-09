@@ -29,7 +29,9 @@ export const generateRequestSchema = z.object({
     dialogueDensity: z.string().optional(),
     context: z.string().optional(),
     storyDirection: z.string().optional(),
-    referenceImages: z.array(z.any()).optional(),
+    // Reference images are completely optional for generation.
+    // Default to empty array if not provided.
+    referenceImages: z.array(z.any()).optional().default([]),
   }).required(),
   sessionHistory: z.array(z.any()).optional(),
   isAutoContinue: z.boolean().optional(),

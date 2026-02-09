@@ -34,7 +34,6 @@ import {
   MangaSession,
 } from '@/lib/types';
 import { loadProject, updateProjectMeta, saveProject, saveSession, deleteProject, deleteSession as deleteSessionApi, deletePages, deleteImage, deleteImages, addPageToSession } from '@/lib/services/storage-service';
-import { generateMangaImage, generateNextPrompt } from '@/lib/services/gemini-service';
 import StorySettingsPanel from '@/components/story-settings-panel';
 import SessionSidebar from '@/components/studio/session-sidebar';
 import PromptPanel from '@/components/studio/prompt-panel';
@@ -147,7 +146,7 @@ const MangaGeneratorV2 = () => {
         ...prev,
         preferences: newPreferences,
       }));
-      updateProjectMeta(project.id, { preferences: newPreferences }).catch(() => {});
+      updateProjectMeta(project.id, { preferences: newPreferences }).catch(() => { });
     }
   }, [leftWidth, project?.id]);
   useEffect(() => {
@@ -160,7 +159,7 @@ const MangaGeneratorV2 = () => {
         ...prev,
         preferences: newPreferences,
       }));
-      updateProjectMeta(project.id, { preferences: newPreferences }).catch(() => {});
+      updateProjectMeta(project.id, { preferences: newPreferences }).catch(() => { });
     }
   }, [middleWidth, project?.id]);
   useEffect(() => {
@@ -266,7 +265,7 @@ const MangaGeneratorV2 = () => {
     }));
 
     if (project && project.id) {
-      saveSession(project.id, newSession).catch(() => {});
+      saveSession(project.id, newSession).catch(() => { });
     }
   }, [context, config, project?.id]);
 
@@ -462,7 +461,7 @@ const MangaGeneratorV2 = () => {
         currentSessionId: newSessionId
       }));
       if (project && project.id) {
-        saveSession(project.id, newSession).catch(() => {});
+        saveSession(project.id, newSession).catch(() => { });
       }
     }
 
@@ -520,13 +519,34 @@ const MangaGeneratorV2 = () => {
     try {
       const sessionHistory = workingSession.pages || [];
       const configWithContext = { ...config, context: context || config.context };
-      const selectedReferencePageIds = workingSession.selectedReferencePageIds || [];
-      const imageUrl = await generateMangaImage(
-        finalPrompt,
-        configWithContext,
-        sessionHistory,
-        selectedReferencePageIds.length > 0 ? selectedReferencePageIds : undefined
-      );
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          config: configWithContext,
+          sessionHistory,
+          isAutoContinue,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const msg = errorBody?.details || errorBody?.error || 'Failed to generate manga';
+        throw new Error(msg);
+      }
+
+      const body = await response.json();
+      const imageUrl: string | null =
+        body?.data?.imageUrl || body?.data?.page?.imageUrl || null;
+
+      if (!imageUrl) {
+        throw new Error('Missing imageUrl from generate API response');
+      }
+
       setGenerationProgress(100);
       await new Promise(resolve => setTimeout(resolve, 300));
 
@@ -602,8 +622,6 @@ const MangaGeneratorV2 = () => {
       batchGeneratingRef.current = false;
       return;
     }
-    const batchId = generateId();
-
     let workingSession = currentSession;
     if (!workingSession) {
       const newSessionId = generateId();
@@ -629,126 +647,70 @@ const MangaGeneratorV2 = () => {
     batchCancelledRef.current = false;
     setBatchProgress({ current: 0, total: totalPages });
     setError(null);
-    const originalPrompt = prompt || 'Start an exciting manga story';
+
     const sessionId = workingSession.id;
-    let generatedCount = 0;
-    let currentPrompt = originalPrompt;
-    let localSession: MangaSession = {
-      ...workingSession,
-      pages: [...(workingSession.pages || [])],
-      chatHistory: [...(workingSession.chatHistory || [])]
+    const sessionHistory = workingSession.pages || [];
+    const configWithContext = {
+      ...config,
+      context: context || config.context,
     };
 
-    for (let i = 0; i < totalPages; i++) {
-      if (batchCancelledRef.current) {
-        setBatchLoading(false);
-        setBatchProgress(null);
-        setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-        return;
+    try {
+      const response = await fetch('/api/generate/batch', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt,
+          config: configWithContext,
+          sessionHistory,
+          totalPages,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        const msg = errorBody?.details || errorBody?.error || 'Failed to generate batch';
+        throw new Error(msg);
       }
 
-      try {
-        const sessionHistory = localSession.pages || [];
+      const body = await response.json();
+      const pages: GeneratedManga[] = body?.data?.pages || [];
 
-        const configWithContext = {
-          ...config,
-          context: context || config.context,
-          autoContinueStory: false
-        };
-        if (i > 0) {
-          if (batchCancelledRef.current) {
-            setBatchLoading(false);
-            setBatchProgress(null);
-            batchGeneratingRef.current = false;
-            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-            return;
-          }
-          const actualPageNumber = sessionHistory.length + 1;
-          setBatchProgress({ current: i, total: totalPages });
+      let localSession: MangaSession = {
+        ...workingSession,
+        pages: [...(workingSession.pages || [])],
+        chatHistory: [...(workingSession.chatHistory || [])],
+      };
 
-          currentPrompt = await generateNextPrompt(
-            sessionHistory,
-            context || config.context || '',
-            originalPrompt,
-            actualPageNumber,
-            totalPages,
-            configWithContext
-          );
-          if (batchCancelledRef.current) {
-            setBatchLoading(false);
-            setBatchProgress(null);
-            batchGeneratingRef.current = false;
-            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-            return;
-          }
+      let generatedCount = 0;
 
-        } else {
-        }
-        let imageUrl: string | null = null;
-        let retries = 3;
-        let lastError: Error | null = null;
-
-        while (retries > 0 && !imageUrl && !batchCancelledRef.current) {
-          if (batchCancelledRef.current) {
-            setBatchLoading(false);
-            setBatchProgress(null);
-            setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-            return;
-          }
-
-          try {
-            const selectedReferencePageIds = currentSession?.selectedReferencePageIds || [];
-            imageUrl = await generateMangaImage(
-              currentPrompt,
-              configWithContext,
-              sessionHistory,
-              selectedReferencePageIds.length > 0 ? selectedReferencePageIds : undefined
-            );
-            if (batchCancelledRef.current) {
-              setBatchLoading(false);
-              setBatchProgress(null);
-              setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-              return;
-            }
-          } catch (err) {
-            if (batchCancelledRef.current) {
-              setBatchLoading(false);
-              setBatchProgress(null);
-              setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
-              return;
-            }
-
-            lastError = err as Error;
-            retries--;
-            if (retries > 0 && !batchCancelledRef.current) {
-              await new Promise(resolve => setTimeout(resolve, 2000));
-            }
-          }
-        }
+      for (let i = 0; i < pages.length; i++) {
         if (batchCancelledRef.current) {
           setBatchLoading(false);
           setBatchProgress(null);
           setError(`Batch cancelled. Generated ${generatedCount} of ${totalPages} pages.`);
+          batchGeneratingRef.current = false;
           return;
         }
 
-        if (!imageUrl) {
-          throw lastError || new Error(`Failed to generate image for page ${i + 1} after 3 attempts`);
-        }
+        const page = pages[i];
         const newPage: GeneratedManga = {
-          id: generateId(),
-          url: imageUrl,
-          prompt: currentPrompt,
-          timestamp: Date.now(),
-          config: configWithContext,
-          markedForExport: true
+          id: page.id || generateId(),
+          url: (page as any).url || (page as any).imageUrl || '',
+          prompt: page.prompt,
+          timestamp: page.timestamp || Date.now(),
+          config: page.config || configWithContext,
+          markedForExport: true,
         };
 
         localSession = {
           ...localSession,
           pages: [...localSession.pages, newPage],
-          updatedAt: Date.now()
+          updatedAt: Date.now(),
         };
+
         setCurrentSession(prevSession => {
           if (prevSession?.id === sessionId) {
             return localSession;
@@ -769,9 +731,10 @@ const MangaGeneratorV2 = () => {
           return {
             ...prev,
             pages: [...prev.pages, newPage],
-            sessions: updatedSessions
+            sessions: updatedSessions,
           };
         });
+
         if (project && project.id) {
           try {
             await addPageToSession(project.id, sessionId, newPage);
@@ -780,28 +743,20 @@ const MangaGeneratorV2 = () => {
         }
 
         generatedCount++;
-        setBatchProgress({ current: i + 1, total: totalPages });
-        if (i < totalPages - 1 && !batchCancelledRef.current) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } catch (err) {
-        setError(`Failed at page ${i + 1}. Successfully generated ${generatedCount} pages.`);
-        setBatchLoading(false);
-        setBatchProgress(null);
-        batchGeneratingRef.current = false;
-        return;
+        setBatchProgress({ current: generatedCount, total: totalPages });
       }
+
+      setPrompt('');
+      if (!batchCancelledRef.current) {
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Failed to generate batch');
+    } finally {
+      setBatchLoading(false);
+      setBatchProgress(null);
+      batchGeneratingRef.current = false;
     }
-
-    setBatchLoading(false);
-    setBatchProgress(null);
-    setPrompt('');
-
-    if (!batchCancelledRef.current) {
-      setError(null);
-    }
-
-    batchGeneratingRef.current = false;
   };
 
   const cancelBatchGenerate = () => {
@@ -868,7 +823,7 @@ const MangaGeneratorV2 = () => {
 
       setProject(updatedProject);
     }
-    saveProject(updatedProject).catch(() => {});
+    saveProject(updatedProject).catch(() => { });
 
     setCurrentImage(null);
     setPrompt('');
@@ -924,7 +879,7 @@ const MangaGeneratorV2 = () => {
     }));
 
     if (project && project.id) {
-      saveSession(project.id, updatedSession).catch(() => {});
+      saveSession(project.id, updatedSession).catch(() => { });
     }
 
     toast.success(isCurrentlyReference ? "Removed from reference" : "Set as reference", {
@@ -1227,22 +1182,22 @@ const MangaGeneratorV2 = () => {
               </div>
 
               <div className="h-1/2 bg-zinc-950/30 overflow-hidden">
-              <PromptPanel
-                prompt={prompt}
-                currentSession={currentSession}
-                loading={loading}
-                error={error}
-                batchLoading={batchLoading}
-                batchProgress={batchProgress}
-                generationProgress={generationProgress}
-                retryCount={retryCount}
-                config={config}
-                onPromptChange={setPrompt}
-                onGenerate={handleGenerate}
-                onBatchGenerate={handleBatchGenerate}
-                onCompleteChapter={handleCompleteChapter}
-                onCancelBatch={cancelBatchGenerate}
-              />
+                <PromptPanel
+                  prompt={prompt}
+                  currentSession={currentSession}
+                  loading={loading}
+                  error={error}
+                  batchLoading={batchLoading}
+                  batchProgress={batchProgress}
+                  generationProgress={generationProgress}
+                  retryCount={retryCount}
+                  config={config}
+                  onPromptChange={setPrompt}
+                  onGenerate={handleGenerate}
+                  onBatchGenerate={handleBatchGenerate}
+                  onCompleteChapter={handleCompleteChapter}
+                  onCancelBatch={cancelBatchGenerate}
+                />
               </div>
             </aside>
 
@@ -1479,13 +1434,13 @@ const MangaGeneratorV2 = () => {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="bg-zinc-950/95 border border-zinc-800/60 backdrop-blur-md shadow-2xl">
           <AlertDialogHeader>
-              <AlertDialogTitle className="text-zinc-100 font-manga text-xl drop-shadow-[0_0_8px_rgba(251,191,36,0.2)]">
+            <AlertDialogTitle className="text-zinc-100 font-manga text-xl drop-shadow-[0_0_8px_rgba(251,191,36,0.2)]">
               {sessionToDelete
                 ? 'Delete Session?'
                 : pagesToDelete
                   ? 'Delete Pages?'
                   : 'Delete Page?'}
-              </AlertDialogTitle>
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
               {sessionToDelete
                 ? 'This will permanently delete this session and all its pages. This action cannot be undone.'
@@ -1503,13 +1458,13 @@ const MangaGeneratorV2 = () => {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-              if (sessionToDelete) {
+                if (sessionToDelete) {
                   deleteSession();
-              } else if (pagesToDelete && pagesToDelete.length > 0) {
+                } else if (pagesToDelete && pagesToDelete.length > 0) {
                   deleteSelectedPages();
-              } else if (pageToDelete) {
+                } else if (pageToDelete) {
                   deletePage();
-              }
+                }
               }}
               className="bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white shadow-[0_4px_0_0_rgb(153,27,27)] rounded-xl transition-all hover:scale-105"
               style={{ fontFamily: 'var(--font-inter)' }}
