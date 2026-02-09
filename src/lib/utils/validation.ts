@@ -18,21 +18,9 @@ export const batchImagesSchema = z.object({
 
 export const generateRequestSchema = z.object({
   prompt: z.string().optional(),
-  config: z.object({
-    style: z.string().optional(),
-    inking: z.string().optional(),
-    screentone: z.string().optional(),
-    layout: z.string().optional(),
-    aspectRatio: z.string().optional(),
-    useColor: z.boolean().optional(),
-    language: z.string().optional(),
-    dialogueDensity: z.string().optional(),
-    context: z.string().optional(),
-    storyDirection: z.string().optional(),
-    // Reference images are completely optional for generation.
-    // Default to empty array if not provided.
-    referenceImages: z.array(z.any()).optional().default([]),
-  }).required(),
+  // Config is intentionally very permissive – all fields optional.
+  // This avoids blocking generation when the client omits any config keys.
+  config: z.record(z.any()).optional(),
   sessionHistory: z.array(z.any()).optional(),
   isAutoContinue: z.boolean().optional(),
 });
