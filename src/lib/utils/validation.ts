@@ -18,11 +18,8 @@ export const batchImagesSchema = z.object({
 
 export const generateRequestSchema = z.object({
   prompt: z.string().optional(),
-  // Config is intentionally very permissive – all fields optional.
-  // This avoids blocking generation when the client omits any config keys.
   config: z.record(z.any()).optional(),
   sessionHistory: z.array(z.any()).optional(),
-  // Accepts true/false, null, or undefined so the client can omit or send null.
   isAutoContinue: z.boolean().optional().nullable(),
 });
 
