@@ -92,7 +92,9 @@ export function Header() {
               <DropdownMenuTrigger asChild>
                 <button className="outline-none focus:outline-none">
                   <Avatar className="h-9 w-9 cursor-pointer border-2 border-zinc-700 hover:border-amber-400 transition-colors">
-                    <AvatarImage src={profile?.avatarUrl} alt={profile?.displayName || profile?.username} />
+                    {profile?.avatarUrl ? (
+                      <AvatarImage src={profile.avatarUrl} alt={profile?.displayName || profile?.username || 'User'} />
+                    ) : null}
                     <AvatarFallback className="bg-zinc-800 text-amber-400 text-sm font-semibold">
                       {profile ? getInitials(profile.displayName || profile.username) : 'U'}
                     </AvatarFallback>

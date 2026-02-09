@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { fetchMyProjects, updateProjectMeta } from '@/lib/services/storage-service'
-import { getMyProfile, updateMyProfile } from '@/lib/services/user-service'
+import { getMyProfile, updateMyProfile, uploadAvatar } from '@/lib/services/user-service'
 import type { MangaProject, UserProfile } from '@/lib/types'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
 import { Camera, Sparkles, X } from 'lucide-react'
+import { useRef } from 'react'
 
 export default function ProfilePage() {
     const searchParams = useSearchParams()
@@ -49,9 +50,12 @@ export default function ProfilePage() {
     useEffect(() => {
         const load = async () => {
             try {
-                const [p, proj] = await Promise.all([getMyProfile(), fetchMyProjects()])
+                const [p, proj] = await Promise.all([
+                    getMyProfile().catch(() => null),
+                    fetchMyProjects().catch(() => [])
+                ])
                 setProfile(p)
-                setProjects(proj)
+                setProjects(Array.isArray(proj) ? proj : [])
                 if (p) {
                     setDisplayName(p.displayName || p.username)
                     setBio(p.bio || '')
@@ -78,7 +82,11 @@ export default function ProfilePage() {
                         },
                     })
                 }
-            } catch {
+            } catch (error: any) {
+                const errorMsg = error?.message || 'Failed to load profile'
+                toast.error('Failed to load profile', {
+                    description: errorMsg
+                })
             } finally {
                 setLoading(false)
             }
@@ -152,7 +160,57 @@ export default function ProfilePage() {
         return username.substring(0, 2).toUpperCase()
     }
 
+    const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('Invalid file type', {
+                description: 'Please select an image file'
+            })
+            return
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('File too large', {
+                description: 'Please select an image smaller than 5MB'
+            })
+            return
+        }
+
+        setUploadingAvatar(true)
+        try {
+            const reader = new FileReader()
+            reader.onload = async (e) => {
+                const base64 = e.target?.result as string
+                if (base64) {
+                    const cloudinaryUrl = await uploadAvatar(base64)
+                    setAvatarUrl(cloudinaryUrl)
+                    if (profile) {
+                        const updated = await updateMyProfile({ avatarUrl: cloudinaryUrl })
+                        if (updated) {
+                            setProfile(updated)
+                            toast.success('Avatar uploaded successfully')
+                        }
+                    }
+                }
+            }
+            reader.readAsDataURL(file)
+        } catch (error: any) {
+            toast.error('Failed to upload avatar', {
+                description: error?.message || 'Please try again'
+            })
+        } finally {
+            setUploadingAvatar(false)
+            if (fileInputRef.current) {
+                fileInputRef.current.value = ''
+            }
+        }
+    }
+
     const [projectTags, setProjectTags] = useState<Record<string, string[]>>({})
+    const [uploadingAvatar, setUploadingAvatar] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
         if (projects.length > 0) {
@@ -207,7 +265,7 @@ export default function ProfilePage() {
     }
 
     return (
-        <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
+        <div className="w-full py-10 md:py-20 space-y-8">
             {showWelcomeBanner && (
                 <div className="bg-linear-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 relative">
                     <div className="bg-amber-500/20 rounded-full p-2 shrink-0">
@@ -246,38 +304,63 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
-                <div className="space-y-4 max-w-xl">
-                    <h1 className="text-2xl md:text-3xl font-manga text-amber-400">
-                        Your Profile
-                    </h1>
-                    <p className="text-sm text-zinc-400">
+            <div className="space-y-6">
+                <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                        <svg width="20" height="24" viewBox="0 0 20 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-amber-400">
+                            <path d="M0 4.5C0 3.11929 1.11929 2 2.5 2H7.5C8.88071 2 10 3.11929 10 4.5V9.40959C10.0001 9.4396 10.0002 9.46975 10.0002 9.50001C10.0002 10.8787 11.1162 11.9968 12.4942 12C12.4961 12 12.4981 12 12.5 12H17.5C18.8807 12 20 13.1193 20 14.5V19.5C20 20.8807 18.8807 22 17.5 22H12.5C11.1193 22 10 20.8807 10 19.5V14.5C10 14.4931 10 14.4861 10.0001 14.4792C9.98891 13.1081 8.87394 12 7.50017 12C7.4937 12 7.48725 12 7.48079 12H2.5C1.11929 12 0 10.8807 0 9.5V4.5Z" fill="currentColor" />
+                        </svg>
+                        <h1 className="text-3xl font-medium tracking-tight text-white md:text-4xl" style={{ fontFamily: 'var(--font-inter)' }}>
+                            Your Profile
+                        </h1>
+                    </div>
+                    <p className="text-sm font-medium tracking-tight text-zinc-400 md:text-base max-w-2xl" style={{ fontFamily: 'var(--font-inter)' }}>
                         Edit your personal information and manage stories published to community.
                     </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
 
                     <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
                         <div className="flex items-center gap-4 pb-4 border-b border-zinc-800">
-                            <div className="relative">
+                            <div className="relative group">
                                 <Avatar className="h-20 w-20 border-2 border-amber-400/50">
-                                    <AvatarImage src={avatarUrl} alt={displayName || profile?.username} />
+                                    {avatarUrl ? (
+                                        <AvatarImage src={avatarUrl} alt={displayName || profile?.username || 'User'} />
+                                    ) : null}
                                     <AvatarFallback className="bg-zinc-800 text-amber-400 text-xl font-semibold">
                                         {profile ? getInitials(displayName || profile.username) : 'U'}
                                     </AvatarFallback>
                                 </Avatar>
-                                <div className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full p-1.5 border border-zinc-700">
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    disabled={uploadingAvatar}
+                                    className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full p-1.5 border border-zinc-700 hover:bg-zinc-800 hover:border-amber-400 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    title="Upload avatar"
+                                >
                                     <Camera className="h-3 w-3 text-amber-400" />
-                                </div>
+                                </button>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleAvatarUpload}
+                                    className="hidden"
+                                />
                             </div>
                             <div className="flex-1 space-y-1">
-                                <label className="text-xs text-zinc-400">Avatar URL</label>
+                                <label className="text-xs text-zinc-400">Avatar</label>
                                 <Input
                                     value={avatarUrl}
                                     onChange={e => setAvatarUrl(e.target.value)}
-                                    placeholder="https://example.com/avatar.jpg"
+                                    placeholder="https://example.com/avatar.jpg or click camera icon to upload"
                                     className="bg-zinc-950 border-zinc-700 text-sm"
+                                    disabled={uploadingAvatar}
                                 />
                                 <p className="text-[10px] text-zinc-500">
-                                    Enter your avatar image URL
+                                    {uploadingAvatar ? 'Uploading...' : 'Click camera icon to upload or enter URL'}
                                 </p>
                             </div>
                         </div>
@@ -489,21 +572,28 @@ export default function ProfilePage() {
                         {savingProfile ? 'Saving...' : 'Save all changes'}
                     </button>
                 </div>
-            </div>
 
-            <div className="space-y-4">
-                <h2 className="text-lg md:text-xl font-manga text-zinc-100">
-                    Your manga collection
-                </h2>
-                {projects.length === 0 ? (
-                    <p className="text-sm text-zinc-500">
-                        You have no manga yet. Create a manga in Studio and come back here to publish to community.
+                <div className="space-y-4 lg:col-span-1">
+                <div className="space-y-2">
+                    <h2 className="text-2xl md:text-3xl font-medium tracking-tight text-white" style={{ fontFamily: 'var(--font-inter)' }}>
+                        Your Manga Collection
+                    </h2>
+                    <p className="text-sm font-medium tracking-tight text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
+                        Manage and publish your stories to the community
                     </p>
+                </div>
+                {projects.length === 0 ? (
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 text-center">
+                        <p className="text-sm text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
+                            You have no manga yet. Create a manga in Studio and come back here to publish to community.
+                        </p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {projects.map(project => {
-                            const cover = project.pages?.[0]?.url;
-                            const totalPages = project.pages?.length || 0;
+                            const firstSession = project.sessions?.[0];
+                            const cover = firstSession?.pages?.[0]?.url || project.pages?.[0]?.url;
+                            const totalPages = project.sessions?.reduce((sum, s) => sum + (s.pages?.length || 0), 0) || project.pages?.length || 0;
                             const totalSessions = project.sessions?.length || 0;
                             const updated = project.updatedAt || project.createdAt;
                             const updatedLabel = updated
@@ -599,6 +689,8 @@ export default function ProfilePage() {
                         })}
                     </div>
                 )}
+                </div>
+                </div>
             </div>
         </div>
     )
