@@ -12,9 +12,7 @@ export default function LandingPage() {
         <div className=" lg:px-50 sm:px-10 ">
             <Header />
             <Hero />
-            <AutoContinueSection />
             <AnimatedMangaListSection />
-            <HolographicShowcaseSection />
             <RecentCreationsSection />
             <FeaturesSection />
             <Footer />

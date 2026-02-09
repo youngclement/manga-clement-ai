@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
-import { Camera, Sparkles, X } from 'lucide-react'
+import { Camera, Sparkles, X, Edit2, Save, X as XIcon } from 'lucide-react'
 import { useRef } from 'react'
 
 export default function ProfilePage() {
@@ -148,12 +148,43 @@ export default function ProfilePage() {
                     },
                 })
                 setShowWelcomeBanner(false)
+                setIsEditing(false)
             }
             toast.success('Profile updated successfully')
         } catch {
         } finally {
             setSavingProfile(false)
         }
+    }
+
+    const handleCancelEdit = () => {
+        if (profile) {
+            setDisplayName(profile.displayName || profile.username)
+            setBio(profile.bio || '')
+            setAvatarUrl(profile.avatarUrl || '')
+            setEmail(profile.email || '')
+            setPhone(profile.phone || '')
+            setLocation(profile.location || '')
+            setWebsite(profile.website || '')
+            setSocialLinks({
+                twitter: profile.socialLinks?.twitter || '',
+                instagram: profile.socialLinks?.instagram || '',
+                facebook: profile.socialLinks?.facebook || '',
+                youtube: profile.socialLinks?.youtube || '',
+                tiktok: profile.socialLinks?.tiktok || '',
+            })
+            setPreferences({
+                theme: profile.preferences?.theme || 'auto',
+                language: profile.preferences?.language || 'vi',
+                notifications: {
+                    email: profile.preferences?.notifications?.email ?? true,
+                    push: profile.preferences?.notifications?.push ?? true,
+                    comments: profile.preferences?.notifications?.comments ?? true,
+                    likes: profile.preferences?.notifications?.likes ?? true,
+                },
+            })
+        }
+        setIsEditing(false)
     }
 
     const getInitials = (username: string) => {
@@ -210,6 +241,7 @@ export default function ProfilePage() {
 
     const [projectTags, setProjectTags] = useState<Record<string, string[]>>({})
     const [uploadingAvatar, setUploadingAvatar] = useState(false)
+    const [isEditing, setIsEditing] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -319,29 +351,42 @@ export default function ProfilePage() {
                     </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
+                <div className="space-y-6">
+                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6">
+                        <div className="flex items-start justify-between mb-6">
+                            <h2 className="text-lg font-semibold text-white">Profile Information</h2>
+                            {!isEditing && (
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg text-sm transition-colors"
+                                >
+                                    <Edit2 className="h-4 w-4" />
+                                    Edit
+                                </button>
+                            )}
+                        </div>
 
-                    <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <div className="flex items-center gap-4 pb-4 border-b border-zinc-800">
-                            <div className="relative group">
-                                <Avatar className="h-20 w-20 border-2 border-amber-400/50">
+                        <div className="flex items-start gap-6 mb-6">
+                            <div className="relative group shrink-0">
+                                <Avatar className="h-32 w-32 border-2 border-amber-400/50">
                                     {avatarUrl ? (
                                         <AvatarImage src={avatarUrl} alt={displayName || profile?.username || 'User'} />
                                     ) : null}
-                                    <AvatarFallback className="bg-zinc-800 text-amber-400 text-xl font-semibold">
+                                    <AvatarFallback className="bg-zinc-800 text-amber-400 text-3xl font-semibold">
                                         {profile ? getInitials(displayName || profile.username) : 'U'}
                                     </AvatarFallback>
                                 </Avatar>
-                                <button
-                                    type="button"
-                                    onClick={() => fileInputRef.current?.click()}
-                                    disabled={uploadingAvatar}
-                                    className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full p-1.5 border border-zinc-700 hover:bg-zinc-800 hover:border-amber-400 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-                                    title="Upload avatar"
-                                >
-                                    <Camera className="h-3 w-3 text-amber-400" />
-                                </button>
+                                {isEditing && (
+                                    <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={uploadingAvatar}
+                                        className="absolute -bottom-1 -right-1 bg-zinc-900 rounded-full p-2 border border-zinc-700 hover:bg-zinc-800 hover:border-amber-400 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                        title="Upload avatar"
+                                    >
+                                        <Camera className="h-4 w-4 text-amber-400" />
+                                    </button>
+                                )}
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -350,346 +395,310 @@ export default function ProfilePage() {
                                     className="hidden"
                                 />
                             </div>
-                            <div className="flex-1 space-y-1">
-                                <label className="text-xs text-zinc-400">Avatar</label>
-                                <Input
-                                    value={avatarUrl}
-                                    onChange={e => setAvatarUrl(e.target.value)}
-                                    placeholder="https://example.com/avatar.jpg or click camera icon to upload"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                    disabled={uploadingAvatar}
-                                />
-                                <p className="text-[10px] text-zinc-500">
-                                    {uploadingAvatar ? 'Uploading...' : 'Click camera icon to upload or enter URL'}
+                            <div className="flex-1 space-y-3">
+                                {isEditing ? (
+                                    <>
+                                        <div className="space-y-1">
+                                            <Input
+                                                value={displayName}
+                                                onChange={e => setDisplayName(e.target.value)}
+                                                placeholder="Display Name"
+                                                className="bg-zinc-950 border-zinc-700 text-sm"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <Textarea
+                                                value={bio}
+                                                onChange={e => setBio(e.target.value)}
+                                                rows={3}
+                                                placeholder="Bio"
+                                                className="bg-zinc-950 border-zinc-700 text-sm resize-none"
+                                            />
+                                        </div>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div>
+                                            <h3 className="text-xl font-semibold text-white mb-1">
+                                                {displayName || profile?.username || 'User'}
+                                            </h3>
+                                            {bio && (
+                                                <p className="text-sm text-zinc-400 leading-relaxed">
+                                                    {bio}
+                                                </p>
+                                            )}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2.5 pt-4 border-t border-zinc-800">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Email</span>
+                                {isEditing ? (
+                                    <Input
+                                        type="email"
+                                        value={email}
+                                        onChange={e => setEmail(e.target.value)}
+                                        placeholder="your@email.com"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{email || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Phone</span>
+                                {isEditing ? (
+                                    <Input
+                                        type="tel"
+                                        value={phone}
+                                        onChange={e => setPhone(e.target.value)}
+                                        placeholder="+84 xxx xxx xxx"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{phone || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Location</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={location}
+                                        onChange={e => setLocation(e.target.value)}
+                                        placeholder="City, Country"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{location || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Website</span>
+                                {isEditing ? (
+                                    <Input
+                                        type="url"
+                                        value={website}
+                                        onChange={e => setWebsite(e.target.value)}
+                                        placeholder="https://yourwebsite.com"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{website || 'Not set'}</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2.5 pt-4 border-t border-zinc-800 mt-4">
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Twitter/X</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={socialLinks.twitter}
+                                        onChange={e => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                                        placeholder="@username or URL"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{socialLinks.twitter || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Instagram</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={socialLinks.instagram}
+                                        onChange={e => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                                        placeholder="@username or URL"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{socialLinks.instagram || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">Facebook</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={socialLinks.facebook}
+                                        onChange={e => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                                        placeholder="URL"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{socialLinks.facebook || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">YouTube</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={socialLinks.youtube}
+                                        onChange={e => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
+                                        placeholder="URL"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{socialLinks.youtube || 'Not set'}</span>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm text-zinc-300">TikTok</span>
+                                {isEditing ? (
+                                    <Input
+                                        value={socialLinks.tiktok}
+                                        onChange={e => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
+                                        placeholder="@username or URL"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                    />
+                                ) : (
+                                    <span className="text-sm text-zinc-400">{socialLinks.tiktok || 'Not set'}</span>
+                                )}
+                            </div>
+                        </div>
+
+                        {isEditing && (
+                            <div className="flex gap-3 pt-4 border-t border-zinc-800 mt-4">
+                                <button
+                                    onClick={handleSaveProfile}
+                                    disabled={savingProfile}
+                                    className="flex-1 bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-black rounded-lg font-bold text-sm py-2.5 px-4 transition-all shadow-[0_3px_0_0_rgb(180,83,9)] hover:shadow-[0_3px_0_0_rgb(180,83,9)] active:shadow-[0_1px_0_0_rgb(180,83,9)] active:translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    style={{ fontFamily: 'var(--font-inter)' }}
+                                >
+                                    <Save className="h-4 w-4" />
+                                    {savingProfile ? 'Saving...' : 'Save Changes'}
+                                </button>
+                                <button
+                                    onClick={handleCancelEdit}
+                                    disabled={savingProfile}
+                                    className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-lg font-semibold text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    <XIcon className="h-4 w-4" />
+                                    Cancel
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <h2 className="text-2xl md:text-3xl font-medium tracking-tight text-white" style={{ fontFamily: 'var(--font-inter)' }}>
+                                Your Manga Collection
+                            </h2>
+                            <p className="text-sm font-medium tracking-tight text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
+                                Manage and publish your stories to the community
+                            </p>
+                        </div>
+                        {projects.length === 0 ? (
+                            <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 text-center">
+                                <p className="text-sm text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
+                                    You have no manga yet. Create a manga in Studio and come back here to publish to community.
                                 </p>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {projects.map(project => {
+                                    const firstSession = project.sessions?.[0];
+                                    const cover = firstSession?.pages?.[0]?.url || project.pages?.[0]?.url;
+                                    const totalPages = project.sessions?.reduce((sum, s) => sum + (s.pages?.length || 0), 0) || project.pages?.length || 0;
+                                    const totalSessions = project.sessions?.length || 0;
+                                    const updated = project.updatedAt || project.createdAt;
+                                    const updatedLabel = updated
+                                        ? new Date(updated).toLocaleDateString()
+                                        : '';
 
-                        <div className="space-y-1">
-                            <label className="text-xs text-zinc-400">Display Name</label>
-                            <Input
-                                value={displayName}
-                                onChange={e => setDisplayName(e.target.value)}
-                                className="bg-zinc-950 border-zinc-700 text-sm"
-                            />
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs text-zinc-400">Bio</label>
-                            <Textarea
-                                value={bio}
-                                onChange={e => setBio(e.target.value)}
-                                rows={4}
-                                className="bg-zinc-950 border-zinc-700 text-sm resize-none"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Contact Information</h3>
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Email</label>
-                                <Input
-                                    type="email"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    placeholder="your@email.com"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Phone Number</label>
-                                <Input
-                                    type="tel"
-                                    value={phone}
-                                    onChange={e => setPhone(e.target.value)}
-                                    placeholder="+84 xxx xxx xxx"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Location</label>
-                                <Input
-                                    value={location}
-                                    onChange={e => setLocation(e.target.value)}
-                                    placeholder="City, Country"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Website</label>
-                                <Input
-                                    type="url"
-                                    value={website}
-                                    onChange={e => setWebsite(e.target.value)}
-                                    placeholder="https://yourwebsite.com"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Social Media</h3>
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Twitter/X</label>
-                                <Input
-                                    value={socialLinks.twitter}
-                                    onChange={e => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
-                                    placeholder="@username or URL"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Instagram</label>
-                                <Input
-                                    value={socialLinks.instagram}
-                                    onChange={e => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                                    placeholder="@username or URL"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Facebook</label>
-                                <Input
-                                    value={socialLinks.facebook}
-                                    onChange={e => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
-                                    placeholder="URL Facebook"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">YouTube</label>
-                                <Input
-                                    value={socialLinks.youtube}
-                                    onChange={e => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
-                                    placeholder="URL YouTube"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">TikTok</label>
-                                <Input
-                                    value={socialLinks.tiktok}
-                                    onChange={e => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
-                                    placeholder="@username or URL"
-                                    className="bg-zinc-950 border-zinc-700 text-sm"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Preferences</h3>
-                        <div className="space-y-3">
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Theme</label>
-                                <select
-                                    value={preferences.theme}
-                                    onChange={e => setPreferences({ ...preferences, theme: e.target.value as 'light' | 'dark' | 'auto' })}
-                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white"
-                                >
-                                    <option value="auto">Auto</option>
-                                    <option value="light">Light</option>
-                                    <option value="dark">Dark</option>
-                                </select>
-                            </div>
-                            <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Language</label>
-                                <select
-                                    value={preferences.language}
-                                    onChange={e => setPreferences({ ...preferences, language: e.target.value })}
-                                    className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white"
-                                >
-                                    <option value="vi">Vietnamese</option>
-                                    <option value="en">English</option>
-                                    <option value="ja">Japanese</option>
-                                    <option value="ko">Korean</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2 pt-2 border-t border-zinc-800">
-                                <label className="text-xs text-zinc-400">Notifications</label>
-                                <div className="space-y-2">
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-300">Email</span>
-                                        <Switch
-                                            checked={preferences.notifications.email}
-                                            onCheckedChange={checked =>
-                                                setPreferences({
-                                                    ...preferences,
-                                                    notifications: { ...preferences.notifications, email: checked },
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-300">Push</span>
-                                        <Switch
-                                            checked={preferences.notifications.push}
-                                            onCheckedChange={checked =>
-                                                setPreferences({
-                                                    ...preferences,
-                                                    notifications: { ...preferences.notifications, push: checked },
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-300">Comments</span>
-                                        <Switch
-                                            checked={preferences.notifications.comments}
-                                            onCheckedChange={checked =>
-                                                setPreferences({
-                                                    ...preferences,
-                                                    notifications: { ...preferences.notifications, comments: checked },
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                    <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-300">Likes</span>
-                                        <Switch
-                                            checked={preferences.notifications.likes}
-                                            onCheckedChange={checked =>
-                                                setPreferences({
-                                                    ...preferences,
-                                                    notifications: { ...preferences.notifications, likes: checked },
-                                                })
-                                            }
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <button
-                        onClick={handleSaveProfile}
-                        disabled={!profile || savingProfile}
-                        className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
-                    >
-                        {savingProfile ? 'Saving...' : 'Save all changes'}
-                    </button>
-                </div>
-
-                <div className="space-y-4 lg:col-span-1">
-                <div className="space-y-2">
-                    <h2 className="text-2xl md:text-3xl font-medium tracking-tight text-white" style={{ fontFamily: 'var(--font-inter)' }}>
-                        Your Manga Collection
-                    </h2>
-                    <p className="text-sm font-medium tracking-tight text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
-                        Manage and publish your stories to the community
-                    </p>
-                </div>
-                {projects.length === 0 ? (
-                    <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-8 text-center">
-                        <p className="text-sm text-zinc-400" style={{ fontFamily: 'var(--font-inter)' }}>
-                            You have no manga yet. Create a manga in Studio and come back here to publish to community.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {projects.map(project => {
-                            const firstSession = project.sessions?.[0];
-                            const cover = firstSession?.pages?.[0]?.url || project.pages?.[0]?.url;
-                            const totalPages = project.sessions?.reduce((sum, s) => sum + (s.pages?.length || 0), 0) || project.pages?.length || 0;
-                            const totalSessions = project.sessions?.length || 0;
-                            const updated = project.updatedAt || project.createdAt;
-                            const updatedLabel = updated
-                                ? new Date(updated).toLocaleDateString()
-                                : '';
-
-                            return (
-                                <div
-                                    key={project.id}
-                                    className="rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden flex flex-col"
-                                >
-                                    <div className="h-40 bg-zinc-800/80 flex items-center justify-center">
-                                        {cover ? (
-                                            <img
-                                                src={cover}
-                                                alt={project.title || 'Manga cover'}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        ) : (
-                                            <span className="text-xs text-zinc-500">
-                                                No preview image
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="px-4 py-3 space-y-2 flex-1 flex flex-col">
-                                        <div className="space-y-1">
-                                            <div className="text-sm font-semibold truncate">
-                                                {project.title || 'Untitled project'}
+                                    return (
+                                        <div
+                                            key={project.id}
+                                            className="rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden flex flex-col"
+                                        >
+                                            <div className="h-40 bg-zinc-800/80 flex items-center justify-center">
+                                                {cover ? (
+                                                    <img
+                                                        src={cover}
+                                                        alt={project.title || 'Manga cover'}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-xs text-zinc-500">
+                                                        No preview image
+                                                    </span>
+                                                )}
                                             </div>
-                                            <div className="text-[11px] text-zinc-500">
-                                                {totalSessions} sessions · {totalPages} pages
-                                            </div>
-                                            {updatedLabel && (
-                                                <div className="text-[11px] text-zinc-600">
-                                                    Updated: {updatedLabel}
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="mt-2 space-y-1">
-                                            <label className="text-[10px] text-zinc-500">Tags (comma separated)</label>
-                                            <Input
-                                                value={(projectTags[project.id] || project.tags || []).join(', ')}
-                                                onChange={e => {
-                                                    const tags = e.target.value
-                                                        .split(',')
-                                                        .map(t => t.trim())
-                                                        .filter(Boolean)
-                                                    setProjectTags(prev => ({ ...prev, [project.id]: tags }))
-                                                }}
-                                                onBlur={() => {
-                                                    const tags = projectTags[project.id] || project.tags || []
-                                                    if (JSON.stringify(tags) !== JSON.stringify(project.tags || [])) {
-                                                        handleUpdateTags(project.id, tags)
-                                                    }
-                                                }}
-                                                placeholder="action, romance, fantasy..."
-                                                className="bg-zinc-950 border-zinc-700 text-xs h-7"
-                                                disabled={savingProjectId === project.id}
-                                            />
-                                            {projectTags[project.id] && projectTags[project.id].length > 0 && (
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {projectTags[project.id].slice(0, 3).map(tag => (
-                                                        <span
-                                                            key={tag}
-                                                            className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-amber-300"
-                                                        >
-                                                            #{tag}
-                                                        </span>
-                                                    ))}
-                                                    {projectTags[project.id].length > 3 && (
-                                                        <span className="text-[10px] text-zinc-500">
-                                                            +{projectTags[project.id].length - 3}
-                                                        </span>
+                                            <div className="px-4 py-3 space-y-2 flex-1 flex flex-col">
+                                                <div className="space-y-1">
+                                                    <div className="text-sm font-semibold truncate">
+                                                        {project.title || 'Untitled project'}
+                                                    </div>
+                                                    <div className="text-[11px] text-zinc-500">
+                                                        {totalSessions} sessions · {totalPages} pages
+                                                    </div>
+                                                    {updatedLabel && (
+                                                        <div className="text-[11px] text-zinc-600">
+                                                            Updated: {updatedLabel}
+                                                        </div>
                                                     )}
                                                 </div>
-                                            )}
-                                        </div>
-                                        <div className="mt-3 flex items-center justify-between gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-zinc-400">
-                                                    Public on community
-                                                </span>
-                                                <Switch
-                                                    checked={!!project.isPublic}
-                                                    disabled={savingProjectId === project.id}
-                                                    onCheckedChange={val => handleTogglePublic(project, val)}
-                                                />
+                                                <div className="mt-2 space-y-1">
+                                                    <label className="text-[10px] text-zinc-500">Tags (comma separated)</label>
+                                                    <Input
+                                                        value={(projectTags[project.id] || project.tags || []).join(', ')}
+                                                        onChange={e => {
+                                                            const tags = e.target.value
+                                                                .split(',')
+                                                                .map(t => t.trim())
+                                                                .filter(Boolean)
+                                                            setProjectTags(prev => ({ ...prev, [project.id]: tags }))
+                                                        }}
+                                                        onBlur={() => {
+                                                            const tags = projectTags[project.id] || project.tags || []
+                                                            if (JSON.stringify(tags) !== JSON.stringify(project.tags || [])) {
+                                                                handleUpdateTags(project.id, tags)
+                                                            }
+                                                        }}
+                                                        placeholder="action, romance, fantasy..."
+                                                        className="bg-zinc-950 border-zinc-700 text-xs h-7"
+                                                        disabled={savingProjectId === project.id}
+                                                    />
+                                                    {projectTags[project.id] && projectTags[project.id].length > 0 && (
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {projectTags[project.id].slice(0, 3).map(tag => (
+                                                                <span
+                                                                    key={tag}
+                                                                    className="px-1.5 py-0.5 rounded bg-zinc-800 text-[10px] text-amber-300"
+                                                                >
+                                                                    #{tag}
+                                                                </span>
+                                                            ))}
+                                                            {projectTags[project.id].length > 3 && (
+                                                                <span className="text-[10px] text-zinc-500">
+                                                                    +{projectTags[project.id].length - 3}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="mt-3 flex items-center justify-between gap-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-zinc-400">
+                                                            Public on community
+                                                        </span>
+                                                        <Switch
+                                                            checked={!!project.isPublic}
+                                                            disabled={savingProjectId === project.id}
+                                                            onCheckedChange={val => handleTogglePublic(project, val)}
+                                                        />
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            )
-                        })}
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
-                )}
-                </div>
                 </div>
             </div>
         </div>
