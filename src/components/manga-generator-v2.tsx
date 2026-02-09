@@ -649,44 +649,21 @@ const MangaGeneratorV2 = () => {
     setError(null);
 
     const sessionId = workingSession.id;
-    const sessionHistory = workingSession.pages || [];
-    const configWithContext = {
+    let localSession: MangaSession = {
+      ...workingSession,
+      pages: [...(workingSession.pages || [])],
+      chatHistory: [...(workingSession.chatHistory || [])],
+    };
+
+    const configBase = {
       ...config,
       context: context || config.context,
     };
 
+    let generatedCount = 0;
+
     try {
-      const response = await fetch('/api/generate/batch', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt,
-          config: configWithContext,
-          sessionHistory,
-          totalPages,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        const msg = errorBody?.details || errorBody?.error || 'Failed to generate batch';
-        throw new Error(msg);
-      }
-
-      const body = await response.json();
-      const pages: GeneratedManga[] = body?.data?.pages || [];
-
-      let localSession: MangaSession = {
-        ...workingSession,
-        pages: [...(workingSession.pages || [])],
-        chatHistory: [...(workingSession.chatHistory || [])],
-      };
-
-      let generatedCount = 0;
-
-      for (let i = 0; i < pages.length; i++) {
+      for (let i = 0; i < totalPages; i++) {
         if (batchCancelledRef.current) {
           setBatchLoading(false);
           setBatchProgress(null);
@@ -695,13 +672,51 @@ const MangaGeneratorV2 = () => {
           return;
         }
 
-        const page = pages[i];
+        const sessionHistory = localSession.pages || [];
+        const isAutoContinuePage = config.autoContinueStory && sessionHistory.length > 0;
+
+        const cleanedUserPrompt = prompt ? cleanUserPrompt(prompt) : '';
+        const finalPromptForPage =
+          cleanedUserPrompt || (isAutoContinuePage ? 'Continue the story naturally' : '');
+
+        const configWithContext = {
+          ...configBase,
+          context: context || config.context,
+        };
+
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            prompt: finalPromptForPage,
+            config: configWithContext,
+            sessionHistory,
+            isAutoContinue: isAutoContinuePage,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => null);
+          const msg = errorBody?.details || errorBody?.error || 'Failed to generate manga';
+          throw new Error(msg);
+        }
+
+        const body = await response.json();
+        const imageUrl: string | null =
+          body?.data?.imageUrl || body?.data?.page?.imageUrl || null;
+
+        if (!imageUrl) {
+          throw new Error(`Missing imageUrl from generate API response for page ${i + 1}`);
+        }
+
         const newPage: GeneratedManga = {
-          id: page.id || generateId(),
-          url: (page as any).url || (page as any).imageUrl || '',
-          prompt: page.prompt,
-          timestamp: page.timestamp || Date.now(),
-          config: page.config || configWithContext,
+          id: generateId(),
+          url: imageUrl,
+          prompt: finalPromptForPage,
+          timestamp: Date.now(),
+          config: configWithContext,
           markedForExport: true,
         };
 
@@ -744,6 +759,10 @@ const MangaGeneratorV2 = () => {
 
         generatedCount++;
         setBatchProgress({ current: generatedCount, total: totalPages });
+
+        if (i < totalPages - 1 && !batchCancelledRef.current) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
       }
 
       setPrompt('');
@@ -751,7 +770,7 @@ const MangaGeneratorV2 = () => {
         setError(null);
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to generate batch');
+      setError(err?.message || `Failed during batch generation after ${generatedCount} pages.`);
     } finally {
       setBatchLoading(false);
       setBatchProgress(null);
