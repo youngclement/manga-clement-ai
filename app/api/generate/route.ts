@@ -20,13 +20,16 @@ export async function POST(request: NextRequest) {
       prompt,
       config,
       sessionHistory = [],
-      isAutoContinue = false
+      isAutoContinue,
     } = validated;
+
+    // Treat undefined or null as false so the field is effectively optional.
+    const safeIsAutoContinue = !!isAutoContinue;
 
     const pageNumber = sessionHistory.length + 1;
     const totalPages = 1;
     let finalPrompt = prompt;
-    if (isAutoContinue || !prompt?.trim()) {
+    if (safeIsAutoContinue || !prompt?.trim()) {
       try {
         finalPrompt = await generateNextPrompt(
           sessionHistory,

@@ -22,7 +22,8 @@ export const generateRequestSchema = z.object({
   // This avoids blocking generation when the client omits any config keys.
   config: z.record(z.any()).optional(),
   sessionHistory: z.array(z.any()).optional(),
-  isAutoContinue: z.boolean().optional(),
+  // Accepts true/false, null, or undefined so the client can omit or send null.
+  isAutoContinue: z.boolean().optional().nullable(),
 });
 
 export function validateRequest<T>(schema: z.ZodSchema<T>, data: unknown): T {
