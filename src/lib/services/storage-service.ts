@@ -4,13 +4,77 @@ import { apiFetch } from "@/lib/services/api-client";
 
 const API_BASE_URL = '/api/projects';
 
+function normalizeImageUrl(url: string | null | undefined, prefix: string, id: string): string {
+  if (!url) return '';
+  if (url.startsWith('data:image/')) {
+    return url;
+  }
+  return url;
+}
+
+function normalizeProjectForSave(project: MangaProject): MangaProject {
+  const normalized = JSON.parse(JSON.stringify(project)) as MangaProject;
+
+  if (normalized.pages) {
+    normalized.pages = normalized.pages.map((page: any) => ({
+      ...page,
+      url: normalizeImageUrl(page.url, 'page', page.id) || page.url,
+      imageUrl: normalizeImageUrl(page.imageUrl, 'page', page.id) || page.imageUrl,
+    }));
+  }
+
+  if (normalized.sessions) {
+    normalized.sessions = normalized.sessions.map((session: any) => {
+      const normalizedSession = { ...session };
+
+      if (session.pages) {
+        normalizedSession.pages = session.pages.map((page: any) => {
+          const normalizedPage = {
+            ...page,
+            url: normalizeImageUrl(page.url, 'page', page.id) || page.url,
+            imageUrl: normalizeImageUrl(page.imageUrl, 'page', page.id) || page.imageUrl,
+          };
+
+          if (page.config?.referenceImages) {
+            normalizedPage.config = {
+              ...page.config,
+              referenceImages: page.config.referenceImages.map((refImg: any, idx: number) => {
+                const imgUrl = typeof refImg === 'string' ? refImg : refImg.url;
+                if (imgUrl && imgUrl.startsWith('data:image/')) {
+                  return refImg;
+                }
+                return refImg;
+              }),
+            };
+          }
+
+          return normalizedPage;
+        });
+      }
+
+      if (session.chatHistory) {
+        normalizedSession.chatHistory = session.chatHistory.map((msg: any) => ({
+          ...msg,
+          imageUrl: normalizeImageUrl(msg.imageUrl, 'chat', msg.id) || msg.imageUrl,
+        }));
+      }
+
+      return normalizedSession;
+    });
+  }
+
+  return normalized;
+}
+
 export const saveProject = async (project: MangaProject): Promise<void> => {
+  const normalizedProject = normalizeProjectForSave(project);
+  
   const response = await apiFetch(API_BASE_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(project),
+    body: JSON.stringify(normalizedProject),
   });
 
   if (!response.ok) {
@@ -262,16 +326,28 @@ export const addPageToSession = async (
   sessionId: string,
   page: GeneratedManga
 ): Promise<void> => {
-  const response = await apiFetch(`/api/projects/sessions/page`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ projectId, sessionId, page }),
-  });
+  const normalizedPage = {
+    ...page,
+    url: normalizeImageUrl(page.url, 'page', page.id) || page.url,
+    ...(('imageUrl' in page && page.imageUrl)
+      ? { imageUrl: normalizeImageUrl((page as any).imageUrl, 'page', page.id) || (page as any).imageUrl }
+      : {}),
+  };
 
-  if (!response.ok) {
-    await handleApiError(response);
+  try {
+    const response = await apiFetch(`/api/projects/sessions/page`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ projectId, sessionId, page: normalizedPage }),
+    });
+
+    if (!response.ok) {
+      await handleApiError(response);
+    }
+  } catch (error: any) {
+    throw error;
   }
 };
 
@@ -298,12 +374,25 @@ export const saveSession = async (
   projectId: string,
   session: MangaSession
 ): Promise<void> => {
+  const normalizedSession: MangaSession = {
+    ...session,
+    pages: session.pages?.map((page: any) => ({
+      ...page,
+      url: normalizeImageUrl(page.url, 'page', page.id) || page.url,
+      imageUrl: normalizeImageUrl(page.imageUrl, 'page', page.id) || page.imageUrl,
+    })),
+    chatHistory: session.chatHistory?.map((msg: any) => ({
+      ...msg,
+      imageUrl: normalizeImageUrl(msg.imageUrl, 'chat', msg.id) || msg.imageUrl,
+    })),
+  };
+
   const response = await apiFetch(`/api/projects/sessions/save`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ projectId, session }),
+    body: JSON.stringify({ projectId, session: normalizedSession }),
   });
 
   if (!response.ok) {

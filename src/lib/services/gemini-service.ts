@@ -788,7 +788,7 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       if (selectedReferencePageIds && selectedReferencePageIds.length > 0) {
         pagesToUse = sessionHistory.filter(page => selectedReferencePageIds.includes(page.id));
       } else {
-        pagesToUse = sessionHistory.slice(-3);
+        pagesToUse = sessionHistory.slice(-2);
       }
 
       if (pagesToUse.length > 0) {

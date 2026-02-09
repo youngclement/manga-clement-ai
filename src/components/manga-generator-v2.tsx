@@ -517,8 +517,50 @@ const MangaGeneratorV2 = () => {
     startProgress();
 
     try {
-      const sessionHistory = (workingSession.pages || []).slice(-3);
+      let sessionHistory = (workingSession.pages || []).slice(-2);
       const configWithContext = { ...config, context: context || config.context };
+
+      if (isAutoContinue && sessionHistory.length > 0) {
+        const imageUrls = sessionHistory
+          .map(page => {
+            const urls = [page.url];
+            if ('imageUrl' in page && (page as any).imageUrl) {
+              urls.push((page as any).imageUrl);
+            }
+            return urls;
+          })
+          .flat()
+          .filter((url): url is string => !!url && typeof url === 'string' && !url.startsWith('data:image/') && (url.startsWith('http://') || url.startsWith('https://')));
+
+        if (imageUrls.length > 0) {
+          try {
+            const response = await fetch('/api/projects/images', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ imageIds: imageUrls }),
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              const imagesMap = data.images || {};
+
+              sessionHistory = sessionHistory.map(page => {
+                const updatedPage = { ...page };
+                if (page.url && imagesMap[page.url]) {
+                  updatedPage.url = imagesMap[page.url];
+                }
+                if ('imageUrl' in page && (page as any).imageUrl && imagesMap[(page as any).imageUrl]) {
+                  (updatedPage as any).imageUrl = imagesMap[(page as any).imageUrl];
+                }
+                return updatedPage;
+              });
+            }
+          } catch (err) {
+          }
+        }
+      }
 
       const response = await fetch('/api/generate', {
         method: 'POST',
@@ -672,8 +714,50 @@ const MangaGeneratorV2 = () => {
           return;
         }
 
-        const sessionHistory = (localSession.pages || []).slice(-3);
+        let sessionHistory = (localSession.pages || []).slice(-2);
         const isAutoContinuePage = config.autoContinueStory && sessionHistory.length > 0;
+
+        if (isAutoContinuePage && sessionHistory.length > 0) {
+          const imageUrls = sessionHistory
+            .map(page => {
+              const urls = [page.url];
+              if ('imageUrl' in page && (page as any).imageUrl) {
+                urls.push((page as any).imageUrl);
+              }
+              return urls;
+            })
+            .flat()
+            .filter((url): url is string => !!url && typeof url === 'string' && !url.startsWith('data:image/') && (url.startsWith('http://') || url.startsWith('https://')));
+
+          if (imageUrls.length > 0) {
+            try {
+              const response = await fetch('/api/projects/images', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ imageIds: imageUrls }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                const imagesMap = data.images || {};
+
+                sessionHistory = sessionHistory.map(page => {
+                  const updatedPage = { ...page };
+                  if (page.url && imagesMap[page.url]) {
+                    updatedPage.url = imagesMap[page.url];
+                  }
+                  if ('imageUrl' in page && (page as any).imageUrl && imagesMap[(page as any).imageUrl]) {
+                    (updatedPage as any).imageUrl = imagesMap[(page as any).imageUrl];
+                  }
+                  return updatedPage;
+                });
+              }
+            } catch (err) {
+            }
+          }
+        }
 
         const cleanedUserPrompt = prompt ? cleanUserPrompt(prompt) : '';
         const finalPromptForPage =
@@ -800,7 +884,7 @@ const MangaGeneratorV2 = () => {
     await handleBatchGenerate(remainingPages);
   };
 
-  const addToProject = (markForExport = true) => {
+  const addToProject = async (markForExport = true) => {
     if (!currentImage) return;
 
     const newPage: GeneratedManga = {
@@ -814,35 +898,50 @@ const MangaGeneratorV2 = () => {
     const baseProject = project;
     const sessions = Array.isArray(baseProject.sessions) ? baseProject.sessions : [];
 
-    let updatedProject: MangaProject;
-    let updatedSession: MangaSession | null = null;
-
-    if (currentSession) {
-      updatedSession = {
-        ...currentSession,
-        pages: [...currentSession.pages, newPage],
+    let workingSession = currentSession;
+    if (!workingSession) {
+      const sessionName = `Session ${new Date().toLocaleTimeString()}`;
+      const newSession: MangaSession = {
+        id: generateId(),
+        name: sessionName,
+        context: context || '',
+        pages: [],
+        chatHistory: [],
+        config: { ...config },
+        createdAt: Date.now(),
         updatedAt: Date.now()
       };
+      workingSession = newSession;
+      setCurrentSession(newSession);
+      setProject(prev => ({
+        ...prev,
+        sessions: [...sessions, newSession],
+        currentSessionId: newSession.id
+      }));
 
-      updatedProject = {
-        ...baseProject,
-        pages: [...baseProject.pages, newPage],
-        sessions: sessions.map(s => (s.id === currentSession.id ? updatedSession! : s)),
-        currentSessionId: baseProject.currentSessionId ?? currentSession.id,
-      };
-
-      setCurrentSession(updatedSession);
-      setProject(updatedProject);
-    } else {
-      updatedProject = {
-        ...baseProject,
-        pages: [...baseProject.pages, newPage],
-        sessions,
-      };
-
-      setProject(updatedProject);
+      if (project && project.id) {
+        await saveSession(project.id, newSession).catch(() => { });
+      }
     }
-    saveProject(updatedProject).catch(() => { });
+
+    const updatedSession = {
+      ...workingSession,
+      pages: [...workingSession.pages, newPage],
+      updatedAt: Date.now()
+    };
+
+    const updatedProject = {
+      ...baseProject,
+      sessions: sessions.map(s => (s.id === workingSession.id ? updatedSession : s)),
+      currentSessionId: baseProject.currentSessionId ?? workingSession.id,
+    };
+
+    setCurrentSession(updatedSession);
+    setProject(updatedProject);
+
+    if (project && project.id) {
+      addPageToSession(project.id, workingSession.id, newPage).catch(() => { });
+    }
 
     setCurrentImage(null);
     setPrompt('');
