@@ -918,26 +918,26 @@ const MangaGeneratorV2 = () => {
         sessions: [...sessions, newSession],
         currentSessionId: newSession.id
       }));
-
+      
       if (project && project.id) {
         await saveSession(project.id, newSession).catch(() => { });
       }
     }
 
-    const updatedSession = {
-      ...workingSession,
-      pages: [...workingSession.pages, newPage],
-      updatedAt: Date.now()
-    };
+        const updatedSession = {
+          ...workingSession,
+          pages: [...workingSession.pages, newPage],
+          updatedAt: Date.now()
+        };
 
-    const updatedProject = {
-      ...baseProject,
-      sessions: sessions.map(s => (s.id === workingSession.id ? updatedSession : s)),
-      currentSessionId: baseProject.currentSessionId ?? workingSession.id,
-    };
+        const updatedProject = {
+          ...baseProject,
+          sessions: sessions.map(s => (s.id === workingSession.id ? updatedSession : s)),
+          currentSessionId: baseProject.currentSessionId ?? workingSession.id,
+        };
 
-    setCurrentSession(updatedSession);
-    setProject(updatedProject);
+        setCurrentSession(updatedSession);
+        setProject(updatedProject);
 
     if (project && project.id) {
       addPageToSession(project.id, workingSession.id, newPage).catch(() => { });

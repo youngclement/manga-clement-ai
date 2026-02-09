@@ -300,9 +300,7 @@ export default function ProfilePage() {
         <div className="w-full py-10 md:py-20 space-y-8">
             {showWelcomeBanner && (
                 <div className="bg-linear-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 relative">
-                    <div className="bg-amber-500/20 rounded-full p-2 shrink-0">
-                        <Sparkles className="h-5 w-5 text-amber-400" />
-                    </div>
+                   
                     <div className="flex-1 space-y-1">
                         <h3 className="text-sm font-semibold text-amber-300">
                             Welcome to Manga Studio!
