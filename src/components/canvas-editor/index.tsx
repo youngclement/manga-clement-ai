@@ -5,8 +5,6 @@ import { toast } from 'sonner'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { useCanvasStore } from '@/lib/stores/canvas-store'
-
-// Components
 import Toolbar from '@/components/canvas-editor/toolbar'
 import LayersPanel from '@/components/canvas-editor/layers-panel'
 import PropertiesPanel from '@/components/canvas-editor/properties-panel'
@@ -44,8 +42,6 @@ export default function CanvasEditorPage() {
         useCORS: true,
         logging: false,
       })
-
-      // Export as PNG
       const link = document.createElement('a')
       link.download = `manga-page-${Date.now()}.png`
       link.href = canvas.toDataURL('image/png')
@@ -54,7 +50,6 @@ export default function CanvasEditorPage() {
       toast.dismiss()
       toast.success('Exported successfully!')
     } catch (error) {
-      console.error('Export error:', error)
       toast.dismiss()
       toast.error('Failed to export')
     }
@@ -62,22 +57,16 @@ export default function CanvasEditorPage() {
 
   return (
     <div className="h-screen w-screen flex flex-col bg-zinc-950 text-white overflow-hidden">
-      {/* Top Toolbar */}
       <Toolbar onExport={handleExport} onGenerate={handleGenerate} />
 
-      {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Layers */}
         <LayersPanel />
 
-        {/* Center - Canvas Workspace */}
         <CanvasWorkspace onGenerateImage={handleGenerateForPanel} />
 
-        {/* Right Panel - Properties */}
         <PropertiesPanel />
       </div>
 
-      {/* Generate Dialog */}
       <GenerateDialog
         open={generateDialogOpen}
         onClose={() => {

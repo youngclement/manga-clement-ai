@@ -1,36 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
+import { getCollection } from '@/lib/db/mongodb';
+import { validateRequest, imageSchema, batchImagesSchema } from '@/lib/utils/validation';
 
-const MONGODB_URI = process.env.MONGODB_URI || '***REMOVED***';
-const DB_NAME = 'manga-generator';
 const COLLECTION_NAME = 'images';
-
-let clientPromise: Promise<MongoClient> | null = null;
-
-async function getClient(): Promise<MongoClient> {
-  if (!clientPromise) {
-    clientPromise = MongoClient.connect(MONGODB_URI);
-  }
-  return clientPromise;
-}
-
-// POST - Save image
+const MAX_BODY_SIZE = 20 * 1024 * 1024;
 export async function POST(request: NextRequest) {
   try {
-    const { id, imageData } = await request.json();
-
-    if (!id || !imageData) {
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
       return NextResponse.json(
-        { error: 'Invalid image data' },
-        { status: 400 }
+        { error: 'Request body too large. Maximum size is 20MB.' },
+        { status: 413 }
       );
     }
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const body = await request.json();
+    const { id, imageData } = validateRequest(imageSchema, body);
 
-    // Upsert image
+    const collection = await getCollection(COLLECTION_NAME);
     await collection.updateOne(
       { id },
       { $set: { id, imageData, updatedAt: Date.now() } },
@@ -46,8 +33,6 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// GET - Load image
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -60,9 +45,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = await getCollection(COLLECTION_NAME);
 
     const image = await collection.findOne({ id });
 
@@ -79,24 +62,20 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// POST - Batch save images
 export async function PUT(request: NextRequest) {
   try {
-    const { images } = await request.json(); // Array of {id, imageData}
-
-    if (!Array.isArray(images) || images.length === 0) {
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
       return NextResponse.json(
-        { error: 'Invalid images array' },
-        { status: 400 }
+        { error: 'Request body too large. Maximum size is 20MB.' },
+        { status: 413 }
       );
     }
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const body = await request.json();
+    const { images } = validateRequest(batchImagesSchema, body);
 
-    // Batch upsert
+    const collection = await getCollection(COLLECTION_NAME);
     const operations = images.map(({ id, imageData }: { id: string; imageData: string }) => ({
       updateOne: {
         filter: { id },
@@ -116,13 +95,11 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-
-// DELETE - Delete image(s)
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id');
-    const ids = searchParams.get('ids'); // Comma-separated IDs for batch delete
+    const ids = searchParams.get('ids');
 
     if (!id && !ids) {
       return NextResponse.json(
@@ -131,17 +108,13 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection(COLLECTION_NAME);
+    const collection = await getCollection(COLLECTION_NAME);
 
     if (ids) {
-      // Batch delete
       const idArray = ids.split(',').map(id => id.trim()).filter(id => id);
       const result = await collection.deleteMany({ id: { $in: idArray } });
       return NextResponse.json({ success: true, deletedCount: result.deletedCount }, { status: 200 });
     } else if (id) {
-      // Single delete
       const result = await collection.deleteOne({ id });
       return NextResponse.json({ success: true, deletedCount: result.deletedCount }, { status: 200 });
     }
@@ -155,4 +128,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

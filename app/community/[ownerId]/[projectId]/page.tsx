@@ -29,7 +29,7 @@ export default function CommunityProjectDetailPage() {
       }
       try {
         const [projectData, likesData, commentsData, relatedData] = await Promise.all([
-          fetchPublicProjectDetail(params.ownerId, params.projectId, true), // Track view
+          fetchPublicProjectDetail(params.ownerId, params.projectId, true),
           fetchLikes(params.ownerId, params.projectId),
           fetchComments(params.ownerId, params.projectId),
           fetchRelatedProjects(params.ownerId, params.projectId, 6),
@@ -39,8 +39,6 @@ export default function CommunityProjectDetailPage() {
         setLikedByUser(likesData.likedByUser)
         setComments(commentsData)
         setRelatedProjects(relatedData)
-        
-        // Update like total from project stats if available
         if (projectData?.likeCount !== undefined) {
           setLikeTotal(projectData.likeCount)
         }
@@ -56,7 +54,7 @@ export default function CommunityProjectDetailPage() {
       <div className="mx-auto max-w-5xl px-4 py-16 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-          <div className="text-zinc-400 text-sm">Đang tải tập truyện...</div>
+          <div className="text-zinc-400 text-sm">Loading story...</div>
         </div>
       </div>
     )
@@ -69,9 +67,9 @@ export default function CommunityProjectDetailPage() {
           onClick={() => router.back()}
           className="text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4"
         >
-          ← Quay lại Community
+          ← Back to Community
         </button>
-        <div className="text-zinc-400 text-sm">Không tìm thấy tập truyện hoặc tập truyện đã bị ẩn.</div>
+        <div className="text-zinc-400 text-sm">Story not found or has been hidden.</div>
       </div>
     )
   }
@@ -141,7 +139,7 @@ export default function CommunityProjectDetailPage() {
                 }}
                 className="hover:text-zinc-300"
               >
-                Trả lời
+                Reply
               </button>
               <span>
                 {new Date(comment.createdAt).toLocaleString()}
@@ -154,14 +152,14 @@ export default function CommunityProjectDetailPage() {
                   onChange={e => setReplyText(e.target.value)}
                   rows={2}
                   className="w-full rounded-lg bg-zinc-950 border border-zinc-700 px-2 py-1 text-xs text-white outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-none"
-                  placeholder="Viết câu trả lời..."
+                  placeholder="Write a reply..."
                 />
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleAddReply(comment.id)}
                     className="px-3 py-1 rounded-lg bg-amber-500 text-black text-[11px] font-semibold hover:bg-amber-400"
                   >
-                    Gửi
+                    Send
                   </button>
                   <button
                     onClick={() => {
@@ -170,7 +168,7 @@ export default function CommunityProjectDetailPage() {
                     }}
                     className="px-3 py-1 rounded-lg border border-zinc-700 text-[11px] text-zinc-300 hover:bg-zinc-800"
                   >
-                    Hủy
+                    Cancel
                   </button>
                 </div>
               </div>
@@ -188,7 +186,7 @@ export default function CommunityProjectDetailPage() {
         onClick={() => router.back()}
         className="text-xs text-zinc-400 hover:text-zinc-200 underline underline-offset-4"
       >
-        ← Quay lại Community
+        ← Back to Community
       </button>
 
       <div className="flex flex-col md:flex-row gap-6 md:items-start">
@@ -201,7 +199,7 @@ export default function CommunityProjectDetailPage() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <span className="text-xs text-zinc-500">Chưa có ảnh preview</span>
+              <span className="text-xs text-zinc-500">No preview image</span>
             )}
           </div>
         </div>
@@ -210,7 +208,7 @@ export default function CommunityProjectDetailPage() {
             {project.title || 'Untitled project'}
           </h1>
           <div className="text-sm text-zinc-400">
-            Tác giả:{' '}
+            Author:{' '}
             <span className="text-zinc-100">
               {project.ownerDisplayName || 'Unknown'}
             </span>
@@ -220,7 +218,6 @@ export default function CommunityProjectDetailPage() {
               {project.description}
             </p>
           )}
-          {/* Tags */}
           {project.tags && project.tags.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {project.tags.map(tag => (
@@ -233,12 +230,11 @@ export default function CommunityProjectDetailPage() {
               ))}
             </div>
           )}
-          
+
           <div className="text-xs text-zinc-500">
             {totalSessions} sessions · {totalPages} pages
           </div>
-          
-          {/* Stats */}
+
           <div className="flex items-center gap-4 pt-2">
             <button
               onClick={handleToggleLike}
@@ -252,11 +248,11 @@ export default function CommunityProjectDetailPage() {
             </button>
             <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
               <Eye size={14} />
-              <span>{project.viewCount || 0} lượt xem</span>
+              <span>{project.viewCount || 0} views</span>
             </div>
             <div className="inline-flex items-center gap-1.5 text-xs text-zinc-400">
               <MessageCircle size={14} />
-              <span>{project.commentCount ?? comments.length} bình luận</span>
+              <span>{project.commentCount ?? comments.length} comments</span>
             </div>
           </div>
         </div>
@@ -265,7 +261,7 @@ export default function CommunityProjectDetailPage() {
       {totalPages > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg md:text-xl font-manga text-zinc-100">
-            Các trang truyện
+            Story Pages
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {project.pages.map((page, idx) => (
@@ -292,7 +288,7 @@ export default function CommunityProjectDetailPage() {
       <div className="space-y-3">
         <h2 className="text-lg md:text-xl font-manga text-zinc-100 flex items-center gap-2">
           <MessageCircle size={18} className="text-amber-400" />
-          Bình luận
+          Comments
         </h2>
         <div className="space-y-2">
           <textarea
@@ -300,7 +296,7 @@ export default function CommunityProjectDetailPage() {
             onChange={e => setNewComment(e.target.value)}
             rows={3}
             className="w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2 text-sm text-white outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400 resize-none"
-            placeholder="Chia sẻ cảm nhận về tập truyện này..."
+            placeholder="Share your thoughts about this story..."
           />
           <div className="flex justify-end">
             <button
@@ -308,7 +304,7 @@ export default function CommunityProjectDetailPage() {
               disabled={!newComment.trim()}
               className="px-4 py-1.5 rounded-lg bg-amber-500 text-black text-xs font-semibold hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Gửi bình luận
+              Submit comment
             </button>
           </div>
         </div>
@@ -318,17 +314,16 @@ export default function CommunityProjectDetailPage() {
           </div>
         ) : (
           <p className="text-xs text-zinc-500">
-            Chưa có bình luận nào, hãy là người đầu tiên bình luận.
+            No comments yet. Be the first to comment!
           </p>
         )}
       </div>
 
-      {/* Related Projects */}
       {relatedProjects.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-lg md:text-xl font-manga text-zinc-100 flex items-center gap-2">
             <TrendingUp size={18} className="text-amber-400" />
-            Truyện liên quan
+            Related Stories
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {relatedProjects.map(related => (
@@ -377,5 +372,3 @@ export default function CommunityProjectDetailPage() {
     </div>
   )
 }
-
-

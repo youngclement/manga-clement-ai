@@ -26,7 +26,6 @@ export default function PreviewPage() {
     };
   }, []);
 
-  // Auto-download when coming from studio with ?autoDownload=1
   useEffect(() => {
     const fromStudio = searchParams.get('autoDownload') === '1';
     if (!fromStudio) return;
@@ -35,9 +34,7 @@ export default function PreviewPage() {
     if (exportPages.length === 0) return;
 
     setAutoDownloaded(true);
-    // Fire and forget; internal loading state is handled in downloadPDF
     downloadPDF();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, currentSession, exportPages.length, autoDownloaded]);
 
   useEffect(() => {
@@ -57,7 +54,6 @@ export default function PreviewPage() {
               ? normalizedProject.sessions.find(s => s.id === normalizedProject.currentSessionId)
               : null;
 
-          // Fallback: if no currentSessionId but there are sessions, use the first one
           if (!session && normalizedProject.sessions.length > 0) {
             session = normalizedProject.sessions[0];
           }
@@ -70,7 +66,6 @@ export default function PreviewPage() {
           }
         }
       } catch (err) {
-        console.error("Failed to load project", err);
       } finally {
         setLoading(false);
       }
@@ -109,7 +104,6 @@ export default function PreviewPage() {
     try {
       await markPageForExport(project.id, currentSession.id, pageId, !currentSession.pages.find(p => p.id === pageId)?.markedForExport);
     } catch (err) {
-      console.error('Failed to update export flag on backend', err);
     }
 
     const updatedSession = {
@@ -136,14 +130,12 @@ export default function PreviewPage() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return img.src;
 
-    // Low quality: reduce to 60% size
     const scale = quality === 'low' ? 0.6 : 1.0;
     canvas.width = img.width * scale;
     canvas.height = img.height * scale;
 
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    // Low quality: use lower JPEG quality
     const jpegQuality = quality === 'low' ? 0.7 : 0.95;
     return canvas.toDataURL('image/jpeg', jpegQuality);
   };
@@ -173,7 +165,6 @@ export default function PreviewPage() {
         await new Promise((resolve, reject) => {
           img.onload = () => {
             try {
-              // Resize image if low quality selected
               const processedSrc = pdfQuality === 'low' ? resizeImage(img, 'low') : img.src;
 
               const imgWidth = 210;
@@ -205,7 +196,6 @@ export default function PreviewPage() {
 
       pdf.save(fileName);
     } catch (error) {
-      console.error('Failed to generate PDF:', error);
       alert('Failed to generate PDF. Please try again.');
     } finally {
       setLoading(false);
@@ -248,7 +238,6 @@ export default function PreviewPage() {
                 ADD FROM OTHER SESSIONS
               </button>
 
-              {/* PDF Quality Selector */}
               <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 rounded-xl border border-zinc-300">
                 <span className="text-xs font-manga text-zinc-600">PDF Quality:</span>
                 <button
@@ -297,7 +286,6 @@ export default function PreviewPage() {
             </div>
           </div>
 
-          {/* Session Picker Modal */}
           {showSessionPicker && project && (
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -341,10 +329,8 @@ export default function PreviewPage() {
                                         )
                                       };
                                       try {
-                                        // Wait for backend save so refresh doesn't lose this copied page
                                         await addPageToSession(project.id, currentSession.id, newPage);
                                       } catch (err) {
-                                        console.error('Failed to add page to session on backend', err);
                                       }
                                       setProject(updatedProject);
                                       setCurrentSession(updatedSession);
@@ -374,7 +360,6 @@ export default function PreviewPage() {
             </div>
           )}
 
-          {/* All Images in Current Session - Print Hidden */}
           {currentSession && currentSession.pages.length > 0 && (
             <div className="print:hidden mb-12">
               <h2 className="text-2xl font-manga text-black mb-4">All Images in Current Session</h2>
@@ -412,7 +397,6 @@ export default function PreviewPage() {
             </div>
           )}
 
-          {/* PDF Preview - Only marked images */}
           <div className="print:hidden">
             <h2 className="text-2xl font-manga text-black mb-4">PDF Preview</h2>
             <div className="space-y-16">
@@ -429,7 +413,6 @@ export default function PreviewPage() {
             </div>
           </div>
 
-          {/* Print-only layout - Clean output for PDF */}
           {exportPages.length > 0 && (
             <div className="hidden print:block">
               {exportPages.map((page, idx) => (
@@ -438,7 +421,6 @@ export default function PreviewPage() {
                     src={page.url || "/placeholder.svg"}
                     alt={`Page ${idx + 1}`}
                     onError={(e) => {
-                      console.error('Failed to load image:', page.url);
                       e.currentTarget.src = '/placeholder.svg';
                     }}
                   />
@@ -474,7 +456,7 @@ export default function PreviewPage() {
             size: A4;
             margin: 0;
           }
-          
+
           html, body {
             width: 100%;
             height: 100%;
@@ -483,11 +465,11 @@ export default function PreviewPage() {
             overflow: visible !important;
             background: white !important;
           }
-          
+
           * {
             overflow: visible !important;
           }
-          
+
           .page-break {
             page-break-after: always;
             page-break-inside: avoid;
@@ -501,11 +483,11 @@ export default function PreviewPage() {
             margin: 0;
             position: relative;
           }
-          
+
           .page-break:last-child {
             page-break-after: auto;
           }
-          
+
           .page-break img {
             max-width: 100%;
             max-height: 100vh;
@@ -519,4 +501,3 @@ export default function PreviewPage() {
     </div>
   );
 }
-

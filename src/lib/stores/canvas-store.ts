@@ -12,6 +12,7 @@ import {
   TextElement,
   DialogueElement,
 } from '@/lib/types/canvas'
+import { deepClone } from '@/lib/utils/common'
 
 interface CanvasStore {
   project: CanvasProject
@@ -19,19 +20,13 @@ interface CanvasStore {
   zoom: number
   panOffset: Position
   tool: 'select' | 'pan' | 'panel' | 'text' | 'dialogue'
-  
-  // Project actions
   setProject: (project: CanvasProject) => void
   updateProjectName: (name: string) => void
-  
-  // Page actions
   addPage: () => void
   removePage: (pageId: string) => void
   setCurrentPage: (index: number) => void
   getCurrentPage: () => CanvasPage | undefined
   updatePage: (pageId: string, updates: Partial<CanvasPage>) => void
-  
-  // Element actions
   addElement: (element: CanvasElement) => void
   updateElement: (elementId: string, updates: Partial<CanvasElement>) => void
   removeElement: (elementId: string) => void
@@ -40,18 +35,12 @@ interface CanvasStore {
   resizeElement: (elementId: string, size: { width: number; height: number }) => void
   bringToFront: (elementId: string) => void
   sendToBack: (elementId: string) => void
-  
-  // Selection
   selectElement: (elementId: string, multi?: boolean) => void
   deselectAll: () => void
   selectAll: () => void
-  
-  // Canvas controls
   setZoom: (zoom: number) => void
   setPanOffset: (offset: Position) => void
   setTool: (tool: 'select' | 'pan' | 'panel' | 'text' | 'dialogue') => void
-  
-  // Utils
   generateId: () => string
 }
 
@@ -230,7 +219,7 @@ export const useCanvasStore = create<CanvasStore>()(
             ...currentPage.elements.map((e) => e.transform.zIndex)
           )
           const newElement = {
-            ...JSON.parse(JSON.stringify(element)),
+            ...deepClone(element),
             id: crypto.randomUUID(),
             name: `${element.name} Copy`,
             transform: {
@@ -404,8 +393,6 @@ export const useCanvasStore = create<CanvasStore>()(
     }
   )
 )
-
-// Helper functions for creating elements
 export const createPanelElement = (
   id: string,
   position: Position,

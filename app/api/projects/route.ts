@@ -1,42 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient } from 'mongodb';
 import { MangaProject } from '@/lib/types';
+import { getCollection } from '@/lib/db/mongodb';
+import { validateRequest, projectSchema } from '@/lib/utils/validation';
 
-// MongoDB connection string - URL encode special characters in password
-const MONGODB_URI = process.env.MONGODB_URI || '***REMOVED***';
-const DB_NAME = 'manga-generator';
 const COLLECTION_NAME = 'projects';
-
-let client: MongoClient | null = null;
-let clientPromise: Promise<MongoClient> | null = null;
-
-async function getClient(): Promise<MongoClient> {
-  if (!clientPromise) {
-    clientPromise = MongoClient.connect(MONGODB_URI);
-  }
-  return clientPromise;
-}
-
-// GET - Load project
+const MAX_BODY_SIZE = 50 * 1024 * 1024;
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id') || 'default';
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection<MangaProject>(COLLECTION_NAME);
+    const collection = await getCollection<MangaProject>(COLLECTION_NAME);
 
     const project = await collection.findOne({ id });
 
     if (!project) {
       return NextResponse.json({ project: null }, { status: 200 });
     }
-
-    // Restore images from separate collection
     const imageIds: string[] = [];
-    
-    // Collect image IDs from pages
     if (project.pages) {
       project.pages.forEach((page: any) => {
         if (page.url && !page.url.startsWith('data:image') && !page.url.startsWith('http')) {
@@ -44,8 +25,6 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-
-    // Collect image IDs from sessions
     if (project.sessions) {
       project.sessions.forEach((session: any) => {
         if (session.pages) {
@@ -53,7 +32,6 @@ export async function GET(request: NextRequest) {
             if (page.url && !page.url.startsWith('data:image') && !page.url.startsWith('http')) {
               imageIds.push(page.url);
             }
-            // Collect reference images
             if (page.config && page.config.referenceImages) {
               page.config.referenceImages.forEach((refImg: any) => {
                 const imgUrl = typeof refImg === 'string' ? refImg : refImg.url;
@@ -73,20 +51,16 @@ export async function GET(request: NextRequest) {
         }
       });
     }
-
-    // Load images
     const imagesMap = new Map<string, string>();
     if (imageIds.length > 0) {
-      const imagesCollection = db.collection('images');
+      const imagesCollection = await getCollection('images');
       const images = await imagesCollection.find({ id: { $in: imageIds } }).toArray();
       images.forEach((img: any) => {
         imagesMap.set(img.id, img.imageData);
       });
     }
-
-    // Restore images in project
     const projectWithImages = JSON.parse(JSON.stringify(project));
-    
+
     if (projectWithImages.pages) {
       projectWithImages.pages = projectWithImages.pages.map((page: any) => {
         if (page.url && imagesMap.has(page.url)) {
@@ -99,15 +73,12 @@ export async function GET(request: NextRequest) {
     if (projectWithImages.sessions) {
       projectWithImages.sessions = projectWithImages.sessions.map((session: any) => {
         const sessionCopy = { ...session };
-        
+
         if (sessionCopy.pages) {
           sessionCopy.pages = sessionCopy.pages.map((page: any) => {
-            // Restore page image
             if (page.url && imagesMap.has(page.url)) {
               page.url = imagesMap.get(page.url)!;
             }
-            
-            // Restore reference images
             if (page.config && page.config.referenceImages) {
               page.config.referenceImages = page.config.referenceImages.map((refImg: any) => {
                 const imgUrl = typeof refImg === 'string' ? refImg : refImg.url;
@@ -122,7 +93,7 @@ export async function GET(request: NextRequest) {
                 return refImg;
               });
             }
-            
+
             return page;
           });
         }
@@ -149,45 +120,35 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
-// POST - Save project
 export async function POST(request: NextRequest) {
   try {
-    const project: MangaProject = await request.json();
-
-    if (!project || !project.id) {
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
       return NextResponse.json(
-        { error: 'Invalid project data' },
-        { status: 400 }
+        { error: 'Request body too large. Maximum size is 50MB.' },
+        { status: 413 }
       );
     }
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection<MangaProject>(COLLECTION_NAME);
+    const body = await request.json();
+    const project = validateRequest(projectSchema, body) as MangaProject;
 
-    // Extract images and replace with IDs
+    const collection = await getCollection<MangaProject>(COLLECTION_NAME);
     const imagesToSave: Array<{ id: string; imageData: string }> = [];
-    const projectWithoutImages = JSON.parse(JSON.stringify(project)); // Deep clone
-
-    // Extract images from pages
+    const projectWithoutImages = JSON.parse(JSON.stringify(project));
     if (project.pages) {
       projectWithoutImages.pages = project.pages.map((page: any) => {
         if (page.url && page.url.startsWith('data:image')) {
           const imageId = `page_${page.id}`;
           imagesToSave.push({ id: imageId, imageData: page.url });
-          return { ...page, url: imageId }; // Replace with ID
+          return { ...page, url: imageId };
         }
         return page;
       });
     }
-
-    // Extract images from sessions
     if (project.sessions) {
       projectWithoutImages.sessions = project.sessions.map((session: any) => {
         const sessionCopy = { ...session };
-        
-        // Extract from pages
         if (session.pages) {
           sessionCopy.pages = session.pages.map((page: any) => {
             if (page.url && page.url.startsWith('data:image')) {
@@ -198,8 +159,6 @@ export async function POST(request: NextRequest) {
             return page;
           });
         }
-
-        // Extract from chatHistory
         if (session.chatHistory) {
           sessionCopy.chatHistory = session.chatHistory.map((msg: any) => {
             if (msg.imageUrl && msg.imageUrl.startsWith('data:image')) {
@@ -210,8 +169,6 @@ export async function POST(request: NextRequest) {
             return msg;
           });
         }
-
-        // Extract reference images from config in pages
         if (session.pages) {
           sessionCopy.pages = sessionCopy.pages.map((page: any) => {
             if (page.config && page.config.referenceImages) {
@@ -237,11 +194,9 @@ export async function POST(request: NextRequest) {
         return sessionCopy;
       });
     }
-
-    // Save images separately if any
     if (imagesToSave.length > 0) {
       try {
-        const imagesCollection = db.collection('images');
+        const imagesCollection = await getCollection('images');
         const operations = imagesToSave.map(({ id, imageData }) => ({
           updateOne: {
             filter: { id },
@@ -252,12 +207,8 @@ export async function POST(request: NextRequest) {
         await imagesCollection.bulkWrite(operations);
       } catch (imgError) {
         console.warn('Error saving images separately:', imgError);
-        // Continue with project save even if images fail
       }
     }
-
-    // Save project without images (much smaller)
-    // Remove _id from projectWithoutImages to avoid MongoDB error
     const { _id, ...projectToSave } = projectWithoutImages as any;
     await collection.updateOne(
       { id: project.id },
@@ -274,16 +225,12 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// DELETE - Delete project
 export async function DELETE(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const id = searchParams.get('id') || 'default';
 
-    const mongoClient = await getClient();
-    const db = mongoClient.db(DB_NAME);
-    const collection = db.collection<MangaProject>(COLLECTION_NAME);
+    const collection = await getCollection<MangaProject>(COLLECTION_NAME);
 
     await collection.deleteOne({ id });
 
@@ -296,4 +243,3 @@ export async function DELETE(request: NextRequest) {
     );
   }
 }
-

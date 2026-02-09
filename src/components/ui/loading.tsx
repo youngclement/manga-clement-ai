@@ -18,8 +18,8 @@ export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) 
   };
 
   return (
-    <Loader2 
-      className={cn('animate-spin', sizeClasses[size], className)} 
+    <Loader2
+      className={cn('animate-spin', sizeClasses[size], className)}
     />
   );
 }
@@ -32,12 +32,12 @@ interface LoadingOverlayProps {
   className?: string;
 }
 
-export function LoadingOverlay({ 
-  show, 
-  message = 'Loading...', 
+export function LoadingOverlay({
+  show,
+  message = 'Loading...',
   progress,
   children,
-  className 
+  className
 }: LoadingOverlayProps) {
   if (!show) return null;
 
@@ -75,13 +75,13 @@ interface LoadingCardProps {
   className?: string;
 }
 
-export function LoadingCard({ 
+export function LoadingCard({
   title = 'Loading',
   message = 'Please wait...',
   progress,
   status = 'loading',
   onRetry,
-  className 
+  className
 }: LoadingCardProps) {
   const getIcon = () => {
     switch (status) {
@@ -103,7 +103,7 @@ export function LoadingCard({
       className
     )}>
       {getIcon()}
-      
+
       <div className="text-center space-y-2">
         <h3 className="font-semibold text-lg">{title}</h3>
         <p className="text-sm text-muted-foreground">{message}</p>
@@ -147,10 +147,10 @@ interface LoadingGridProps {
   className?: string;
 }
 
-export function LoadingGrid({ 
-  count = 6, 
+export function LoadingGrid({
+  count = 6,
   itemClassName = 'h-48',
-  className 
+  className
 }: LoadingGridProps) {
   return (
     <div className={cn(
@@ -158,9 +158,9 @@ export function LoadingGrid({
       className
     )}>
       {Array.from({ length: count }).map((_, i) => (
-        <LoadingSkeleton 
-          key={i} 
-          className={cn('w-full', itemClassName)} 
+        <LoadingSkeleton
+          key={i}
+          className={cn('w-full', itemClassName)}
         />
       ))}
     </div>
@@ -173,10 +173,10 @@ interface LoadingListProps {
   className?: string;
 }
 
-export function LoadingList({ 
-  count = 5, 
+export function LoadingList({
+  count = 5,
   itemClassName = 'h-16',
-  className 
+  className
 }: LoadingListProps) {
   return (
     <div className={cn('space-y-3', className)}>
@@ -192,18 +192,16 @@ export function LoadingList({
     </div>
   );
 }
-
-// Page-level loading component
 interface LoadingPageProps {
   title?: string;
   message?: string;
   showSkeleton?: boolean;
 }
 
-export function LoadingPage({ 
+export function LoadingPage({
   title = 'Loading Page',
   message = 'Please wait while we load your content...',
-  showSkeleton = false 
+  showSkeleton = false
 }: LoadingPageProps) {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">

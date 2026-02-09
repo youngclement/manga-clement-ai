@@ -5,12 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 
-// Modal component registry
 const MODAL_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'confirm-dialog': ConfirmDialog,
   'project-settings': ProjectSettingsModal,
   'generation-settings': GenerationSettingsModal,
-  // Add more modals as needed
 };
 
 export function ModalContainer() {
@@ -20,21 +18,20 @@ export function ModalContainer() {
     <>
       {modals.map((modal) => {
         const ModalComponent = MODAL_COMPONENTS[modal.component];
-        
+
         if (!ModalComponent) {
-          console.warn(`Modal component "${modal.component}" not found`);
           return null;
         }
 
         return (
-          <Dialog 
-            key={modal.id} 
-            open={true} 
+          <Dialog
+            key={modal.id}
+            open={true}
             onOpenChange={() => closeModal(modal.id)}
           >
             <DialogContent className="max-w-2xl">
-              <ModalComponent 
-                {...modal.props} 
+              <ModalComponent
+                {...modal.props}
                 onClose={() => closeModal(modal.id)}
               />
             </DialogContent>
@@ -45,15 +42,14 @@ export function ModalContainer() {
   );
 }
 
-// Confirm Dialog Modal
-function ConfirmDialog({ 
+function ConfirmDialog({
   title = 'Confirm Action',
   message = 'Are you sure?',
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   variant = 'default',
   onConfirm,
-  onClose 
+  onClose
 }: {
   title?: string;
   message?: string;
@@ -68,16 +64,16 @@ function ConfirmDialog({
       <DialogHeader>
         <DialogTitle>{title}</DialogTitle>
       </DialogHeader>
-      
+
       <div className="py-4">
         <p className="text-muted-foreground">{message}</p>
       </div>
-      
+
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onClose}>
           {cancelLabel}
         </Button>
-        <Button 
+        <Button
           variant={variant === 'destructive' ? 'destructive' : 'default'}
           onClick={() => {
             onConfirm();
@@ -91,11 +87,10 @@ function ConfirmDialog({
   );
 }
 
-// Project Settings Modal
-function ProjectSettingsModal({ 
+function ProjectSettingsModal({
   project,
   onSave,
-  onClose 
+  onClose
 }: {
   project: any;
   onSave: (settings: any) => void;
@@ -106,12 +101,11 @@ function ProjectSettingsModal({
       <DialogHeader>
         <DialogTitle>Project Settings</DialogTitle>
       </DialogHeader>
-      
+
       <div className="py-4">
-        {/* Project settings form would go here */}
         <p>Project settings form placeholder</p>
       </div>
-      
+
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onClose}>
           Cancel
@@ -127,11 +121,10 @@ function ProjectSettingsModal({
   );
 }
 
-// Generation Settings Modal
-function GenerationSettingsModal({ 
+function GenerationSettingsModal({
   settings,
   onSave,
-  onClose 
+  onClose
 }: {
   settings: any;
   onSave: (settings: any) => void;
@@ -142,12 +135,11 @@ function GenerationSettingsModal({
       <DialogHeader>
         <DialogTitle>Generation Settings</DialogTitle>
       </DialogHeader>
-      
+
       <div className="py-4">
-        {/* Generation settings form would go here */}
         <p>Generation settings form placeholder</p>
       </div>
-      
+
       <div className="flex justify-end space-x-2">
         <Button variant="outline" onClick={onClose}>
           Cancel
@@ -163,7 +155,6 @@ function GenerationSettingsModal({
   );
 }
 
-// Modal hooks for easier usage
 export function useModal() {
   const { openModal, closeModal } = useUIStore();
 

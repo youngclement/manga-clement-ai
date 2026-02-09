@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/select';
 import { generateService } from '@/lib/api/generate';
 import { toast } from 'sonner';
-import { 
-  Sparkles, 
+import {
+  Sparkles,
   Loader2,
   Image as ImageIcon,
   ArrowRight,
@@ -33,12 +33,10 @@ export default function GenerateCleanPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<string[]>([]);
   const [totalPages, setTotalPages] = useState(1);
-  
-  // Config options
   const [style, setStyle] = useState<'anime' | 'realistic' | 'manga' | 'webcomic'>('manga');
   const [colorScheme, setColorScheme] = useState<'color' | 'blackwhite'>('color');
   const [aspectRatio, setAspectRatio] = useState<'16:9' | '4:3' | '1:1'>('4:3');
-  
+
   const generateCleanPanels = async () => {
     setIsLoading(true);
     try {
@@ -53,25 +51,23 @@ export default function GenerateCleanPage() {
         },
         totalPages,
       });
-      
+
       if (response.success && response.data) {
-        const images = response.data.pages.map((p: any) => 
+        const images = response.data.pages.map((p: any) =>
           p.panels?.[0]?.imageUrl || p.imageUrl || p.url
         ).filter(Boolean);
-        
+
         setGeneratedImages(images);
         toast.success(`Generated ${images.length} clean panel(s)!`);
       }
     } catch (error) {
       toast.error('Failed to generate panels');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const goToDialogueEditor = (imageUrl: string) => {
-    // Store image in sessionStorage for dialogue editor
     sessionStorage.setItem('dialogueEditorImage', imageUrl);
     router.push('/studio/dialogue-editor');
   };
@@ -90,7 +86,6 @@ export default function GenerateCleanPage() {
         </div>
 
         <div className="grid grid-cols-12 gap-6">
-          {/* Left - Settings */}
           <div className="col-span-4 space-y-4">
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
@@ -211,15 +206,14 @@ export default function GenerateCleanPage() {
             <Card className="bg-amber-500/10 border-amber-500/20">
               <CardContent className="pt-4">
                 <p className="text-sm text-amber-200">
-                  💡 <strong>Tip:</strong> Clean panels have no text or dialogue bubbles. 
-                  After generating, click on any panel to open the Dialogue Editor 
+                  💡 <strong>Tip:</strong> Clean panels have no text or dialogue bubbles.
+                  After generating, click on any panel to open the Dialogue Editor
                   where you can add speech bubbles anywhere you want!
                 </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Right - Generated Images */}
           <div className="col-span-8">
             <Card className="bg-zinc-900 border-zinc-800 h-full">
               <CardHeader>
@@ -259,7 +253,7 @@ export default function GenerateCleanPage() {
                     <ImageIcon className="w-16 h-16 mb-4 opacity-50" />
                     <p className="text-lg mb-2">No panels generated yet</p>
                     <p className="text-sm text-center max-w-md">
-                      Describe your scene and click &quot;Generate Clean Panels&quot; to create 
+                      Describe your scene and click &quot;Generate Clean Panels&quot; to create
                       manga panels without dialogue bubbles.
                     </p>
                   </div>
@@ -269,7 +263,6 @@ export default function GenerateCleanPage() {
           </div>
         </div>
 
-        {/* Quick Links */}
         <div className="mt-8 flex justify-center gap-4">
           <Link href="/studio/dialogue-editor">
             <Button variant="outline" className="gap-2">

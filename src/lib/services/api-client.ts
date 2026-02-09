@@ -2,8 +2,7 @@ import { authStore } from './auth-client';
 
 authStore.loadFromStorage();
 
-const BACKEND_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || '***REMOVED***';
+const BACKEND_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || '';
 
 function resolveBackendUrl(input: RequestInfo): RequestInfo {
   if (typeof input === 'string' && input.startsWith('/api/')) {
@@ -70,5 +69,3 @@ export async function apiFetch(
 
   return res;
 }
-
-

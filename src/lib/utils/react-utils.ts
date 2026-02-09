@@ -1,9 +1,6 @@
 import { useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { generateId } from './id';
 
-/**
- * Custom hook for debounced values
- */
 export function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -20,9 +17,6 @@ export function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-/**
- * Custom hook for stable callback references
- */
 export function useStableCallback<T extends (...args: any[]) => any>(
   callback: T
 ): T {
@@ -38,39 +32,23 @@ export function useStableCallback<T extends (...args: any[]) => any>(
   );
 }
 
-/**
- * Memoize expensive computations
- */
 export function useMemoized<T>(
   factory: () => T,
   deps: React.DependencyList
 ): T {
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(factory, deps);
 }
 
-/**
- * Safe array access with defaults
- */
 export function safeArray<T>(arr: T[] | undefined | null): T[] {
   return Array.isArray(arr) ? arr : [];
 }
 
-/**
- * Safe object access
- */
 export function safeObject<T>(obj: T | undefined | null, defaultValue: T): T {
   return obj ?? defaultValue;
 }
 
-/**
- * Generate unique ID
- */
 export { generateId };
 
-/**
- * Normalize session data
- */
 export function normalizeSession<T extends { chatHistory?: any[]; pages?: any[] }>(
   session: T
 ): T {
@@ -81,9 +59,6 @@ export function normalizeSession<T extends { chatHistory?: any[]; pages?: any[] 
   };
 }
 
-/**
- * Check if value is valid image ID (not base64 or URL)
- */
 export function isImageId(url: string | undefined | null): boolean {
   if (!url) return false;
   return (
@@ -93,4 +68,3 @@ export function isImageId(url: string | undefined | null): boolean {
     url.length < 200
   );
 }
-

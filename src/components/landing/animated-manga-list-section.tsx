@@ -133,7 +133,6 @@ function AnimatedList({
   );
   const listLength = childrenArray.length;
   const totalHeight = listLength * columnGap;
-  // Limit how far the list scrolls so items never disappear completely
   const scrollDistance = totalHeight * 0.6;
 
   useEffect(() => {
@@ -302,5 +301,3 @@ export function AnimatedMangaListSection() {
     </section>
   );
 }
-
-

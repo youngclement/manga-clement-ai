@@ -17,7 +17,7 @@ export default function CommunityPage() {
   const [trendingLoading, setTrendingLoading] = useState(true)
   const [total, setTotal] = useState(0)
   const [hasMore, setHasMore] = useState(false)
-  
+
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<SortOption>('newest')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
@@ -27,7 +27,7 @@ export default function CommunityPage() {
   const loadProjects = useCallback(async (reset: boolean = false) => {
     const currentPage = reset ? 0 : page
     setLoading(true)
-    
+
     try {
       const options: FetchPublicProjectsOptions = {
         limit,
@@ -36,20 +36,19 @@ export default function CommunityPage() {
         sortBy: sortBy === 'newest' ? undefined : sortBy,
         tags: selectedTags.length > 0 ? selectedTags : undefined,
       }
-      
+
       const result = await fetchPublicProjects(options)
-      
+
       if (reset) {
         setProjects(result.projects)
         setPage(0)
       } else {
         setProjects(prev => [...prev, ...result.projects])
       }
-      
+
       setTotal(result.total)
       setHasMore((currentPage + 1) * limit < result.total)
     } catch (error) {
-      console.error('Failed to load projects:', error)
     } finally {
       setLoading(false)
     }
@@ -65,7 +64,6 @@ export default function CommunityPage() {
         const trending = await fetchTrendingProjects(6)
         setTrendingProjects(trending)
       } catch (error) {
-        console.error('Failed to load trending:', error)
       } finally {
         setTrendingLoading(false)
       }
@@ -86,37 +84,34 @@ export default function CommunityPage() {
     )
   }
 
-  // Extract all unique tags from projects
   const allTags = Array.from(
     new Set(projects.flatMap(p => p.tags || []))
   ).slice(0, 10)
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-manga text-amber-400">
             Community
           </h1>
           <p className="text-sm text-zinc-400 mt-1">
-            Khám phá các tập truyện mà cộng đồng đã public từ Manga Studio.
+            Explore manga stories shared by the community from Manga Studio.
           </p>
         </div>
         <Link
           href="/profile"
           className="inline-flex items-center px-4 py-2 rounded-lg border border-zinc-700 text-xs font-semibold text-zinc-200 hover:bg-zinc-800/60 transition-colors"
         >
-          Quản lý truyện của bạn
+          Manage your stories
         </Link>
       </div>
 
-      {/* Trending Section */}
       {!trendingLoading && trendingProjects.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-amber-400" />
-            <h2 className="text-lg font-semibold text-zinc-200">Đang thịnh hành</h2>
+            <h2 className="text-lg font-semibold text-zinc-200">Trending</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {trendingProjects.map(project => (
@@ -163,14 +158,13 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Search and Filters */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-zinc-500" />
             <Input
               type="text"
-              placeholder="Tìm kiếm truyện..."
+              placeholder="Search stories..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="pl-9 bg-zinc-950 border-zinc-700 text-sm"
@@ -181,16 +175,15 @@ export default function CommunityPage() {
             onChange={e => setSortBy(e.target.value as SortOption)}
             className="px-4 py-2 rounded-lg bg-zinc-950 border border-zinc-700 text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-amber-400/50"
           >
-            <option value="newest">Mới nhất</option>
-            <option value="oldest">Cũ nhất</option>
-            <option value="mostLiked">Nhiều like nhất</option>
-            <option value="mostViewed">Nhiều lượt xem nhất</option>
-            <option value="mostCommented">Nhiều bình luận nhất</option>
-            <option value="trending">Đang thịnh hành</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+            <option value="mostLiked">Most liked</option>
+            <option value="mostViewed">Most viewed</option>
+            <option value="mostCommented">Most comments</option>
+            <option value="trending">Trending</option>
           </select>
         </div>
 
-        {/* Tags Filter */}
         {allTags.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-zinc-400">Tags:</span>
@@ -220,26 +213,24 @@ export default function CommunityPage() {
         )}
       </div>
 
-      {/* Results Count */}
       {!loading && (
         <div className="text-sm text-zinc-400">
-          Tìm thấy {total} {total === 1 ? 'truyện' : 'truyện'}
+          Found {total} {total === 1 ? 'story' : 'stories'}
         </div>
       )}
 
-      {/* Projects Grid */}
       {loading && projects.length === 0 ? (
         <div className="flex justify-center py-16">
           <div className="flex flex-col items-center gap-4">
             <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-            <div className="text-zinc-400 text-sm">Đang tải community...</div>
+            <div className="text-zinc-400 text-sm">Loading community...</div>
           </div>
         </div>
       ) : projects.length === 0 ? (
         <div className="text-center py-24 text-zinc-500 text-sm">
           {searchQuery || selectedTags.length > 0
-            ? 'Không tìm thấy truyện nào phù hợp với bộ lọc của bạn.'
-            : 'Chưa có tập truyện public nào. Hãy là người đầu tiên public truyện trong trang Profile.'}
+            ? 'No stories found matching your filters.'
+            : 'No public stories yet. Be the first to share your story from the Profile page.'}
         </div>
       ) : (
         <>
@@ -266,7 +257,7 @@ export default function CommunityPage() {
                       />
                     ) : (
                       <span className="text-xs text-zinc-500 opacity-70">
-                        {project.pages?.length ? `${project.pages.length} pages` : 'Chưa có ảnh preview'}
+                        {project.pages?.length ? `${project.pages.length} pages` : 'No preview'}
                       </span>
                     )}
                     {project.tags && project.tags.length > 0 && (
@@ -288,12 +279,12 @@ export default function CommunityPage() {
                         {project.title || 'Untitled project'}
                       </div>
                       <div className="text-xs text-zinc-500 line-clamp-2">
-                        {project.description || 'Không có mô tả'}
+                        {project.description || 'No description'}
                       </div>
                     </div>
                     <div className="flex items-center justify-between text-[11px] text-zinc-500 mt-auto pt-2">
                       <div>
-                        Tác giả:{' '}
+                        Author:{' '}
                         <span className="text-zinc-200">
                           {project.ownerDisplayName || 'Unknown'}
                         </span>
@@ -319,7 +310,6 @@ export default function CommunityPage() {
             ))}
           </div>
 
-          {/* Load More Button */}
           {hasMore && (
             <div className="flex justify-center pt-4">
               <button
@@ -327,7 +317,7 @@ export default function CommunityPage() {
                 disabled={loading}
                 className="px-6 py-2 rounded-lg bg-zinc-800 text-zinc-200 text-sm font-medium hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Đang tải...' : 'Tải thêm'}
+                {loading ? 'Loading...' : 'Load more'}
               </button>
             </div>
           )}

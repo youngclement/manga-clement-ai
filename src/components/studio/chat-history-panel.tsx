@@ -41,4 +41,3 @@ export default function ChatHistoryPanel({ currentSession, onClose }: ChatHistor
         </div>
     );
 }
-

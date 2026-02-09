@@ -1,6 +1,5 @@
 import { API_CONFIG, RATE_LIMITS } from './config';
-
-// Response types
+import { delay } from '@/lib/utils/common';
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -45,8 +44,6 @@ export interface RateLimitMeta {
   remaining: number;
   reset: number;
 }
-
-// Request options
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   headers?: Record<string, string>;
@@ -56,8 +53,6 @@ export interface RequestOptions {
   cache?: boolean;
   skipAuth?: boolean;
 }
-
-// Cache for request responses
 interface CacheItem<T> {
   data: T;
   timestamp: number;
@@ -95,17 +90,15 @@ class ApiCache {
     this.cache.clear();
   }
 }
-
-// Rate limiter for frontend
 class RateLimiter {
   private requests = new Map<string, { count: number; resetTime: number }>();
 
   check(endpoint: string, config = RATE_LIMITS.API_CALLS): boolean {
     const now = Date.now();
     const key = `${endpoint}_${Math.floor(now / config.windowMs)}`;
-    
+
     const current = this.requests.get(key) || { count: 0, resetTime: now + config.windowMs };
-    
+
     if (current.count >= config.maxRequests) {
       throw new Error(`Rate limit exceeded for ${endpoint}. Try again in ${Math.ceil((current.resetTime - now) / 1000)} seconds.`);
     }
@@ -115,15 +108,13 @@ class RateLimiter {
     return true;
   }
 }
-
-// API Client class
 export class ApiClient {
   private cache = new ApiCache();
   private rateLimiter = new RateLimiter();
   private baseURL = API_CONFIG.BASE_URL;
 
   async request<T>(
-    endpoint: string, 
+    endpoint: string,
     options: RequestOptions = {}
   ): Promise<ApiResponse<T>> {
     const {
@@ -135,38 +126,24 @@ export class ApiClient {
       cache = method === 'GET',
       skipAuth = false
     } = options;
-
-    // Check rate limit
     this.rateLimiter.check(endpoint);
-
-    // Generate cache key
     const cacheKey = cache ? `${method}:${endpoint}:${JSON.stringify(body)}` : null;
-
-    // Check cache for GET requests
     if (cache && cacheKey) {
       const cached = this.cache.get<ApiResponse<T>>(cacheKey);
       if (cached) return cached;
     }
-
-    // Prepare headers
     const requestHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       ...headers
     };
-
-    // Add auth token if not skipped
     if (!skipAuth && typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
       if (token) {
         requestHeaders.Authorization = `Bearer ${token}`;
       }
     }
-
-    // Create abort controller for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    // Retry logic
     let lastError: Error = new Error('Unknown error');
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -178,25 +155,19 @@ export class ApiClient {
         });
 
         clearTimeout(timeoutId);
-
-        // Handle non-200 responses
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          
-          // Handle 401 - redirect to login
           if (response.status === 401) {
             if (typeof window !== 'undefined') {
               localStorage.removeItem('accessToken');
               window.location.href = '/auth/login';
             }
           }
-          
+
           throw new Error(errorData.message || `HTTP ${response.status}`);
         }
 
         const result = await response.json();
-
-        // Cache successful GET requests
         if (cache && cacheKey && method === 'GET') {
           this.cache.set(cacheKey, result);
         }
@@ -205,19 +176,15 @@ export class ApiClient {
 
       } catch (error) {
         lastError = error as Error;
-        
-        // Don't retry on auth errors or client errors
         if (error instanceof Error && (
-          error.message.includes('401') || 
+          error.message.includes('401') ||
           error.message.includes('400') ||
           error.message.includes('422')
         )) {
           break;
         }
-
-        // Wait before retry (exponential backoff)
         if (attempt < retries) {
-          await this.delay(API_CONFIG.RETRY_DELAY * Math.pow(2, attempt));
+          await delay(API_CONFIG.RETRY_DELAY * Math.pow(2, attempt));
         }
       }
     }
@@ -226,11 +193,6 @@ export class ApiClient {
     throw lastError || new Error('Request failed after retries');
   }
 
-  private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  // Convenience methods
   async get<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'GET' });
   }
@@ -246,17 +208,12 @@ export class ApiClient {
   async delete<T>(endpoint: string, options?: RequestOptions): Promise<ApiResponse<T>> {
     return this.request<T>(endpoint, { ...options, method: 'DELETE' });
   }
-
-  // Cache management
   clearCache(): void {
     this.cache.clear();
   }
 
   invalidateCache(pattern: string): void {
-    // Simple pattern matching for cache invalidation
-    this.cache.clear(); // For now, just clear all cache
+    this.cache.clear();
   }
 }
-
-// Create singleton instance
 export const apiClient = new ApiClient();

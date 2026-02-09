@@ -16,10 +16,7 @@ export default function AppLayout({
   const loadFromStorage = useAuthStore((state) => state.loadFromStorage);
 
   useEffect(() => {
-    // Load auth state from localStorage
     loadFromStorage();
-    
-    // Check authentication
     const accessToken = useAuthStore.getState().accessToken;
     if (!accessToken) {
       router.push('/auth/login');
@@ -27,8 +24,6 @@ export default function AppLayout({
       setIsChecking(false);
     }
   }, [router, loadFromStorage]);
-
-  // Show loading while checking auth
   if (isChecking || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-zinc-950">

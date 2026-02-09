@@ -25,7 +25,7 @@ interface SessionSidebarProps {
     onDeletePages: (pageIds: string[]) => void;
     onOpenFullscreen: (imageUrl: string) => void;
     onConfigChange?: (config: MangaConfig) => void;
-    onToggleReferencePage?: (pageId: string) => void; // New callback for toggling reference pages
+    onToggleReferencePage?: (pageId: string) => void;
     leftWidth: number;
 }
 
@@ -48,12 +48,10 @@ export default function SessionSidebar({
 }: SessionSidebarProps) {
     const [selectedPages, setSelectedPages] = useState<Set<string>>(new Set());
     const [showReferencePanel, setShowReferencePanel] = useState(false);
-    
-    // Get selected reference page IDs from session
+
     const selectedReferencePageIds = currentSession?.selectedReferencePageIds || [];
     const isReferencePage = (pageId: string) => selectedReferencePageIds.includes(pageId);
 
-    // Helper to normalize image format
     const normalizeImage = (img: string | ReferenceImage): ReferenceImage => {
         if (typeof img === 'string') {
             return { url: img, enabled: true };
@@ -61,12 +59,10 @@ export default function SessionSidebar({
         return img;
     };
 
-    // Helper to get image URL
     const getImageUrl = (img: string | ReferenceImage): string => {
         return typeof img === 'string' ? img : img.url;
     };
 
-    // Helper to check if image is enabled
     const isImageEnabled = (img: string | ReferenceImage): boolean => {
         return typeof img === 'string' ? true : img.enabled;
     };
@@ -83,22 +79,18 @@ export default function SessionSidebar({
         if (!config || !onConfigChange) return;
         const currentImages = config.referenceImages || [];
         const imageToRemove = currentImages[index];
-        
-        // If image is stored in MongoDB, delete it
+
         if (imageToRemove) {
             const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url;
-            // Check if it's a MongoDB image ID (not base64 or http)
             if (imageUrl && !imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
                 try {
                     const { deleteImage } = await import('@/lib/services/storage-service');
                     await deleteImage(imageUrl);
                 } catch (error) {
-                    console.error('Failed to delete image from MongoDB:', error);
-                    // Continue with removal from config even if DB delete fails
                 }
             }
         }
-        
+
         const newImages = currentImages.filter((_, i) => i !== index);
         onConfigChange({ ...config, referenceImages: newImages });
     };
@@ -129,7 +121,6 @@ export default function SessionSidebar({
     const handleDeleteSelected = () => {
         if (selectedPages.size > 0) {
             const pageIds = Array.from(selectedPages);
-            // Only delete pages that actually exist in pagesToShow
             const validPageIds = pageIds.filter(id => pagesToShow.some(p => p.id === id));
             if (validPageIds.length > 0) {
                 onDeletePages(validPageIds);
@@ -151,7 +142,6 @@ export default function SessionSidebar({
                     <span className="text-[10px] text-zinc-500">{pagesToShow.length} total</span>
                 </div>
 
-                {/* Selection Controls */}
                 {pagesToShow.length > 0 && (
                     <div className="flex items-center gap-2 mb-3">
                         <button
@@ -178,7 +168,6 @@ export default function SessionSidebar({
                     </div>
                 )}
 
-                {/* Session Selector */}
                 {currentSession ? (
                     <div className="space-y-2 mb-1">
                         <div className="flex gap-2">
@@ -214,7 +203,6 @@ export default function SessionSidebar({
                             <Plus size={12} />
                             NEW SESSION
                         </button>
-                        {/* Reference Images Button */}
                         {referenceImages.length > 0 && (
                             <button
                                 onClick={() => setShowReferencePanel(!showReferencePanel)}
@@ -237,7 +225,6 @@ export default function SessionSidebar({
                 )}
             </div>
 
-            {/* Reference Images Panel */}
             {showReferencePanel && referenceImages.length > 0 && (
                 <div className="border-b border-zinc-800 bg-zinc-950 p-4 max-h-64 overflow-y-auto custom-scrollbar">
                     <div className="flex items-center justify-between mb-3">
@@ -262,12 +249,11 @@ export default function SessionSidebar({
                                         src={imageUrl}
                                         alt={`Reference ${idx + 1}`}
                                         className={`w-full h-20 object-cover rounded border transition-all ${
-                                            enabled 
-                                                ? 'border-zinc-800 opacity-100' 
+                                            enabled
+                                                ? 'border-zinc-800 opacity-100'
                                                 : 'border-zinc-700 opacity-50 grayscale'
                                         }`}
                                     />
-                                    {/* Enable/Disable Checkbox */}
                                     <button
                                         onClick={() => toggleImageEnabled(idx)}
                                         className={`absolute top-1 left-1 w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
@@ -283,7 +269,6 @@ export default function SessionSidebar({
                                             </svg>
                                         )}
                                     </button>
-                                    {/* Remove Button */}
                                     <button
                                         onClick={() => removeReferenceImage(idx)}
                                         className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
@@ -298,7 +283,6 @@ export default function SessionSidebar({
                 </div>
             )}
 
-            {/* Pages Grid */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
                 {pagesToShow.length === 0 ? (
                     <div className="text-center py-20 opacity-20">
@@ -309,15 +293,14 @@ export default function SessionSidebar({
                     pagesToShow.map((page, idx) => {
                         const isSelected = selectedPages.has(page.id);
                         return (
-                        <div 
-                            key={page.id} 
+                        <div
+                            key={page.id}
                             className={`group relative bg-zinc-950 border rounded-lg overflow-hidden transition-all cursor-pointer ${
-                                isSelected 
-                                    ? 'border-amber-500 ring-2 ring-amber-500/50' 
+                                isSelected
+                                    ? 'border-amber-500 ring-2 ring-amber-500/50'
                                     : 'border-zinc-800 hover:border-amber-500/30'
                             }`}
                             onClick={(e) => {
-                                // Only toggle selection if clicking on the card itself, not buttons
                                 if ((e.target as HTMLElement).closest('button') === null) {
                                     togglePageSelection(page.id);
                                 }
@@ -342,7 +325,7 @@ export default function SessionSidebar({
                                 <div className="px-2 py-1 bg-black/80 backdrop-blur-sm rounded text-[10px] font-bold text-amber-500">
                                     P.{idx + 1}
                                 </div>
-                                {/* Reference Toggle Button */}
+
                                 {onToggleReferencePage && (
                                     <button
                                         onClick={(e) => {
@@ -360,7 +343,6 @@ export default function SessionSidebar({
                                     </button>
                                 )}
                             </div>
-                            {/* Reference Badge */}
                             {isReferencePage(page.id) && (
                                 <div className="absolute top-2 right-2 px-2 py-1 bg-gradient-to-br from-amber-500/90 to-amber-600/90 backdrop-blur-sm rounded text-[10px] font-bold text-black flex items-center gap-1 shadow-lg">
                                     <Star size={10} className="fill-current" />
@@ -403,4 +385,3 @@ export default function SessionSidebar({
         </aside>
     );
 }
-

@@ -3,7 +3,7 @@
 import { motion } from 'motion/react'
 
 interface GenerationProgressProps {
-  progress: number // 0-100
+  progress: number
   label?: string
   retryCount?: number
   className?: string
@@ -34,10 +34,8 @@ export function GenerationProgress({ progress, label, retryCount = 0, className 
           animate={{ width: `${progress}%` }}
           transition={{ duration: 0.3, ease: 'easeOut' }}
         />
-        {/* Shimmer effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
       </div>
     </div>
   )
 }
-

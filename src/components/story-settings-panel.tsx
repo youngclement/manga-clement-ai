@@ -39,21 +39,15 @@ export default function StorySettingsPanel({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploading, setUploading] = useState(false);
     const [autoContinue, setAutoContinue] = useState(true);
-
-    // Helper to normalize image format (string -> ReferenceImage)
     const normalizeImage = (img: string | ReferenceImage): ReferenceImage => {
         if (typeof img === 'string') {
             return { url: img, enabled: true };
         }
         return img;
     };
-
-    // Helper to get image URL
     const getImageUrl = (img: string | ReferenceImage): string => {
         return typeof img === 'string' ? img : img.url;
     };
-
-    // Helper to check if image is enabled
     const isImageEnabled = (img: string | ReferenceImage): boolean => {
         return typeof img === 'string' ? true : img.enabled;
     };
@@ -74,7 +68,7 @@ export default function StorySettingsPanel({
                     if (event.target?.result) {
                         newImages.push({
                             url: event.target.result as string,
-                            enabled: true, // New images are enabled by default
+                            enabled: true,
                         });
                     }
                     resolve(null);
@@ -84,7 +78,6 @@ export default function StorySettingsPanel({
         }
 
         const currentImages = config.referenceImages || [];
-        // Normalize existing images to ReferenceImage format
         const normalizedImages = currentImages.map(img => normalizeImage(img));
         onConfigChange({ ...config, referenceImages: [...normalizedImages, ...newImages] });
         setUploading(false);
@@ -97,22 +90,17 @@ export default function StorySettingsPanel({
     const removeImage = async (index: number) => {
         const currentImages = config.referenceImages || [];
         const imageToRemove = currentImages[index];
-        
-        // If image is base64 (stored in MongoDB), delete it
         if (imageToRemove) {
             const imageUrl = typeof imageToRemove === 'string' ? imageToRemove : imageToRemove.url;
-            // Check if it's a MongoDB image ID (not base64 or http)
             if (imageUrl && !imageUrl.startsWith('data:image') && !imageUrl.startsWith('http')) {
                 try {
                     const { deleteImage } = await import('@/lib/services/storage-service');
                     await deleteImage(imageUrl);
                 } catch (error) {
-                    console.error('Failed to delete image from MongoDB:', error);
-                    // Continue with removal from config even if DB delete fails
                 }
             }
         }
-        
+
         const newImages = currentImages.filter((_, i) => i !== index);
         onConfigChange({ ...config, referenceImages: newImages });
     };
@@ -126,7 +114,6 @@ export default function StorySettingsPanel({
 
     return (
         <div className="h-full bg-zinc-900 overflow-y-auto custom-scrollbar">
-            {/* Step 1: Story Settings */}
             <div className="border-b border-zinc-800">
                 <div className="p-4 pb-3 bg-zinc-950/30">
                     <div className="flex items-center gap-3 mb-3">
@@ -139,7 +126,6 @@ export default function StorySettingsPanel({
                     </div>
 
                     <div className="space-y-3">
-                        {/* Context Text */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Context</span>
@@ -151,7 +137,6 @@ export default function StorySettingsPanel({
                                     try {
                                         onContextChange(e.target.value);
                                     } catch (error) {
-                                        console.error("Error in context onChange:", error);
                                     }
                                 }}
                                 placeholder="Describe your characters in detail:&#10;&#10;Main character: Male, 17yo, spiky black hair, blue eyes, wearing red jacket with white shirt...&#10;&#10;Setting: Modern Tokyo, high school..."
@@ -161,7 +146,6 @@ export default function StorySettingsPanel({
                             />
                         </div>
 
-                        {/* Reference Images */}
                         <div className="space-y-2">
                             <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <ImageIcon size={14} />
@@ -169,7 +153,6 @@ export default function StorySettingsPanel({
                                 <span className="text-[9px] text-zinc-500 font-normal normal-case">(Optional: Character/Style references)</span>
                             </label>
 
-                            {/* Upload Button */}
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -187,7 +170,6 @@ export default function StorySettingsPanel({
                                 {uploading ? 'Uploading...' : 'Upload Reference Images'}
                             </button>
 
-                            {/* Display uploaded images */}
                             {config.referenceImages && config.referenceImages.length > 0 && (
                                 <div className="space-y-2">
                                     <p className="text-xs text-zinc-400 mb-2">
@@ -203,12 +185,11 @@ export default function StorySettingsPanel({
                                                         src={imageUrl}
                                                         alt={`Reference ${idx + 1}`}
                                                         className={`w-full h-20 object-cover rounded border transition-all ${
-                                                            enabled 
-                                                                ? 'border-zinc-800 opacity-100' 
+                                                            enabled
+                                                                ? 'border-zinc-800 opacity-100'
                                                                 : 'border-zinc-700 opacity-50 grayscale'
                                                         }`}
                                                     />
-                                                    {/* Enable/Disable Checkbox */}
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -227,7 +208,6 @@ export default function StorySettingsPanel({
                                                             </svg>
                                                         )}
                                                     </button>
-                                                    {/* Remove Button */}
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
@@ -249,7 +229,6 @@ export default function StorySettingsPanel({
                 </div>
             </div>
 
-            {/* Step 2: Generation Options */}
             <div>
                 <div className="p-4 bg-zinc-950/30">
                     <div className="flex items-center gap-3 mb-4">
@@ -262,7 +241,6 @@ export default function StorySettingsPanel({
                     </div>
 
                     <div className="space-y-4">
-                        {/* Style */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Art Style</span>
@@ -291,7 +269,6 @@ export default function StorySettingsPanel({
                             </Select>
                         </div>
 
-                        {/* Inking & Screentone */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
@@ -339,7 +316,6 @@ export default function StorySettingsPanel({
                             </div>
                         </div>
 
-                        {/* Layout */}
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
                                 <span>Panel Layout</span>
@@ -359,7 +335,6 @@ export default function StorySettingsPanel({
                             </Select>
                         </div>
 
-                        {/* Panel Border Style - Toggle */}
                         <div className="flex items-center justify-between space-x-2">
                             <div className="flex flex-col space-y-1">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
@@ -367,8 +342,8 @@ export default function StorySettingsPanel({
                                 </label>
                                 <span className="text-[9px] text-zinc-500 font-normal normal-case">
                                     {(config.panelBorderStyle === PanelBorderStyle.FULL_BORDER || !config.panelBorderStyle)
-                                        ? 'Có viền đen' 
-                                        : 'Full ảnh không viền trắng'}
+                                        ? 'With black border'
+                                        : 'No border/spacing'}
                                 </span>
                             </div>
                             <Switch
@@ -382,7 +357,6 @@ export default function StorySettingsPanel({
                             />
                         </div>
 
-                        {/* Dialogue & Language */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
@@ -420,7 +394,6 @@ export default function StorySettingsPanel({
                             </div>
                         </div>
 
-                        {/* Aspect Ratio & Color */}
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-2">
                                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider" style={{ fontFamily: 'var(--font-inter)' }}>
@@ -456,7 +429,6 @@ export default function StorySettingsPanel({
                             </div>
                         </div>
 
-                        {/* Auto-Continue Story */}
                         <div className="space-y-2 pt-2 border-t border-zinc-800">
                             <div className="flex items-center justify-between">
                                 <div className="flex-1">
@@ -464,7 +436,7 @@ export default function StorySettingsPanel({
                                         <span>Auto-Continue Story</span>
                                     </label>
                                     <p className="text-[9px] text-zinc-500 mt-1 leading-relaxed" style={{ fontFamily: 'var(--font-inter)' }}>
-                                        AI tự động tiếp tục câu chuyện từ page trước (không cần viết prompt mới)
+                                        AI automatically continues story from previous page (no new prompt needed)
                                     </p>
                                 </div>
                                 <button
@@ -474,8 +446,7 @@ export default function StorySettingsPanel({
                                     <div className={`absolute top-1 left-1 w-5 h-5 bg-white rounded-full transition-transform ${config.autoContinueStory ? 'translate-x-7' : 'translate-x-0'}`} />
                                 </button>
                             </div>
-                            
-                            {/* Story Direction/Flow */}
+
                             {config.autoContinueStory && (
                                 <div className="space-y-2 mt-3">
                                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-2" style={{ fontFamily: 'var(--font-inter)' }}>
@@ -488,10 +459,9 @@ export default function StorySettingsPanel({
                                             try {
                                                 onConfigChange({ ...config, storyDirection: e.target.value });
                                             } catch (error) {
-                                                console.error("Error in storyDirection onChange:", error);
                                             }
                                         }}
-                                        placeholder="Mô tả hướng phát triển của câu chuyện khi auto-continue:&#10;&#10;Ví dụ:&#10;- Hero đang trên đường tìm kiếm sức mạnh cổ xưa&#10;- Cuộc chiến với quái vật sẽ diễn ra ở thành phố cổ&#10;- Tình cảm giữa nhân vật chính và nữ chính sẽ phát triển dần..."
+                                        placeholder="Describe the story direction for auto-continue:&#10;&#10;Example:&#10;- Hero is on a journey to find ancient power&#10;- The battle with monsters will take place in ancient city&#10;- Romance between main characters will develop gradually..."
                                         className="w-full h-40 bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm leading-relaxed text-zinc-300 placeholder:text-zinc-600 placeholder:text-[11px] placeholder:leading-relaxed focus:outline-none focus:border-amber-500 transition-colors resize-y custom-scrollbar"
                                         style={{ fontFamily: 'var(--font-inter)', minHeight: '120px', maxHeight: '400px' }}
                                         maxLength={10000}
@@ -522,4 +492,3 @@ export default function StorySettingsPanel({
         </div>
     );
 }
-

@@ -1,8 +1,5 @@
 import { z } from 'zod';
 
-/**
- * Login form validation schema
- */
 export const loginSchema = z.object({
   username: z
     .string()
@@ -17,9 +14,6 @@ export const loginSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 
-/**
- * Register form validation schema
- */
 export const registerSchema = z
   .object({
     username: z
@@ -44,9 +38,6 @@ export const registerSchema = z
 
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
-/**
- * Password strength checker
- */
 export type PasswordStrength = 'weak' | 'fair' | 'good' | 'strong';
 
 export const checkPasswordStrength = (password: string): PasswordStrength => {
@@ -54,17 +45,14 @@ export const checkPasswordStrength = (password: string): PasswordStrength => {
 
   let strength = 0;
 
-  // Length check
   if (password.length >= 8) strength += 1;
   if (password.length >= 12) strength += 1;
 
-  // Character variety checks
   if (/[a-z]/.test(password)) strength += 1;
   if (/[A-Z]/.test(password)) strength += 1;
   if (/[0-9]/.test(password)) strength += 1;
   if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
-  // Determine strength level
   if (strength <= 2) return 'weak';
   if (strength <= 4) return 'fair';
   if (strength <= 5) return 'good';
@@ -100,4 +88,3 @@ export const getPasswordStrengthText = (strength: PasswordStrength): string => {
       return '';
   }
 };
-

@@ -1,14 +1,13 @@
-// Frontend API Configuration
+
 export const API_CONFIG = {
-  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ,
+  BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL || '',
   TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000'),
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
-  CACHE_TTL: 5 * 60 * 1000, // 5 minutes
+  CACHE_TTL: 5 * 60 * 1000,
 };
 
 export const API_ENDPOINTS = {
-  // Authentication
   AUTH: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
@@ -16,8 +15,6 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
     PROFILE: '/auth/profile',
   },
-  
-  // Projects
   PROJECTS: {
     LIST: '/projects',
     CREATE: '/projects',
@@ -26,8 +23,6 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/projects/${id}`,
     DUPLICATE: (id: string) => `/projects/${id}/duplicate`,
   },
-  
-  // Generation
   GENERATE: {
     SINGLE: '/generate/single',
     BATCH: '/generate/batch',
@@ -38,30 +33,22 @@ export const API_ENDPOINTS = {
     CANCEL: (id: string) => `/generate/cancel/${id}`,
     HISTORY: '/generate/history',
   },
-  
-  // Images
   IMAGES: {
     UPLOAD: '/images/upload',
     DELETE: (id: string) => `/images/${id}`,
     OPTIMIZE: (id: string) => `/images/${id}/optimize`,
   },
-  
-  // Users
   USERS: {
     PROFILE: '/users/profile',
     UPDATE_PROFILE: '/users/profile',
     SETTINGS: '/users/settings',
     USAGE: '/users/usage',
   },
-  
-  // Grok
   GROK: {
     GENERATE: '/grok/generate',
     HISTORY: '/grok/history',
   }
 } as const;
-
-// Rate limiting configurations for frontend
 export const RATE_LIMITS = {
   GENERATE: {
     windowMs: 60 * 1000,

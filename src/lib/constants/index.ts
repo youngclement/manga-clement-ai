@@ -109,7 +109,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
   'Triple Panel': 'EXACTLY THREE PANELS with clear black borders between each panel. Can be arranged vertically, horizontally, or in L-shape.',
   'Grid Layout': 'EXACTLY FOUR PANELS arranged in a 2x2 grid with clear black borders creating a grid pattern.',
   'Dramatic Spread': 'ONE WIDE cinematic illustration spanning two pages side-by-side for maximum dramatic impact.',
-  
+
   'Dynamic Freestyle': `DYNAMIC FREESTYLE LAYOUT with VARIED PANEL SIZES (5-8 panels total):
 • Create a visually exciting layout with panels of DIFFERENT sizes and shapes
 • Mix large dramatic panels with smaller reaction shots
@@ -119,7 +119,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Arrange panels in a natural reading flow (right-to-left for traditional manga, or left-to-right based on language)
 • Each panel should have clear black borders for separation
 • This is a FREESTYLE composition - be creative with panel arrangement and sizes!`,
-  
+
   'Action Sequence (5-7 Panels)': `ACTION SEQUENCE LAYOUT with 5-7 DYNAMIC PANELS:
 • Design 5-7 panels specifically for depicting fast-paced action or movement
 • Use VARIED panel sizes to control pacing: larger panels for important moments, smaller for quick actions
@@ -129,7 +129,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Panels can overlap or break borders for kinetic energy
 • Arrange to create visual flow showing progression of action
 • Clear black borders between panels (can be irregular/dynamic)`,
-  
+
   'Conversation Layout': `CONVERSATION/DIALOGUE LAYOUT with 4-6 HORIZONTAL PANELS:
 • Create 4-6 horizontal panels stacked vertically
 • Panels should be roughly equal in height, creating a clean stacked appearance
@@ -138,7 +138,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Use alternating panel widths if needed (some can be split into 2 sub-panels)
 • Clear black borders separating each horizontal strip
 • This layout emphasizes facial expressions and dialogue flow`,
-  
+
   'Z-Pattern Flow': `Z-PATTERN READING FLOW with 5-6 VARIED PANELS:
 • Arrange 5-6 panels in a Z-shaped reading pattern (natural manga reading flow)
 • Start with 1-2 panels in top right area
@@ -148,7 +148,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Create dynamic visual flow that guides the eye in Z-pattern
 • Clear black borders between all panels
 • This is a classic manga composition technique`,
-  
+
   'Vertical Strip': `VERTICAL STRIP LAYOUT (Webtoon-style) with 3-5 WIDE PANELS:
 • Create 3-5 wide horizontal panels stacked vertically
 • Each panel spans the full width of the page
@@ -157,7 +157,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Perfect for establishing shots and wide compositions
 • Clear black borders between each strip
 • Great for cinematic moments and landscape views`,
-  
+
   'Asymmetric Mixed': `ASYMMETRIC MIXED LAYOUT with 6-8 VARIED PANELS:
 • Design 6-8 panels with ASYMMETRIC, irregular arrangement
 • NO symmetry or regular grid - make it visually interesting!
@@ -167,7 +167,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Create visual tension through unbalanced composition
 • All panels have clear black borders
 • Perfect for complex scenes with multiple simultaneous actions`,
-  
+
   'Climax Focus': `CLIMAX FOCUS LAYOUT with ONE DOMINANT PANEL + 4-5 SUPPORTING PANELS:
 • One MASSIVE central or bottom panel (takes up 40-50% of the page) for the climactic moment
 • 4-5 smaller panels arranged around or above it showing lead-up
@@ -176,7 +176,7 @@ export const LAYOUT_PROMPTS: Record<string, string> = {
 • Varied sizes in supporting panels (some thin, some square)
 • Clear black borders throughout
 • Use this for reveals, emotional peaks, or action climaxes`,
-  
+
   'Widescreen Cinematic': `WIDESCREEN CINEMATIC LAYOUT with 2-3 WIDE PANELS:
 • Create 2-3 ultra-wide cinematic panels (letterbox format)
 • Each panel spans full page width with shorter height (widescreen aspect)

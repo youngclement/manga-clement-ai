@@ -40,13 +40,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   clear: () => {
     if (typeof window !== 'undefined') {
-      // Remove tokens from localStorage
       window.localStorage.removeItem('accessToken');
       window.localStorage.removeItem('refreshToken');
-      // Also clear any other auth-related data if exists
       window.localStorage.removeItem('authError');
     }
-    // Reset all auth state
     set({
       accessToken: null,
       refreshToken: null,
@@ -56,8 +53,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   setError: (err: string | null) => set({ error: err }),
 }));
-
-// Non-React wrapper for services
 export const authStore = {
   loadFromStorage: () => useAuthStore.getState().loadFromStorage(),
   getAccessToken: () => useAuthStore.getState().accessToken,
@@ -67,4 +62,3 @@ export const authStore = {
   clear: () => useAuthStore.getState().clear(),
   setError: (err: string | null) => useAuthStore.getState().setError(err),
 };
-

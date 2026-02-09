@@ -36,13 +36,11 @@ export function Header() {
   }, [isAuthenticated]);
 
   const handleSignOut = () => {
-    // Clear tokens from localStorage and state
     authStore.clear();
-    authStore.setError(null); // Clear any error messages
+    authStore.setError(null);
     setProfile(null);
-    // Redirect to home page
     router.push('/');
-    router.refresh(); // Refresh to update UI state
+    router.refresh();
   };
 
   const getInitials = (username: string) => {
@@ -60,7 +58,6 @@ export function Header() {
               className="w-full h-full object-contain"
             />
           </div>
-          {/* <span className="font-sans text-xl font-bold text-foreground">Manga Studio</span> */}
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

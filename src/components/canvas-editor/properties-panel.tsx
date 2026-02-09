@@ -64,7 +64,6 @@ export default function PropertiesPanel() {
 
   return (
     <div className="h-full w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col">
-      {/* Header Tabs */}
       <div className="flex border-b border-zinc-800">
         <button className="flex-1 py-3 px-4 text-sm font-medium text-purple-400 border-b-2 border-purple-500 flex items-center justify-center gap-2">
           <Settings className="w-4 h-4" />
@@ -86,27 +85,22 @@ export default function PropertiesPanel() {
             </div>
           ) : (
             <>
-              {/* Text/Dialogue Content */}
               {(selectedElement.type === 'text' || selectedElement.type === 'dialogue') && (
                 <TextProperties element={selectedElement as TextElement | DialogueElement} />
               )}
 
-              {/* Dialogue Specific */}
               {selectedElement.type === 'dialogue' && (
                 <DialogueProperties element={selectedElement as DialogueElement} />
               )}
 
-              {/* Image Properties */}
               {selectedElement.type === 'image' && (
                 <ImageProperties element={selectedElement as ImageElement} />
               )}
 
-              {/* Panel Properties */}
               {selectedElement.type === 'panel' && (
                 <PanelProperties element={selectedElement as PanelElement} />
               )}
 
-              {/* Transform */}
               <TransformProperties element={selectedElement} />
             </>
           )}

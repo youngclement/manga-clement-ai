@@ -101,8 +101,6 @@ const FeatureDescription = ({ children }: { children?: React.ReactNode }) => {
     </p>
   );
 };
-
-// AI Generation Video
 export const SkeletonOne = () => {
   return (
     <div className="relative flex py-8 px-2 gap-10 h-200">
@@ -118,7 +116,6 @@ export const SkeletonOne = () => {
             alt="Manga generation demo"
             className="h-full w-full object-cover rounded-lg group-hover:opacity-75 transition-opacity"
           />
-          {/* Play Button Overlay */}
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform">
               <Play className="w-10 h-10 text-white fill-white ml-1" />
@@ -132,12 +129,9 @@ export const SkeletonOne = () => {
     </div>
   );
 };
-
-// Character Consistency Demo
 export const SkeletonTwo = () => {
   return (
     <div className="relative flex flex-col items-center justify-center p-8 gap-8 h-full overflow-hidden">
-      {/* Top Row - 2 overlapping images */}
       <div className="relative w-full h-[45%]">
         <div className="absolute left-[5%] top-0 w-[45%] h-full transform -rotate-6 transition-transform hover:rotate-0 hover:scale-105 duration-300">
           <img
@@ -155,7 +149,6 @@ export const SkeletonTwo = () => {
         </div>
       </div>
 
-      {/* Bottom Row - 2 overlapping images */}
       <div className="relative w-full h-[45%]">
         <div className="absolute left-[5%] bottom-0 w-[45%] h-full transform rotate-3 transition-transform hover:rotate-0 hover:scale-105 duration-300">
           <img
@@ -178,13 +171,10 @@ export const SkeletonTwo = () => {
     </div>
   );
 };
-
-// Multiple Styles Showcase - 5 images
 export const SkeletonThree = () => {
   return (
     <div className="relative flex gap-3 h-full group/styles p-4">
       <div className="grid grid-cols-3 gap-3 w-full h-full">
-        {/* Top row - 3 images */}
         <img
           src="/demo-img/demoimg1.png"
           alt="Shonen style"
@@ -200,7 +190,6 @@ export const SkeletonThree = () => {
           alt="Shoujo style"
           className="w-full h-full object-cover rounded-lg border border-zinc-800 hover:border-amber-500 transition-all"
         />
-        {/* Bottom row - 2 images centered */}
         <img
           src="/demo-img/demoimg4.png"
           alt="Kodomo style"
@@ -215,8 +204,6 @@ export const SkeletonThree = () => {
     </div>
   );
 };
-
-// Session & PDF Export
 export const SkeletonFour = () => {
   return (
     <div className="h-60 md:h-60 flex flex-col items-center justify-center relative bg-transparent mt-10 p-8">
@@ -237,4 +224,3 @@ export const SkeletonFour = () => {
     </div>
   );
 };
-

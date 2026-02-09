@@ -1,161 +1,83 @@
-# Manga Generator App
+﻿# Manga Generator
 
-Frontend application cho Manga Generator - một ứng dụng tạo truyện tranh bằng AI.
+<div align="center">
+  <img src="https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=next.js" alt="Next.js 14" />
+  <img src="https://img.shields.io/badge/React-18-blue?style=for-the-badge&logo=react" alt="React 18" />
+  <img src="https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript" alt="TypeScript 5" />
+  <img src="https://img.shields.io/badge/Tailwind-3-38bdf8?style=for-the-badge&logo=tailwindcss" alt="Tailwind 3" />
+  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="MIT License" />
+</div>
 
-## 🚀 Công nghệ sử dụng
+<p align="center">
+  <b>AI-powered manga/comic creation platform with advanced editing tools and community features</b>
+</p>
 
-- **Framework**: Next.js 14
-- **UI Library**: React + Tailwind CSS + Shadcn/ui
-- **State Management**: Zustand
-- **Authentication**: NextAuth.js
-- **Animations**: Framer Motion + GSAP
-- **Type Safety**: TypeScript
+## 📋 Overview
 
-## 📁 Cấu trúc thư mục
+Manga Generator is a cutting-edge application that leverages AI to help artists and storytellers create stunning manga and comics. With an intuitive interface and powerful features, users can generate professional-quality manga pages, customize them with our interactive editor, and share their creations with a growing community.
 
-```
-app/
-├── api/              # API routes
-├── auth/             # Authentication pages
-├── community/        # Community features
-├── profile/          # User profile
-├── studio/           # Main manga creation interface
-├── landing-v2/       # Landing page
-├── globals.css       # Global styles
-├── layout.tsx        # Root layout
-└── page.tsx         # Home page
+## ✨ Features
 
-src/
-├── components/       # Reusable UI components
-│   ├── app/         # App-specific components
-│   ├── auth/        # Authentication components
-│   ├── landing/     # Landing page components
-│   ├── studio/      # Studio components
-│   └── ui/          # Base UI components (Shadcn)
-├── hooks/           # Custom React hooks
-└── lib/             # Utilities and configurations
-    ├── api/         # API client
-    ├── constants/   # Application constants
-    ├── services/    # Service layers
-    ├── stores/      # Zustand stores
-    ├── types/       # TypeScript types
-    ├── utils/       # Helper utilities
-    └── validations/ # Form validations
-```
+- **🤖 AI-powered Generation** - Create high-quality manga pages from text prompts
+- **🖌️ Advanced Canvas Editor** - Fine-tune your creations with our interactive editor
+- **🎨 Multiple Art Styles** - Choose from various manga and comic art styles
+- **📚 Project Management** - Organize your work with our comprehensive project system
+- **🌐 Community Integration** - Share your creations and discover others' work
+- **📱 Responsive Design** - Create on any device with our adaptive interface
+- **🔒 Secure Authentication** - Protect your work with our robust security system
 
-## 🛠️ Cài đặt
+## 🚀 Getting Started
 
-1. Clone repository:
+### Prerequisites
+
+- Node.js 18+ 
+- pnpm 8+
+
+### Installation
+
 ```bash
-git clone <repo-url>
-cd manga-generator
-```
+# Clone the repository
+git clone https://github.com/youngclement/manga-clement-ai.git
 
-2. Cài đặt dependencies:
-```bash
+# Navigate to the project directory
+cd manga-clement-ai
+
+# Install dependencies
 pnpm install
-```
 
-3. Setup environment variables:
-```bash
-cp .env.example .env.local
-# Cập nhật các biến môi trường trong file .env.local
-```
-
-4. Start development server:
-```bash
+# Start the development server
 pnpm dev
 ```
 
-Ứng dụng sẽ chạy tại http://localhost:3000
+Visit `http://localhost:3000` to see the application running.
 
-## 🔧 Scripts
+## 🛠️ Tech Stack
 
-- `pnpm dev` - Chạy development server
-- `pnpm build` - Build production
-- `pnpm start` - Chạy production server
-- `pnpm lint` - Lint code
+- **Framework**: Next.js 14 (App Router)
+- **UI Library**: React 18 with Tailwind CSS and Shadcn/UI
+- **State Management**: Zustand for global state
+- **Authentication**: Custom auth with JWT
+- **Animations**: Framer Motion + GSAP
+- **Database**: MongoDB
+- **Type Safety**: TypeScript
+- **API Integration**: Google Gemini API
 
-## 🎨 Features
+## 🔧 Environment Variables
 
-### 🏠 Landing Page
-- Hero section với animations
-- Feature showcase
-- Pricing plans
-- CTA sections
+Create a `.env.local` file in the root directory with the following variables:
 
-### 🎭 Studio Interface
-- Manga creation workspace
-- Panel management
-- AI-powered content generation
-- Real-time preview
-- Export functionality
-
-### 👤 User Management
-- Authentication (Login/Register)
-- User profiles
-- Project management
-- Settings dashboard
-
-### 🌐 Community
-- User galleries
-- Project sharing
-- Social features
-
-## 🔑 Environment Variables
-
-Tham khảo file `.env.example` để xem các biến môi trường cần thiết:
-
-- `NEXT_PUBLIC_API_BASE_URL` - Backend API URL
-- `NEXT_PUBLIC_APP_URL` - Frontend app URL
-- `NEXTAUTH_SECRET` - NextAuth secret
-- `NEXT_PUBLIC_GEMINI_API_KEY` - Gemini API key
-- `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` - Cloudinary config
-
-## 📱 Responsive Design
-
-Ứng dụng được thiết kế responsive cho:
-- Desktop (1200px+)
-- Tablet (768px - 1199px)  
-- Mobile (< 768px)
-
-## 🎨 UI Components
-
-Sử dụng Shadcn/ui components với custom theming:
-- Dark/Light mode support
-- Consistent design system
-- Accessible components
-- Custom animations
-
-## 🔄 State Management
-
-Sử dụng Zustand cho state management:
-- User state
-- Studio state
-- UI state
-- API cache
-
-## 🚀 Deployment
-
-### Vercel (Recommended)
-1. Connect repository to Vercel
-2. Configure environment variables
-3. Deploy automatically
-
-### Manual Deployment
-```bash
-pnpm build
-pnpm start
 ```
-
-## 🤝 Contributing
-
-1. Fork repository
-2. Tạo feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Tạo Pull Request
+MONGODB_URI=your_mongodb_connection_string
+GEMINI_API_KEY=your_gemini_api_key
+NEXT_PUBLIC_BACKEND_URL=your_backend_url
+```
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+
+<p align="center">
+  Made with ❤️ by Young Clement
+</p>

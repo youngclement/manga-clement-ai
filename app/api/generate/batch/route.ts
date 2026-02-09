@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateMangaImage, generateNextPrompt } from '@/lib/services/gemini-service';
 import { MangaConfig, GeneratedManga } from '@/lib/types';
 import { generateId } from '@/lib/utils/id';
-
-// POST - Generate multiple pages (batch)
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,8 +27,6 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < totalPages; i++) {
       try {
         const pageNumber = sessionHistory.length + i + 1;
-        
-        // Generate prompt if auto-continue or not first page or no prompt
         if (isAutoContinue || i > 0 || !prompt?.trim()) {
           try {
             currentPrompt = await generateNextPrompt(
@@ -43,19 +39,14 @@ export async function POST(request: NextRequest) {
             );
           } catch (error: any) {
             console.error(`Error generating prompt for page ${i + 1}:`, error);
-            // Fallback
             currentPrompt = currentPrompt || 'Continue the manga story naturally';
           }
         }
-
-        // Generate image
         const imageUrl = await generateMangaImage(
           currentPrompt,
           config,
           currentSessionHistory
         );
-
-        // Create generated manga object
         const generatedManga: GeneratedManga = {
           id: generateId(),
           prompt: currentPrompt,
@@ -68,12 +59,10 @@ export async function POST(request: NextRequest) {
         currentSessionHistory.push(generatedManga);
       } catch (error: any) {
         console.error(`Error generating page ${i + 1}:`, error);
-        // Continue with next page instead of failing completely
         if (i === 0) {
-          // If first page fails, return error
           throw error;
         }
-        break; // Stop batch on error after first page
+        break;
       }
     }
 
@@ -96,4 +85,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

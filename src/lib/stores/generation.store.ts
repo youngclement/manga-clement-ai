@@ -3,20 +3,13 @@ import { devtools } from 'zustand/middleware';
 import { generateService, GenerateRequest, GenerateResponse, BatchGenerateRequest, BatchGenerateResponse, GenerationHistory } from '../api/generate';
 
 interface GenerationState {
-  // Current generation
   currentGeneration: GenerateResponse | null;
   currentBatch: BatchGenerateResponse | null;
-  
-  // History
   history: GenerationHistory[];
-  
-  // Loading states
   isGenerating: boolean;
   isBatchGenerating: boolean;
   isLoadingHistory: boolean;
   isCancelling: boolean;
-  
-  // Progress tracking
   generationProgress: {
     current: number;
     total: number;
@@ -24,39 +17,25 @@ interface GenerationState {
     status: string;
     estimatedTimeRemaining?: number;
   };
-  
-  // Error states
   error: string | null;
   batchErrors: string[];
-  
-  // Usage tracking
   usageStats: {
     monthlyGenerated: number;
     monthlyLimit: number;
     remainingCredits: number;
     resetDate: string;
   } | null;
-  
-  // Actions
   setCurrentGeneration: (generation: GenerateResponse | null) => void;
   setCurrentBatch: (batch: BatchGenerateResponse | null) => void;
   setError: (error: string | null) => void;
   updateProgress: (progress: Partial<GenerationState['generationProgress']>) => void;
-  
-  // Generation operations
   generateSingle: (request: GenerateRequest) => Promise<GenerateResponse>;
   generateBatch: (request: BatchGenerateRequest) => Promise<BatchGenerateResponse>;
   cancelGeneration: (id: string) => Promise<void>;
   pollBatchProgress: (batchId: string) => Promise<void>;
-  
-  // History operations
   fetchHistory: (params?: any) => Promise<void>;
   clearHistory: () => void;
-  
-  // Usage operations
   fetchUsageStats: () => Promise<void>;
-  
-  // Utility
   clearError: () => void;
   reset: () => void;
 }
@@ -86,8 +65,6 @@ export const useGenerationStore = create<GenerationState>()(
   devtools(
     (set, get) => ({
       ...initialState,
-
-      // Sync actions
       setCurrentGeneration: (currentGeneration) => set({ currentGeneration }),
       setCurrentBatch: (currentBatch) => set({ currentBatch }),
       setError: (error) => set({ error }),
@@ -95,29 +72,26 @@ export const useGenerationStore = create<GenerationState>()(
         set((state) => ({
           generationProgress: { ...state.generationProgress, ...progress }
         })),
-
-      // Generation operations
       generateSingle: async (request) => {
-        set({ 
-          isGenerating: true, 
+        set({
+          isGenerating: true,
           error: null,
           generationProgress: { ...initialProgress, status: 'starting', total: 1 }
         });
 
         try {
-          // Update progress
           set((state) => ({
-            generationProgress: { 
-              ...state.generationProgress, 
+            generationProgress: {
+              ...state.generationProgress,
               status: 'processing',
-              percentage: 10 
+              percentage: 10
             }
           }));
 
           const response = await generateService.generateSingle(request);
-          
+
           if (response.success && response.data) {
-            set({ 
+            set({
               currentGeneration: response.data,
               generationProgress: {
                 current: 1,
@@ -126,17 +100,15 @@ export const useGenerationStore = create<GenerationState>()(
                 status: 'completed'
               }
             });
-            
-            // Refresh usage stats
             get().fetchUsageStats();
-            
+
             return response.data;
           }
-          
+
           throw new Error('Generation failed');
         } catch (error) {
           const errorMessage = (error as Error).message;
-          set({ 
+          set({
             error: errorMessage,
             generationProgress: { ...initialProgress, status: 'failed' }
           });
@@ -147,33 +119,31 @@ export const useGenerationStore = create<GenerationState>()(
       },
 
       generateBatch: async (request) => {
-        set({ 
-          isBatchGenerating: true, 
-          error: null, 
+        set({
+          isBatchGenerating: true,
+          error: null,
           batchErrors: [],
-          generationProgress: { 
-            ...initialProgress, 
+          generationProgress: {
+            ...initialProgress,
             status: 'starting',
-            total: request.prompts.length 
+            total: request.prompts.length
           }
         });
 
         try {
           const response = await generateService.generateBatch(request);
-          
+
           if (response.success && response.data) {
             set({ currentBatch: response.data });
-            
-            // Start polling for updates
             await get().pollBatchProgress(response.data.batchId);
-            
+
             return response.data;
           }
-          
+
           throw new Error('Batch generation failed');
         } catch (error) {
           const errorMessage = (error as Error).message;
-          set({ 
+          set({
             error: errorMessage,
             generationProgress: { ...initialProgress, status: 'failed' }
           });
@@ -182,23 +152,19 @@ export const useGenerationStore = create<GenerationState>()(
           set({ isBatchGenerating: false });
         }
       },
-
-      // Poll batch progress
       pollBatchProgress: async (batchId: string) => {
-        const maxRetries = 60; // 2 minutes with 2s intervals
+        const maxRetries = 60;
         let retries = 0;
 
         while (retries < maxRetries) {
           try {
             const response = await generateService.getGenerationStatus(batchId);
-            
+
             if (response.success && response.data) {
               const batch = response.data;
               set({ currentBatch: batch });
-
-              // Update progress
               const progress = batch.progress;
-              const percentage = progress.total > 0 
+              const percentage = progress.total > 0
                 ? Math.round((progress.completed / progress.total) * 100)
                 : 0;
 
@@ -214,30 +180,25 @@ export const useGenerationStore = create<GenerationState>()(
 
               if (batch.status === 'completed' || batch.status === 'failed') {
                 if (progress.failed > 0) {
-                  set({ 
-                    batchErrors: [`${progress.failed} generations failed`] 
+                  set({
+                    batchErrors: [`${progress.failed} generations failed`]
                   });
                 }
-                
-                // Refresh usage stats
                 get().fetchUsageStats();
                 break;
               }
             }
-
-            // Wait before next poll
             await new Promise(resolve => setTimeout(resolve, 2000));
             retries++;
-            
+
           } catch (error) {
-            console.warn('Polling failed:', error);
             retries++;
             await new Promise(resolve => setTimeout(resolve, 5000));
           }
         }
 
         if (retries >= maxRetries) {
-          set({ 
+          set({
             error: 'Generation polling timeout',
             generationProgress: { ...initialProgress, status: 'failed' }
           });
@@ -248,7 +209,7 @@ export const useGenerationStore = create<GenerationState>()(
         set({ isCancelling: true, error: null });
         try {
           await generateService.cancelGeneration(id);
-          set({ 
+          set({
             currentGeneration: null,
             currentBatch: null,
             generationProgress: { ...initialProgress, status: 'cancelled' }
@@ -284,7 +245,6 @@ export const useGenerationStore = create<GenerationState>()(
             set({ usageStats: response.data });
           }
         } catch (error) {
-          console.warn('Failed to fetch usage stats:', error);
         }
       },
 

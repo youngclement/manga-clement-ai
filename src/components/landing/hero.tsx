@@ -3,7 +3,6 @@ import { ThreeDMarquee } from "@/components/ui/3d-marquee";
 import { TypewriterEffect } from "@/components/ui/typewriter-effect";
 
 export default function Hero() {
-    // Base manga demo images
     const baseMangaImages = [
         "/demo-img/demoimg1.png",
         "/demo-img/demoimg2.png",
@@ -12,14 +11,11 @@ export default function Hero() {
         "/demo-img/demoimg5.png",
         "/demo-img/demoimg6.png",
     ];
-
-    // Loop to create 32 images from base images
     const images = Array.from({ length: 32 }, (_, i) => baseMangaImages[i % baseMangaImages.length]);
 
     return (
         <section className=" my-10  rounded-3xl bg-gray-950/5 px-4 py-8 ring-1 ring-neutral-700/10 dark:bg-neutral-900/60">
             <div className="flex flex-col items-center gap-6">
-                {/* Top: Heading + subcopy (stacked, centered) */}
                 <div className="space-y-3 text-center">
                     <TypewriterEffect
                         words={[
@@ -63,7 +59,6 @@ export default function Hero() {
                     </div>
                 </div>
 
-                {/* Bottom: 3D marquee gallery (full width under text) */}
                 <div className="w-full rounded-3xl bg-black/40 p-2 ring-1 ring-zinc-800/70 shadow-[0_18px_50px_rgba(0,0,0,0.65)]">
                     <ThreeDMarquee images={images} />
                 </div>

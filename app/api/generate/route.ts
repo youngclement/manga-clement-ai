@@ -2,29 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import { generateMangaImage, generateNextPrompt } from '@/lib/services/gemini-service';
 import { MangaConfig, GeneratedManga } from '@/lib/types';
 import { generateId } from '@/lib/utils/id';
-
-// POST - Generate single page
+import { validateRequest, generateRequestSchema } from '@/lib/utils/validation';
+const MAX_BODY_SIZE = 10 * 1024 * 1024;
 export async function POST(request: NextRequest) {
   try {
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_BODY_SIZE) {
+      return NextResponse.json(
+        { error: 'Request body too large. Maximum size is 10MB.' },
+        { status: 413 }
+      );
+    }
+
     const body = await request.json();
+    const validated = validateRequest(generateRequestSchema, body);
     const {
       prompt,
       config,
       sessionHistory = [],
       isAutoContinue = false
-    } = body;
-
-    if (!config) {
-      return NextResponse.json(
-        { error: 'Config is required' },
-        { status: 400 }
-      );
-    }
+    } = validated;
 
     const pageNumber = sessionHistory.length + 1;
-    const totalPages = 1; // Single page generation
-
-    // Generate prompt if auto-continue or no prompt provided
+    const totalPages = 1;
     let finalPrompt = prompt;
     if (isAutoContinue || !prompt?.trim()) {
       try {
@@ -38,19 +38,14 @@ export async function POST(request: NextRequest) {
         );
       } catch (error: any) {
         console.error('Error generating prompt:', error);
-        // Fallback to default prompt
         finalPrompt = prompt || 'Continue the manga story naturally';
       }
     }
-
-    // Generate image
     const imageUrl = await generateMangaImage(
       finalPrompt,
       config,
       sessionHistory
     );
-
-    // Create generated manga object
     const generatedManga: GeneratedManga = {
       id: generateId(),
       prompt: finalPrompt,
@@ -78,4 +73,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

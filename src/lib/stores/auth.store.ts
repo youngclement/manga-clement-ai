@@ -35,7 +35,6 @@ interface RegisterData {
 }
 
 interface AuthState {
-  // State
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
@@ -43,31 +42,21 @@ interface AuthState {
   isLoading: boolean;
   isInitializing: boolean;
   error: string | null;
-  
-  // Loading states for different operations
   loginLoading: boolean;
   registerLoading: boolean;
   refreshLoading: boolean;
   logoutLoading: boolean;
   profileLoading: boolean;
-
-  // Actions
   setUser: (user: User | null) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  
-  // Auth operations
   login: (credentials: LoginCredentials) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshTokens: () => Promise<boolean>;
-  
-  // Profile operations
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
-  
-  // Utility
   checkAuth: () => Promise<void>;
   clearError: () => void;
   reset: () => void;
@@ -93,12 +82,9 @@ export const useAuthStore = create<AuthState>()(
     persist(
       (set, get) => ({
         ...initialState,
-
-        // Sync actions
         setUser: (user) => set({ user, isAuthenticated: !!user }),
         setTokens: (accessToken, refreshToken) => {
           set({ accessToken, refreshToken });
-          // Store tokens in localStorage for API client
           if (typeof window !== 'undefined') {
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
@@ -106,8 +92,6 @@ export const useAuthStore = create<AuthState>()(
         },
         setLoading: (isLoading) => set({ isLoading }),
         setError: (error) => set({ error }),
-
-        // Auth operations
         login: async (credentials) => {
           set({ loginLoading: true, error: null });
           try {
@@ -120,10 +104,10 @@ export const useAuthStore = create<AuthState>()(
             if (response.success && response.data) {
               const { user, accessToken, refreshToken } = response.data;
               get().setTokens(accessToken, refreshToken);
-              set({ 
-                user, 
+              set({
+                user,
                 isAuthenticated: true,
-                error: null 
+                error: null
               });
             }
           } catch (error) {
@@ -146,10 +130,10 @@ export const useAuthStore = create<AuthState>()(
             if (response.success && response.data) {
               const { user, accessToken, refreshToken } = response.data;
               get().setTokens(accessToken, refreshToken);
-              set({ 
-                user, 
+              set({
+                user,
                 isAuthenticated: true,
-                error: null 
+                error: null
               });
             }
           } catch (error) {
@@ -165,9 +149,7 @@ export const useAuthStore = create<AuthState>()(
           try {
             await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
           } catch (error) {
-            console.warn('Logout request failed:', error);
           } finally {
-            // Clear state regardless of API response
             set({
               user: null,
               accessToken: null,
@@ -176,8 +158,6 @@ export const useAuthStore = create<AuthState>()(
               logoutLoading: false,
               error: null,
             });
-            
-            // Clear localStorage
             if (typeof window !== 'undefined') {
               localStorage.removeItem('accessToken');
               localStorage.removeItem('refreshToken');
@@ -203,7 +183,6 @@ export const useAuthStore = create<AuthState>()(
             }
             return false;
           } catch (error) {
-            console.warn('Token refresh failed:', error);
             get().logout();
             return false;
           } finally {
@@ -249,19 +228,14 @@ export const useAuthStore = create<AuthState>()(
               set({ isInitializing: false });
               return;
             }
-
-            // Try to get profile with current token
             if (accessToken) {
               try {
                 await get().getProfile();
                 set({ isInitializing: false });
                 return;
               } catch (error) {
-                // Token might be expired, try refresh
               }
             }
-
-            // Try to refresh token
             if (refreshToken) {
               const success = await get().refreshTokens();
               if (success) {
@@ -269,7 +243,6 @@ export const useAuthStore = create<AuthState>()(
               }
             }
           } catch (error) {
-            console.warn('Auth check failed:', error);
             get().logout();
           } finally {
             set({ isInitializing: false });

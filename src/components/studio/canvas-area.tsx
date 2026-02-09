@@ -34,7 +34,7 @@ export default function CanvasArea({
                     <div className="text-amber-400 font-manga text-base sm:text-xl tracking-wider animate-pulse drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]">
                         GENERATING...
                     </div>
-                    <GenerationProgress 
+                    <GenerationProgress
                         progress={generationProgress}
                         retryCount={retryCount}
                         className="w-full"
@@ -62,7 +62,6 @@ export default function CanvasArea({
                             onClick={onShowFullscreen}
                             title="Click to view fullscreen"
                         />
-                        {/* Floating Action Buttons - Always visible on mobile, hover on desktop */}
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-3 flex-wrap justify-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                             <button
                                 onClick={onShowFullscreen}
@@ -94,4 +93,3 @@ export default function CanvasArea({
         </main>
     );
 }
-

@@ -50,7 +50,6 @@ export default function Toolbar({ onExport, onGenerate }: ToolbarProps) {
 
   return (
     <div className="h-14 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-4">
-      {/* Left: Tools */}
       <div className="flex items-center gap-1 bg-zinc-800/50 rounded-xl p-1">
         <TooltipProvider delayDuration={300}>
           {TOOLS.map((t) => (
@@ -91,7 +90,6 @@ export default function Toolbar({ onExport, onGenerate }: ToolbarProps) {
         </TooltipProvider>
       </div>
 
-      {/* Center: Zoom Controls */}
       <div className="flex items-center gap-2 bg-zinc-800/50 rounded-xl p-1">
         <TooltipProvider delayDuration={300}>
           <Tooltip>
@@ -131,7 +129,6 @@ export default function Toolbar({ onExport, onGenerate }: ToolbarProps) {
         </TooltipProvider>
       </div>
 
-      {/* Right: Actions */}
       <div className="flex items-center gap-2">
         <TooltipProvider delayDuration={300}>
           <Tooltip>

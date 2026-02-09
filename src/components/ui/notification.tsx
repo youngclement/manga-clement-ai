@@ -35,11 +35,11 @@ export function NotificationContainer() {
   );
 }
 
-function NotificationItem({ 
-  notification, 
-  onRemove 
-}: { 
-  notification: any; 
+function NotificationItem({
+  notification,
+  onRemove
+}: {
+  notification: any;
   onRemove: () => void;
 }) {
   const { id, type, title, message, action, duration } = notification;
@@ -64,13 +64,13 @@ function NotificationItem({
     )}>
       <div className="flex items-start space-x-3">
         <NotificationIcon type={type} />
-        
+
         <div className="flex-1 min-w-0">
           <h4 className="font-medium text-sm">{title}</h4>
           {message && (
             <p className="text-sm text-muted-foreground mt-1">{message}</p>
           )}
-          
+
           {action && (
             <Button
               variant="outline"
@@ -93,9 +93,8 @@ function NotificationItem({
         </Button>
       </div>
 
-      {/* Progress bar for timed notifications */}
       {duration > 0 && (
-        <div 
+        <div
           className="absolute bottom-0 left-0 h-1 bg-primary/30 rounded-b-lg animate-shrink"
           style={{ animationDuration: `${duration}ms` }}
         />

@@ -67,5 +67,3 @@ export const updateMyProfile = async (
     return profile as UserProfile | null;
   }, null) as Promise<UserProfile | null>;
 };
-
-

@@ -1,5 +1,3 @@
-// Canvas Editor Types
-
 export interface Position {
   x: number;
   y: number;
@@ -34,7 +32,7 @@ export interface PanelElement extends BaseElement {
   borderColor: string;
   borderWidth: number;
   borderRadius: number;
-  children: string[]; // IDs of child elements
+  children: string[];
 }
 
 export interface ImageElement extends BaseElement {
@@ -42,7 +40,7 @@ export interface ImageElement extends BaseElement {
   src: string;
   objectFit: 'cover' | 'contain' | 'fill';
   opacity: number;
-  parentId?: string; // ID of parent panel
+  parentId?: string;
 }
 
 export interface TextElement extends BaseElement {

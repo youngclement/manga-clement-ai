@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
-type LoadingKeys = 
+type LoadingKeys =
   | 'app-init'
   | 'page-load'
   | 'auth-check'
@@ -35,61 +35,35 @@ interface Modal {
 }
 
 interface UIState {
-  // Loading states
   loadingStates: Record<LoadingKeys, boolean>;
   globalLoading: boolean;
-  
-  // Notifications
   notifications: Notification[];
-  
-  // Modals
+
   modals: Modal[];
-  
-  // Theme
   theme: 'light' | 'dark' | 'system';
-  
-  // Sidebar
+
   sidebarOpen: boolean;
   sidebarCollapsed: boolean;
-  
-  // Mobile
   isMobile: boolean;
-  
-  // Page states
   pageTitle: string;
   breadcrumbs: Array<{ label: string; href?: string }>;
-  
-  // Actions
+
   setLoading: (key: LoadingKeys, loading: boolean) => void;
   setGlobalLoading: (loading: boolean) => void;
-  
-  // Notifications
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp'>) => void;
   removeNotification: (id: string) => void;
   clearNotifications: () => void;
-  
-  // Modals
   openModal: (modal: Omit<Modal, 'id'>) => string;
   closeModal: (id: string) => void;
   closeAllModals: () => void;
-  
-  // Theme
   setTheme: (theme: UIState['theme']) => void;
   toggleTheme: () => void;
-  
-  // Sidebar
   setSidebarOpen: (open: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
   toggleSidebar: () => void;
-  
-  // Mobile
   setIsMobile: (isMobile: boolean) => void;
-  
-  // Page
   setPageTitle: (title: string) => void;
   setBreadcrumbs: (breadcrumbs: UIState['breadcrumbs']) => void;
-  
-  // Utility
   showSuccessNotification: (title: string, message?: string) => void;
   showErrorNotification: (title: string, message?: string) => void;
   showWarningNotification: (title: string, message?: string) => void;
@@ -115,7 +89,6 @@ export const useUIStore = create<UIState>()(
       (set, get) => ({
         ...initialState,
 
-        // Loading management
         setLoading: (key, loading) =>
           set((state) => ({
             loadingStates: { ...state.loadingStates, [key]: loading }
@@ -123,7 +96,6 @@ export const useUIStore = create<UIState>()(
 
         setGlobalLoading: (globalLoading) => set({ globalLoading }),
 
-        // Notifications
         addNotification: (notification) => {
           const id = `notification-${Date.now()}-${Math.random()}`;
           const newNotification: Notification = {
@@ -137,7 +109,6 @@ export const useUIStore = create<UIState>()(
             notifications: [...state.notifications, newNotification]
           }));
 
-          // Auto remove after duration
           if (newNotification.duration && newNotification.duration > 0) {
             setTimeout(() => {
               get().removeNotification(id);
@@ -152,7 +123,6 @@ export const useUIStore = create<UIState>()(
 
         clearNotifications: () => set({ notifications: [] }),
 
-        // Modals
         openModal: (modal) => {
           const id = `modal-${Date.now()}-${Math.random()}`;
           const newModal: Modal = { ...modal, id };
@@ -185,14 +155,12 @@ export const useUIStore = create<UIState>()(
           set({ modals: [] });
         },
 
-        // Theme
         setTheme: (theme) => {
           set({ theme });
-          
-          // Apply theme to document
+
           if (typeof window !== 'undefined') {
             const root = document.documentElement;
-            
+
             if (theme === 'system') {
               const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
               root.classList.toggle('dark', prefersDark);
@@ -208,15 +176,12 @@ export const useUIStore = create<UIState>()(
           get().setTheme(newTheme);
         },
 
-        // Sidebar
         setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
         setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
         toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
 
-        // Mobile
         setIsMobile: (isMobile) => set({ isMobile }),
 
-        // Page
         setPageTitle: (pageTitle) => {
           set({ pageTitle });
           if (typeof window !== 'undefined') {
@@ -226,7 +191,6 @@ export const useUIStore = create<UIState>()(
 
         setBreadcrumbs: (breadcrumbs) => set({ breadcrumbs }),
 
-        // Utility notification helpers
         showSuccessNotification: (title, message = '') =>
           get().addNotification({ type: 'success', title, message }),
 
@@ -251,7 +215,6 @@ export const useUIStore = create<UIState>()(
   )
 );
 
-// Hook to check if any loading is active
 export const useIsLoading = (keys?: LoadingKeys[]): boolean => {
   return useUIStore((state) => {
     if (!keys) {

@@ -75,12 +75,12 @@ export enum Language {
 
 export enum PanelBorderStyle {
   FULL_BORDER = 'Full Border',
-  NO_BORDER = 'No Border', // Full ảnh không viền trắng
+  NO_BORDER = 'No Border',
 }
 
 export interface ReferenceImage {
-  url: string; // Base64 or URL
-  enabled: boolean; // Whether to use this image in generation
+  url: string;
+  enabled: boolean;
 }
 
 export interface MangaConfig {
@@ -92,11 +92,11 @@ export interface MangaConfig {
   useColor: boolean;
   dialogueDensity: DialogueDensity | string;
   language: Language | string;
-  panelBorderStyle?: PanelBorderStyle | string; // Full Border or No Border
+  panelBorderStyle?: PanelBorderStyle | string;
   context?: string;
-  referenceImages?: (string | ReferenceImage)[]; // Support both old format (string) and new format (ReferenceImage)
-  autoContinueStory?: boolean; // Auto-generate story continuation
-  storyDirection?: string; // Story flow/direction for auto-continue
+  referenceImages?: (string | ReferenceImage)[];
+  autoContinueStory?: boolean;
+  storyDirection?: string;
 }
 
 export interface ChatMessage {
@@ -114,8 +114,8 @@ export interface MangaSession {
   context: string;
   pages: GeneratedManga[];
   chatHistory: ChatMessage[];
-  config?: MangaConfig; // Store config including storyDirection
-  selectedReferencePageIds?: string[]; // Page IDs selected as reference for continuation
+  config?: MangaConfig;
+  selectedReferencePageIds?: string[];
   createdAt: number;
   updatedAt: number;
 }
@@ -143,10 +143,10 @@ export interface MangaProject {
   description?: string;
   coverImageUrl?: string;
   isPublic?: boolean;
-  tags?: string[]; // Tags for categorization
-  viewCount?: number; // Number of views
-  likeCount?: number; // Number of likes (cached)
-  commentCount?: number; // Number of comments (cached)
+  tags?: string[];
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
   ownerDisplayName?: string;
   createdAt?: number;
   updatedAt?: number;
@@ -202,5 +202,4 @@ export interface ProjectComment {
   updatedAt: number;
 }
 
-// Re-export canvas types
 export * from './canvas';

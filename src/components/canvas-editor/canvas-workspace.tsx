@@ -38,8 +38,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
   const [panStart, setPanStart] = useState<Position>({ x: 0, y: 0 })
 
   const currentPage = project.pages[project.currentPageIndex]
-
-  // Zoom with wheel
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
@@ -60,8 +58,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
       }
     }
   }, [zoom, setZoom])
-
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -126,7 +122,7 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
 
   const handleMouseDown = (e: ReactMouseEvent, elementId: string) => {
     e.stopPropagation()
-    
+
     const element = currentPage?.elements.find((el) => el.id === elementId)
     if (!element || element.locked) return
 
@@ -142,7 +138,7 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
     handle: string
   ) => {
     e.stopPropagation()
-    
+
     const element = currentPage?.elements.find((el) => el.id === elementId)
     if (!element || element.locked) return
 
@@ -346,10 +342,8 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
       >
         {renderContent()}
 
-        {/* Resize Handles */}
         {isSelected && !element.locked && (
           <>
-            {/* Corners */}
             {['nw', 'ne', 'se', 'sw'].map((handle) => (
               <div
                 key={handle}
@@ -363,7 +357,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
                 onMouseDown={(e) => handleResizeMouseDown(e, element.id, handle)}
               />
             ))}
-            {/* Edges */}
             {['n', 'e', 's', 'w'].map((handle) => (
               <div
                 key={handle}
@@ -398,7 +391,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Grid Background */}
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
@@ -411,7 +403,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
         }}
       />
 
-      {/* Canvas Page */}
       <div
         data-canvas="true"
         className="absolute shadow-2xl"
@@ -425,13 +416,11 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
           transformOrigin: 'top left',
         }}
       >
-        {/* Render Elements */}
         <div style={{ transform: `scale(${1 / zoom})`, transformOrigin: 'top left' }}>
           {sortedElements.map(renderElement)}
         </div>
       </div>
 
-      {/* Zoom indicator */}
       <div className="absolute bottom-4 right-4 bg-zinc-900/90 backdrop-blur-sm px-3 py-1.5 rounded-lg text-sm text-zinc-400 border border-zinc-800">
         {Math.round(zoom * 100)}%
       </div>
@@ -441,8 +430,6 @@ export default function CanvasWorkspace({ onGenerateImage }: CanvasWorkspaceProp
 
 function DialogueBubble({ element }: { element: DialogueElement }) {
   const { hasTail, tailAngle, tailLength, backgroundColor, borderColor, strokeSize, content, fontSize, fontFamily, color, textAlign } = element
-
-  // Calculate tail position
   const tailX = tailAngle * 100
   const tailEndX = tailX
   const tailEndY = 100 + tailLength

@@ -50,7 +50,7 @@ export function GenerationPanel() {
       clearError();
       await generateSingle({ prompt, config });
       showSuccessNotification('Success', 'Panel generated successfully!');
-      setPrompt(''); // Clear prompt on success
+      setPrompt('');
     } catch (error) {
       showErrorNotification('Generation Failed', (error as Error).message);
     }
@@ -66,7 +66,6 @@ export function GenerationPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Generation Form */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
@@ -74,9 +73,8 @@ export function GenerationPanel() {
             Generate Manga Panel
           </CardTitle>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
-          {/* Prompt Input */}
           <div>
             <label className="text-sm font-medium mb-2 block">
               Describe your panel
@@ -90,12 +88,11 @@ export function GenerationPanel() {
             />
           </div>
 
-          {/* Configuration */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Style</label>
-              <Select 
-                value={config.style} 
+              <Select
+                value={config.style}
                 onValueChange={(value) => setConfig(prev => ({ ...prev, style: value as typeof prev.style }))}
                 disabled={isLoading}
               >
@@ -113,8 +110,8 @@ export function GenerationPanel() {
 
             <div>
               <label className="text-sm font-medium mb-2 block">Genre</label>
-              <Select 
-                value={config.genre} 
+              <Select
+                value={config.genre}
                 onValueChange={(value) => setConfig(prev => ({ ...prev, genre: value as typeof prev.genre }))}
                 disabled={isLoading}
               >
@@ -133,8 +130,8 @@ export function GenerationPanel() {
 
             <div>
               <label className="text-sm font-medium mb-2 block">Color</label>
-              <Select 
-                value={config.colorScheme} 
+              <Select
+                value={config.colorScheme}
                 onValueChange={(value) => setConfig(prev => ({ ...prev, colorScheme: value as typeof prev.colorScheme }))}
                 disabled={isLoading}
               >
@@ -150,9 +147,8 @@ export function GenerationPanel() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center space-x-2">
-            <Button 
+            <Button
               onClick={handleGenerate}
               disabled={!prompt.trim() || isLoading}
               className="flex-1"
@@ -180,7 +176,6 @@ export function GenerationPanel() {
         </CardContent>
       </Card>
 
-      {/* Progress Tracking */}
       {isLoading && (
         <Card>
           <CardContent className="p-6">
@@ -196,9 +191,9 @@ export function GenerationPanel() {
                   {generationProgress.percentage}%
                 </span>
               </div>
-              
+
               <Progress value={generationProgress.percentage} />
-              
+
               {generationProgress.estimatedTimeRemaining && (
                 <p className="text-xs text-muted-foreground">
                   Estimated time remaining: {Math.round(generationProgress.estimatedTimeRemaining / 1000)}s
@@ -209,7 +204,6 @@ export function GenerationPanel() {
         </Card>
       )}
 
-      {/* Error Display */}
       {error && (
         <Card className="border-red-200 bg-red-50/10">
           <CardContent className="p-4">
@@ -226,32 +220,31 @@ export function GenerationPanel() {
         </Card>
       )}
 
-      {/* Result Display */}
       {currentGeneration && (
         <Card>
           <CardHeader>
             <CardTitle>Generated Panel</CardTitle>
           </CardHeader>
-          
+
           <CardContent className="space-y-4">
             <div className="aspect-video bg-muted rounded-lg overflow-hidden">
-              <img 
-                src={currentGeneration.imageUrl} 
+              <img
+                src={currentGeneration.imageUrl}
                 alt="Generated panel"
                 className="w-full h-full object-cover"
               />
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Button variant="outline" className="flex-1">
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
-              
+
               <Button variant="outline" className="flex-1">
                 Add to Project
               </Button>
-              
+
               <Button variant="outline">
                 <RefreshCw className="h-4 w-4" />
               </Button>

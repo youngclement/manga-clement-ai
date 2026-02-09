@@ -43,12 +43,11 @@ export function AnimatedShinyButton({
 
         .shiny-cta,
         .shiny-cta-link {
-          /* Dark theme colors aligned with app */
-          --shiny-cta-bg: #020617; /* zinc-950 */
-          --shiny-cta-bg-subtle: #18181b; /* zinc-900 */
-          --shiny-cta-fg: #f9fafb; /* zinc-50 */
-          --shiny-cta-highlight: #fbbf24; /* amber-400 */
-          --shiny-cta-highlight-subtle: #fb923c; /* orange-400 */
+          --shiny-cta-bg: #020617;
+          --shiny-cta-bg-subtle: #18181b;
+          --shiny-cta-fg: #f9fafb;
+          --shiny-cta-highlight: #fbbf24;
+          --shiny-cta-highlight-subtle: #fb923c;
           --animation: gradient-angle linear infinite;
           --duration: 3s;
           --shadow-size: 2px;
@@ -113,7 +112,6 @@ export function AnimatedShinyButton({
           translate: 0 1px;
         }
 
-        /* Dots pattern */
         .shiny-cta::before,
         .shiny-cta-link::before {
           --size: calc(100% - var(--shadow-size) * 3);
@@ -140,7 +138,6 @@ export function AnimatedShinyButton({
           z-index: -1;
         }
 
-        /* Inner shimmer */
         .shiny-cta::after,
         .shiny-cta-link::after {
           --animation: shimmer linear infinite;
@@ -172,7 +169,6 @@ export function AnimatedShinyButton({
           animation: calc(var(--duration) * 1.5) breathe linear infinite;
         }
 
-        /* Animate */
         .shiny-cta,
         .shiny-cta::before,
         .shiny-cta::after,
@@ -232,15 +228,14 @@ export function AnimatedShinyButton({
           }
         }
 
-        /* Light theme overrides */
         @media (prefers-color-scheme: light) {
           .shiny-cta,
           .shiny-cta-link {
             --shiny-cta-bg: #ffffff;
-            --shiny-cta-bg-subtle: #e5e7eb; /* zinc-200 */
-            --shiny-cta-fg: #0f172a; /* slate-900 */
-            --shiny-cta-highlight: #f59e0b; /* amber-500 */
-            --shiny-cta-highlight-subtle: #f97316; /* orange-500 */
+            --shiny-cta-bg-subtle: #e5e7eb;
+            --shiny-cta-fg: #0f172a;
+            --shiny-cta-highlight: #f59e0b;
+            --shiny-cta-highlight-subtle: #f97316;
           }
         }
       `}</style>
@@ -263,12 +258,3 @@ export function AnimatedShinyButton({
     </>
   );
 }
-
-
-
-
-
-
-
-
-

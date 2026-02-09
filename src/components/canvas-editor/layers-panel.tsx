@@ -91,7 +91,6 @@ export default function LayersPanel() {
 
   return (
     <div className="h-full w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-      {/* Header */}
       <div className="p-3 border-b border-zinc-800 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Layers className="w-4 h-4 text-zinc-400" />
@@ -105,7 +104,6 @@ export default function LayersPanel() {
         </button>
       </div>
 
-      {/* Pages */}
       <div className="p-3 border-b border-zinc-800">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-medium text-zinc-500 uppercase">Pages</span>
@@ -136,7 +134,6 @@ export default function LayersPanel() {
         </div>
       </div>
 
-      {/* Elements */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
           {sortedElements.length === 0 ? (
@@ -155,7 +152,6 @@ export default function LayersPanel() {
                     : 'hover:bg-zinc-800 border border-transparent'
                 )}
               >
-                {/* Icon */}
                 <div
                   className={cn(
                     'w-8 h-8 rounded-md flex items-center justify-center',
@@ -176,7 +172,6 @@ export default function LayersPanel() {
                   )}
                 </div>
 
-                {/* Name */}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-zinc-200 truncate">{element.name}</div>
                   <div className="text-xs text-zinc-500 truncate">
@@ -184,7 +179,6 @@ export default function LayersPanel() {
                   </div>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={(e) => {
@@ -219,7 +213,6 @@ export default function LayersPanel() {
         </div>
       </ScrollArea>
 
-      {/* Bottom Actions */}
       {selectedElementIds.length > 0 && (
         <div className="p-2 border-t border-zinc-800 flex items-center justify-center gap-1">
           <Button

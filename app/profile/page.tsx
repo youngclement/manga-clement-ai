@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
@@ -79,7 +79,6 @@ export default function ProfilePage() {
                     })
                 }
             } catch {
-                // errors are handled by api layer
             } finally {
                 setLoading(false)
             }
@@ -88,14 +87,11 @@ export default function ProfilePage() {
     }, [])
 
     useEffect(() => {
-        // Show welcome banner if coming from registration
         if (searchParams.get('welcome') === 'true') {
             setShowWelcomeBanner(true)
-            toast.success('Chào mừng bạn đến với Manga Studio! Hãy hoàn thiện profile của bạn.')
+            toast.success('Welcome to Manga Studio! Please complete your profile.')
         }
     }, [searchParams])
-
-    // Check if profile is incomplete
     const isProfileIncomplete = profile && (!profile.displayName || !profile.bio || !profile.avatarUrl)
 
     const handleSaveProfile = async () => {
@@ -143,12 +139,10 @@ export default function ProfilePage() {
                         likes: updated.preferences?.notifications?.likes ?? true,
                     },
                 })
-                // Hide welcome banner after first save
                 setShowWelcomeBanner(false)
             }
-            toast.success('Cập nhật profile thành công')
+            toast.success('Profile updated successfully')
         } catch {
-            // handled in api
         } finally {
             setSavingProfile(false)
         }
@@ -178,10 +172,9 @@ export default function ProfilePage() {
                 prev.map(p => (p.id === project.id ? { ...p, isPublic: value } : p)),
             )
             toast.success(
-                value ? 'Đã public tập truyện lên community' : 'Đã ẩn tập truyện khỏi community',
+                value ? 'Story published to community' : 'Story hidden from community',
             )
         } catch {
-            // handled in api
         } finally {
             setSavingProjectId(null)
         }
@@ -195,9 +188,8 @@ export default function ProfilePage() {
                 prev.map(p => (p.id === projectId ? { ...p, tags } : p)),
             )
             setProjectTags(prev => ({ ...prev, [projectId]: tags }))
-            toast.success('Đã cập nhật tags')
+            toast.success('Tags updated')
         } catch {
-            // handled in api
         } finally {
             setSavingProjectId(null)
         }
@@ -208,7 +200,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center py-24">
                 <div className="flex flex-col items-center gap-4">
                     <div className="w-8 h-8 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
-                    <div className="text-zinc-400 text-sm">Đang tải profile...</div>
+                    <div className="text-zinc-400 text-sm">Loading profile...</div>
                 </div>
             </div>
         )
@@ -216,7 +208,6 @@ export default function ProfilePage() {
 
     return (
         <div className="mx-auto max-w-5xl px-4 py-8 space-y-8">
-            {/* Welcome Banner */}
             {showWelcomeBanner && (
                 <div className="bg-linear-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 relative">
                     <div className="bg-amber-500/20 rounded-full p-2 shrink-0">
@@ -224,10 +215,10 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 space-y-1">
                         <h3 className="text-sm font-semibold text-amber-300">
-                            Chào mừng bạn đến với Manga Studio!
+                            Welcome to Manga Studio!
                         </h3>
                         <p className="text-xs text-zinc-300">
-                            Hãy hoàn thiện thông tin profile của bạn để có trải nghiệm tốt nhất. Bạn có thể thêm tên hiển thị, giới thiệu và avatar.
+                            Complete your profile information for the best experience. You can add a display name, bio, and avatar.
                         </p>
                     </div>
                     <button
@@ -239,7 +230,6 @@ export default function ProfilePage() {
                 </div>
             )}
 
-            {/* Incomplete Profile Banner */}
             {isProfileIncomplete && !showWelcomeBanner && (
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-start gap-3">
                     <div className="bg-blue-500/20 rounded-full p-2 shrink-0">
@@ -247,10 +237,10 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1 space-y-1">
                         <h3 className="text-sm font-semibold text-blue-300">
-                            Hoàn thiện profile của bạn
+                            Complete your profile
                         </h3>
                         <p className="text-xs text-zinc-300">
-                            Thêm thông tin chi tiết để cộng đồng biết thêm về bạn.
+                            Add detailed information for the community to know more about you.
                         </p>
                     </div>
                 </div>
@@ -259,14 +249,13 @@ export default function ProfilePage() {
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
                 <div className="space-y-4 max-w-xl">
                     <h1 className="text-2xl md:text-3xl font-manga text-amber-400">
-                        Hồ sơ của bạn
+                        Your Profile
                     </h1>
                     <p className="text-sm text-zinc-400">
-                        Chỉnh sửa thông tin cá nhân và quản lý tập truyện public lên community.
+                        Edit your personal information and manage stories published to community.
                     </p>
 
                     <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        {/* Avatar Section */}
                         <div className="flex items-center gap-4 pb-4 border-b border-zinc-800">
                             <div className="relative">
                                 <Avatar className="h-20 w-20 border-2 border-amber-400/50">
@@ -288,13 +277,13 @@ export default function ProfilePage() {
                                     className="bg-zinc-950 border-zinc-700 text-sm"
                                 />
                                 <p className="text-[10px] text-zinc-500">
-                                    Nhập URL ảnh đại diện của bạn
+                                    Enter your avatar image URL
                                 </p>
                             </div>
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs text-zinc-400">Tên hiển thị</label>
+                            <label className="text-xs text-zinc-400">Display Name</label>
                             <Input
                                 value={displayName}
                                 onChange={e => setDisplayName(e.target.value)}
@@ -302,7 +291,7 @@ export default function ProfilePage() {
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className="text-xs text-zinc-400">Giới thiệu</label>
+                            <label className="text-xs text-zinc-400">Bio</label>
                             <Textarea
                                 value={bio}
                                 onChange={e => setBio(e.target.value)}
@@ -312,9 +301,8 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Contact Information Section */}
                     <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Thông tin liên hệ</h3>
+                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Contact Information</h3>
                         <div className="space-y-3">
                             <div className="space-y-1">
                                 <label className="text-xs text-zinc-400">Email</label>
@@ -327,7 +315,7 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Số điện thoại</label>
+                                <label className="text-xs text-zinc-400">Phone Number</label>
                                 <Input
                                     type="tel"
                                     value={phone}
@@ -337,11 +325,11 @@ export default function ProfilePage() {
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Địa chỉ</label>
+                                <label className="text-xs text-zinc-400">Location</label>
                                 <Input
                                     value={location}
                                     onChange={e => setLocation(e.target.value)}
-                                    placeholder="Thành phố, Quốc gia"
+                                    placeholder="City, Country"
                                     className="bg-zinc-950 border-zinc-700 text-sm"
                                 />
                             </div>
@@ -358,16 +346,15 @@ export default function ProfilePage() {
                         </div>
                     </div>
 
-                    {/* Social Links Section */}
                     <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Mạng xã hội</h3>
+                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Social Media</h3>
                         <div className="space-y-3">
                             <div className="space-y-1">
                                 <label className="text-xs text-zinc-400">Twitter/X</label>
                                 <Input
                                     value={socialLinks.twitter}
                                     onChange={e => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
-                                    placeholder="@username hoặc URL"
+                                    placeholder="@username or URL"
                                     className="bg-zinc-950 border-zinc-700 text-sm"
                                 />
                             </div>
@@ -376,7 +363,7 @@ export default function ProfilePage() {
                                 <Input
                                     value={socialLinks.instagram}
                                     onChange={e => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
-                                    placeholder="@username hoặc URL"
+                                    placeholder="@username or URL"
                                     className="bg-zinc-950 border-zinc-700 text-sm"
                                 />
                             </div>
@@ -403,44 +390,43 @@ export default function ProfilePage() {
                                 <Input
                                     value={socialLinks.tiktok}
                                     onChange={e => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
-                                    placeholder="@username hoặc URL"
+                                    placeholder="@username or URL"
                                     className="bg-zinc-950 border-zinc-700 text-sm"
                                 />
                             </div>
                         </div>
                     </div>
 
-                    {/* Preferences Section */}
                     <div className="space-y-3 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-4">
-                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Tùy chọn</h3>
+                        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Preferences</h3>
                         <div className="space-y-3">
                             <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Giao diện</label>
+                                <label className="text-xs text-zinc-400">Theme</label>
                                 <select
                                     value={preferences.theme}
                                     onChange={e => setPreferences({ ...preferences, theme: e.target.value as 'light' | 'dark' | 'auto' })}
                                     className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white"
                                 >
-                                    <option value="auto">Tự động</option>
-                                    <option value="light">Sáng</option>
-                                    <option value="dark">Tối</option>
+                                    <option value="auto">Auto</option>
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
                                 </select>
                             </div>
                             <div className="space-y-1">
-                                <label className="text-xs text-zinc-400">Ngôn ngữ</label>
+                                <label className="text-xs text-zinc-400">Language</label>
                                 <select
                                     value={preferences.language}
                                     onChange={e => setPreferences({ ...preferences, language: e.target.value })}
                                     className="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-white"
                                 >
-                                    <option value="vi">Tiếng Việt</option>
+                                    <option value="vi">Vietnamese</option>
                                     <option value="en">English</option>
-                                    <option value="ja">日本語</option>
-                                    <option value="ko">한국어</option>
+                                    <option value="ja">Japanese</option>
+                                    <option value="ko">Korean</option>
                                 </select>
                             </div>
                             <div className="space-y-2 pt-2 border-t border-zinc-800">
-                                <label className="text-xs text-zinc-400">Thông báo</label>
+                                <label className="text-xs text-zinc-400">Notifications</label>
                                 <div className="space-y-2">
                                     <div className="flex items-center justify-between">
                                         <span className="text-xs text-zinc-300">Email</span>
@@ -467,7 +453,7 @@ export default function ProfilePage() {
                                         />
                                     </div>
                                     <div className="flex items-center justify-between">
-                                        <span className="text-xs text-zinc-300">Bình luận</span>
+                                        <span className="text-xs text-zinc-300">Comments</span>
                                         <Switch
                                             checked={preferences.notifications.comments}
                                             onCheckedChange={checked =>
@@ -500,19 +486,18 @@ export default function ProfilePage() {
                         disabled={!profile || savingProfile}
                         className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg bg-amber-500 text-black text-sm font-semibold hover:bg-amber-400 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                     >
-                        {savingProfile ? 'Đang lưu...' : 'Lưu tất cả thay đổi'}
+                        {savingProfile ? 'Saving...' : 'Save all changes'}
                     </button>
                 </div>
             </div>
 
             <div className="space-y-4">
                 <h2 className="text-lg md:text-xl font-manga text-zinc-100">
-                    Bộ sưu tập truyện của bạn
+                    Your manga collection
                 </h2>
                 {projects.length === 0 ? (
                     <p className="text-sm text-zinc-500">
-                        Bạn chưa có tập truyện nào. Hãy tạo truyện trong Studio rồi quay lại đây để public
-                        lên community.
+                        You have no manga yet. Create a manga in Studio and come back here to publish to community.
                     </p>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -539,7 +524,7 @@ export default function ProfilePage() {
                                             />
                                         ) : (
                                             <span className="text-xs text-zinc-500">
-                                                Chưa có ảnh preview
+                                                No preview image
                                             </span>
                                         )}
                                     </div>
@@ -553,13 +538,12 @@ export default function ProfilePage() {
                                             </div>
                                             {updatedLabel && (
                                                 <div className="text-[11px] text-zinc-600">
-                                                    Cập nhật: {updatedLabel}
+                                                    Updated: {updatedLabel}
                                                 </div>
                                             )}
                                         </div>
-                                        {/* Tags */}
                                         <div className="mt-2 space-y-1">
-                                            <label className="text-[10px] text-zinc-500">Tags (phân cách bằng dấu phẩy)</label>
+                                            <label className="text-[10px] text-zinc-500">Tags (comma separated)</label>
                                             <Input
                                                 value={(projectTags[project.id] || project.tags || []).join(', ')}
                                                 onChange={e => {
@@ -600,7 +584,7 @@ export default function ProfilePage() {
                                         <div className="mt-3 flex items-center justify-between gap-2">
                                             <div className="flex items-center gap-2">
                                                 <span className="text-xs text-zinc-400">
-                                                    Public trên community
+                                                    Public on community
                                                 </span>
                                                 <Switch
                                                     checked={!!project.isPublic}
@@ -619,5 +603,3 @@ export default function ProfilePage() {
         </div>
     )
 }
-
-

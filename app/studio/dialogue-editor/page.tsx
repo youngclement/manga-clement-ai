@@ -15,11 +15,11 @@ import {
 } from '@/components/ui/select';
 import { generateService, DialogueBubble, DialogueSuggestion } from '@/lib/api/generate';
 import { toast } from 'sonner';
-import { 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  Download, 
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  Download,
   Upload,
   MessageCircle,
   CloudLightning,
@@ -46,14 +46,12 @@ export default function DialogueEditorPage() {
   const [storyContext, setStoryContext] = useState('');
   const [language, setLanguage] = useState('English');
   const [fontStyle, setFontStyle] = useState<'manga' | 'comic' | 'handwritten' | 'clean'>('manga');
-  
+
   const imageContainerRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; bubbleX: number; bubbleY: number } | null>(null);
 
-  // Generate unique ID
   const generateId = () => Math.random().toString(36).substr(2, 9);
 
-  // Add new dialogue bubble
   const addDialogueBubble = (x: number = 50, y: number = 50, suggestion?: DialogueSuggestion) => {
     const newBubble: DialogueBubbleWithDrag = {
       id: generateId(),
@@ -68,12 +66,10 @@ export default function DialogueEditorPage() {
     setSelectedDialogueId(newBubble.id!);
   };
 
-  // Update dialogue bubble
   const updateDialogue = (id: string, updates: Partial<DialogueBubble>) => {
     setDialogues(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
   };
 
-  // Delete dialogue bubble
   const deleteDialogue = (id: string) => {
     setDialogues(prev => prev.filter(d => d.id !== id));
     if (selectedDialogueId === id) {
@@ -81,23 +77,21 @@ export default function DialogueEditorPage() {
     }
   };
 
-  // Handle image click to add bubble
   const handleImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!imageContainerRef.current) return;
-    
+
     const rect = imageContainerRef.current.getBoundingClientRect();
     const x = ((e.clientX - rect.left) / rect.width) * 100;
     const y = ((e.clientY - rect.top) / rect.height) * 100;
-    
+
     addDialogueBubble(x, y);
   };
 
-  // Handle bubble drag start
   const handleDragStart = (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     const bubble = dialogues.find(d => d.id === id);
     if (!bubble || !imageContainerRef.current) return;
-    
+
     const rect = imageContainerRef.current.getBoundingClientRect();
     dragRef.current = {
       startX: e.clientX,
@@ -105,34 +99,31 @@ export default function DialogueEditorPage() {
       bubbleX: bubble.x,
       bubbleY: bubble.y,
     };
-    
+
     setDialogues(prev => prev.map(d => d.id === id ? { ...d, isDragging: true } : d));
     setSelectedDialogueId(id);
   };
 
-  // Handle bubble drag
   const handleDrag = useCallback((e: MouseEvent) => {
     if (!dragRef.current || !imageContainerRef.current) return;
-    
+
     const rect = imageContainerRef.current.getBoundingClientRect();
     const deltaX = ((e.clientX - dragRef.current.startX) / rect.width) * 100;
     const deltaY = ((e.clientY - dragRef.current.startY) / rect.height) * 100;
-    
+
     const newX = Math.max(0, Math.min(100, dragRef.current.bubbleX + deltaX));
     const newY = Math.max(0, Math.min(100, dragRef.current.bubbleY + deltaY));
-    
-    setDialogues(prev => prev.map(d => 
+
+    setDialogues(prev => prev.map(d =>
       d.isDragging ? { ...d, x: newX, y: newY } : d
     ));
   }, []);
 
-  // Handle bubble drag end
   const handleDragEnd = useCallback(() => {
     dragRef.current = null;
     setDialogues(prev => prev.map(d => ({ ...d, isDragging: false })));
   }, []);
 
-  // Set up drag listeners
   useEffect(() => {
     const hasDragging = dialogues.some(d => d.isDragging);
     if (hasDragging) {
@@ -145,13 +136,12 @@ export default function DialogueEditorPage() {
     }
   }, [dialogues, handleDrag, handleDragEnd]);
 
-  // Get AI suggestions
   const getSuggestions = async () => {
     if (!imageUrl) {
       toast.error('Please upload an image first');
       return;
     }
-    
+
     setIsSuggesting(true);
     try {
       const response = await generateService.suggestDialogue({
@@ -160,26 +150,24 @@ export default function DialogueEditorPage() {
         previousDialogues: dialogues.map(d => d.text).filter(Boolean),
         numberOfSuggestions: 5,
       });
-      
+
       if (response.success && response.data) {
         setSuggestions(response.data.suggestions);
         toast.success(`Generated ${response.data.suggestions.length} dialogue suggestions`);
       }
     } catch (error) {
       toast.error('Failed to get dialogue suggestions');
-      console.error(error);
     } finally {
       setIsSuggesting(false);
     }
   };
 
-  // Apply dialogue to image
   const applyDialogue = async () => {
     if (!imageUrl || dialogues.length === 0) {
       toast.error('Please add at least one dialogue bubble');
       return;
     }
-    
+
     setIsLoading(true);
     try {
       const response = await generateService.addDialogue({
@@ -196,20 +184,18 @@ export default function DialogueEditorPage() {
         language,
         fontStyle,
       });
-      
+
       if (response.success && response.data) {
         setResultImageUrl(response.data.imageUrl);
         toast.success('Dialogue applied successfully!');
       }
     } catch (error) {
       toast.error('Failed to apply dialogue');
-      console.error(error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -223,7 +209,6 @@ export default function DialogueEditorPage() {
     }
   };
 
-  // Get bubble style icon
   const getBubbleIcon = (style: string) => {
     switch (style) {
       case 'speech': return <MessageCircle className="w-4 h-4" />;
@@ -275,7 +260,6 @@ export default function DialogueEditorPage() {
         </div>
 
         <div className="grid grid-cols-12 gap-6">
-          {/* Left Panel - Image and Bubble Placement */}
           <div className="col-span-8">
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
@@ -309,8 +293,7 @@ export default function DialogueEditorPage() {
                       alt="Manga panel"
                       className="w-full h-full object-contain"
                     />
-                    
-                    {/* Dialogue bubble markers */}
+
                     {!resultImageUrl && dialogues.map((bubble) => (
                       <div
                         key={bubble.id}
@@ -332,8 +315,7 @@ export default function DialogueEditorPage() {
                         {getBubbleIcon(bubble.style || 'speech')}
                       </div>
                     ))}
-                    
-                    {/* Click hint */}
+
                     {dialogues.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                         <div className="bg-black/50 px-4 py-2 rounded-lg">
@@ -365,9 +347,7 @@ export default function DialogueEditorPage() {
             </Card>
           </div>
 
-          {/* Right Panel - Dialogue Controls */}
           <div className="col-span-4 space-y-4">
-            {/* Story Context */}
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-sm">Story Context (for AI)</CardTitle>
@@ -383,7 +363,6 @@ export default function DialogueEditorPage() {
               </CardContent>
             </Card>
 
-            {/* AI Suggestions */}
             {suggestions.length > 0 && (
               <Card className="bg-zinc-900 border-zinc-800">
                 <CardHeader>
@@ -411,7 +390,6 @@ export default function DialogueEditorPage() {
               </Card>
             )}
 
-            {/* Dialogue List */}
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-sm flex items-center justify-between">
@@ -462,7 +440,6 @@ export default function DialogueEditorPage() {
               </CardContent>
             </Card>
 
-            {/* Selected Dialogue Editor */}
             {selectedDialogue && (
               <Card className="bg-zinc-900 border-zinc-800">
                 <CardHeader>
@@ -478,7 +455,7 @@ export default function DialogueEditorPage() {
                       className="bg-zinc-800 border-zinc-700 mt-1"
                     />
                   </div>
-                  
+
                   <div>
                     <Label className="text-xs">Dialogue Text</Label>
                     <Textarea
@@ -489,7 +466,7 @@ export default function DialogueEditorPage() {
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <Label className="text-xs">Style</Label>
@@ -509,7 +486,7 @@ export default function DialogueEditorPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label className="text-xs">Tail Direction</Label>
                       <Select
@@ -558,7 +535,6 @@ export default function DialogueEditorPage() {
               </Card>
             )}
 
-            {/* Output Settings */}
             <Card className="bg-zinc-900 border-zinc-800">
               <CardHeader>
                 <CardTitle className="text-sm">Output Settings</CardTitle>
@@ -579,7 +555,7 @@ export default function DialogueEditorPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label className="text-xs">Font Style</Label>
                   <Select value={fontStyle} onValueChange={(v: any) => setFontStyle(v)}>
@@ -597,7 +573,6 @@ export default function DialogueEditorPage() {
               </CardContent>
             </Card>
 
-            {/* Download Result */}
             {resultImageUrl && (
               <Button className="w-full" asChild>
                 <a href={resultImageUrl} download="manga-with-dialogue.png">

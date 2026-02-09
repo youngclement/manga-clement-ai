@@ -8,26 +8,18 @@ import {
   useSpring,
   useTransform,
 } from "motion/react";
-
-// ==========================================
-// ==== Component Interface ================
-// ==========================================
 export interface HolographicCardProps {
   id?: string;
   width?: number;
   height?: number;
   imageSrc: string;
-  // -- Hover Image --
   hoverImageSrc?: string;
   hoverImageEase?: string;
-  // -- Content Strings --
   topText?: React.ReactNode;
   bottomText?: React.ReactNode;
-  // -- Text Layout / Global --
   mirrorBottomText?: boolean;
   isRTL?: boolean;
   textOverlayPadding?: string;
-  // -- Top Text Config --
   topTextVertical?: boolean;
   topTextWeight?: number | string;
   topTextFontSize?: string | number;
@@ -35,7 +27,6 @@ export interface HolographicCardProps {
   topTextColor?: string;
   topTextHoverColor?: string;
   topTextClassName?: string;
-  // -- Bottom Text Config --
   bottomTextVertical?: boolean;
   bottomTextWeight?: number | string;
   bottomTextFontSize?: string | number;
@@ -43,33 +34,25 @@ export interface HolographicCardProps {
   bottomTextColor?: string;
   bottomTextHoverColor?: string;
   bottomTextClassName?: string;
-  // -- Base Visuals --
   borderRadius?: number;
   borderWidth?: number;
   borderColor?: string;
   backgroundColor?: string;
   imageOpacity?: number;
   maxImageWidthPct?: number;
-  // -- Pattern Props --
   patternColor?: string;
   patternOpacity?: number;
   patternSize?: number;
   patternDotSize?: number;
-  // -- Hologram --
   enableHologram?: boolean;
   hologramOpacity?: number;
   holographicGradient?: string;
-  // -- Interaction --
   enableTilt?: boolean;
   enableDrag?: boolean;
   dragConstraints?: React.RefObject<Element>;
   className?: string;
   style?: React.CSSProperties;
 }
-
-// ==========================================
-// ==== Component Implementation ===========
-// ==========================================
 export const HolographicCard: React.FC<HolographicCardProps> = ({
   id = "namer-ui-holographic-card",
   width = 320,
@@ -77,14 +60,11 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
   imageSrc,
   hoverImageSrc,
   hoverImageEase = "0.3s",
-  // Content
   topText,
   bottomText,
-  // Layout
   mirrorBottomText = true,
   isRTL = false,
   textOverlayPadding = "1.375rem 1.325rem",
-  // Top Text Defaults
   topTextVertical = true,
   topTextWeight = 700,
   topTextFontSize = "1.5rem",
@@ -92,7 +72,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
   topTextColor = "#fff",
   topTextHoverColor = "#FBE75F",
   topTextClassName = "",
-  // Bottom Text Defaults
   bottomTextVertical = true,
   bottomTextWeight = 700,
   bottomTextFontSize = "1.5rem",
@@ -100,19 +79,16 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
   bottomTextColor = "#fff",
   bottomTextHoverColor = "#FBE75F",
   bottomTextClassName = "",
-  // Base Visuals
   borderRadius = 24,
   borderWidth = 1,
   borderColor = "rgba(255,255,255,0.1)",
   backgroundColor = "#000",
   imageOpacity = 0.9,
   maxImageWidthPct = 1,
-  // Pattern
   patternColor = "#000",
   patternOpacity = 0.15,
   patternSize = 3,
   patternDotSize = 1,
-  // Hologram / Interaction
   enableHologram = true,
   hologramOpacity = 0.4,
   holographicGradient = "linear-gradient(135deg, transparent 35%, rgba(255,0,128,0.4) 45%, rgba(0,255,255,0.4) 55%, transparent 65%)",
@@ -124,8 +100,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
-
-  // === Tilt Logic ===
   const x = useMotionValue(0);
   const y = useMotionValue(0);
   const mouseX = useSpring(x, { stiffness: 200, damping: 25 });
@@ -140,8 +114,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
     [-0.5, 0.5],
     enableTilt ? [-12, 12] : [0, 0],
   );
-
-  // Hologram gradients
   const bgX = useTransform(mouseX, [-0.5, 0.5], ["0%", "100%"]);
   const bgY = useTransform(mouseY, [-0.5, 0.5], ["0%", "100%"]);
   const shineX = useTransform(mouseX, [-0.5, 0.5], ["0%", "100%"]);
@@ -169,15 +141,9 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
   const handleDragEnd = () => {
     if (typeof document !== "undefined") document.body.style.cursor = "default";
   };
-
-  // === Hover Colors ===
   const topTextHoverColorFinal = topTextHoverColor || topTextColor;
   const bottomTextHoverColorFinal = bottomTextHoverColor || bottomTextColor;
-
-  // === Alignment Logic ===
   const bottomJustify = isRTL !== mirrorBottomText ? "flex-start" : "flex-end";
-
-  // === Scoped IDs ===
   const wrapperClass = `holo-card-wrapper-${id}`;
   const cardBodyClass = `holo-card-body-${id}`;
   const patternClass = `holo-pattern-${id}`;
@@ -238,12 +204,9 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
           }}
           className="relative"
         >
-          {/* CARD BODY */}
           <div className={cardBodyClass}>
-            {/* Pattern */}
             <div className={patternClass} />
 
-            {/* Background Image 1 (Base) */}
             <div
               className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
               style={{ opacity: imageOpacity }}
@@ -261,7 +224,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
               />
             </div>
 
-            {/* Background Image 2 (Hover Reveal) */}
             {hoverImageSrc && (
               <div
                 className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center"
@@ -284,7 +246,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
               </div>
             )}
 
-            {/* Hologram Overlay */}
             {enableHologram && (
               <motion.div
                 className="pointer-events-none absolute inset-0 z-20 mix-blend-color-dodge"
@@ -298,9 +259,7 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
               />
             )}
 
-            {/* TEXT CONTENT */}
             <div className="pointer-events-none absolute inset-0 z-30">
-              {/* --- TOP TEXT --- */}
               {topText && (
                 <div
                   className={topTextClassName}
@@ -327,7 +286,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
                 </div>
               )}
 
-              {/* --- BOTTOM TEXT --- */}
               {bottomText && (
                 <div
                   style={{
@@ -367,7 +325,6 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
             </div>
           </div>
 
-          {/* GLARE */}
           <motion.div
             className="pointer-events-none absolute inset-0 z-40"
             style={{
@@ -381,5 +338,3 @@ export const HolographicCard: React.FC<HolographicCardProps> = ({
     </>
   );
 };
-
-

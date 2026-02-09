@@ -59,7 +59,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
 
     setLoading(true)
     try {
-      // Call your generation API
       const response = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +80,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
         setGeneratedImage(imageUrl)
       }
     } catch (error) {
-      console.error('Generation error:', error)
       toast.error('Failed to generate image')
     } finally {
       setLoading(false)
@@ -92,7 +90,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
     if (!generatedImage) return
 
     if (targetPanel && targetPanel.type === 'panel') {
-      // Create image inside panel
       const newImage = createImageElement(
         generateId(),
         generatedImage,
@@ -101,13 +98,10 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
       )
       newImage.parentId = targetPanel.id
       addElement(newImage)
-      
-      // Update panel children
       updateElement(targetPanel.id, {
         children: [...(targetPanel.children || []), newImage.id],
       } as any)
     } else {
-      // Create standalone image
       const newImage = createImageElement(
         generateId(),
         generatedImage,
@@ -144,7 +138,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
         </DialogHeader>
 
         <div className="space-y-4 mt-4">
-          {/* Prompt */}
           <div className="space-y-2">
             <Label className="text-zinc-300">Prompt</Label>
             <Textarea
@@ -155,7 +148,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
             />
           </div>
 
-          {/* Style */}
           <div className="space-y-2">
             <Label className="text-zinc-300">Style</Label>
             <Select value={style} onValueChange={setStyle}>
@@ -176,7 +168,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
             </Select>
           </div>
 
-          {/* Generated Preview */}
           {generatedImage && (
             <div className="space-y-2">
               <Label className="text-zinc-300">Preview</Label>
@@ -190,7 +181,6 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
             </div>
           )}
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <Button
               variant="outline"

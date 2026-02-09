@@ -157,5 +157,3 @@ export const fetchRelatedProjects = async (
     return projects as MangaProject[];
   }, []) as Promise<MangaProject[]>;
 };
-
-
