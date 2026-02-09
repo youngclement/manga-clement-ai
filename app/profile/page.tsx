@@ -298,9 +298,8 @@ export default function ProfilePage() {
 
     return (
         <div className="w-full py-10 md:py-20 space-y-8">
-            {showWelcomeBanner && (
+            {/* {showWelcomeBanner && (
                 <div className="bg-linear-to-r from-amber-500/20 to-amber-600/20 border border-amber-500/30 rounded-2xl p-4 flex items-start gap-3 relative">
-                   
                     <div className="flex-1 space-y-1">
                         <h3 className="text-sm font-semibold text-amber-300">
                             Welcome to Manga Studio!
@@ -316,7 +315,7 @@ export default function ProfilePage() {
                         <X className="h-4 w-4" />
                     </button>
                 </div>
-            )}
+            )} */}
 
             {isProfileIncomplete && !showWelcomeBanner && (
                 <div className="bg-blue-500/10 border border-blue-500/30 rounded-2xl p-4 flex items-start gap-3">
