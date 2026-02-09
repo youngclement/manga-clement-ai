@@ -517,7 +517,7 @@ const MangaGeneratorV2 = () => {
     startProgress();
 
     try {
-      const sessionHistory = workingSession.pages || [];
+      const sessionHistory = (workingSession.pages || []).slice(-3);
       const configWithContext = { ...config, context: context || config.context };
 
       const response = await fetch('/api/generate', {
@@ -672,7 +672,7 @@ const MangaGeneratorV2 = () => {
           return;
         }
 
-        const sessionHistory = localSession.pages || [];
+        const sessionHistory = (localSession.pages || []).slice(-3);
         const isAutoContinuePage = config.autoContinueStory && sessionHistory.length > 0;
 
         const cleanedUserPrompt = prompt ? cleanUserPrompt(prompt) : '';
