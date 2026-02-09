@@ -34,6 +34,7 @@ import {
   MangaSession,
 } from '@/lib/types';
 import { loadProject, updateProjectMeta, saveProject, saveSession, deleteProject, deleteSession as deleteSessionApi, deletePages, deleteImage, deleteImages, addPageToSession } from '@/lib/services/storage-service';
+import { generateService, type GenerateRequest } from '@/lib/api/generate';
 import StorySettingsPanel from '@/components/story-settings-panel';
 import SessionSidebar from '@/components/studio/session-sidebar';
 import PromptPanel from '@/components/studio/prompt-panel';
@@ -517,34 +518,41 @@ const MangaGeneratorV2 = () => {
     startProgress();
 
     try {
-      const sessionHistory = (workingSession.pages || []).slice(-3);
-      const configWithContext = { ...config, context: context || config.context };
+      const recentPages = (workingSession.pages || []).slice(-3);
 
-      const response = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const generateRequest: GenerateRequest = {
+        prompt: finalPrompt,
+        config: {
+          style: 'manga',
+          genre: context || config.context || 'general',
+          colorScheme: config.useColor ? 'color' : 'blackwhite',
+          resolution: 'high',
+          aspectRatio: '16:9',
         },
-        body: JSON.stringify({
-          prompt: finalPrompt,
-          config: configWithContext,
-          sessionHistory,
-          isAutoContinue,
-        }),
-      });
+        sessionHistory: recentPages.map((p, index) => ({
+          id: p.id,
+          imageUrl: p.url || '',
+          prompt: p.prompt || '',
+          pageNumber: (p as any).pageNumber ?? recentPages.length - index,
+        })),
+        isAutoContinue,
+        projectId: project?.id,
+      };
 
-      if (!response.ok) {
-        const errorBody = await response.json().catch(() => null);
-        const msg = errorBody?.details || errorBody?.error || 'Failed to generate manga';
-        throw new Error(msg);
+      const response = await generateService.generateSingle(generateRequest);
+
+      if (!response.success || !response.data) {
+        throw new Error('Failed to generate manga from backend');
       }
 
-      const body = await response.json();
+      const data = response.data;
       const imageUrl: string | null =
-        body?.data?.imageUrl || body?.data?.page?.imageUrl || null;
+        data.imageUrl ||
+        data.page?.panels?.[0]?.imageUrl ||
+        null;
 
       if (!imageUrl) {
-        throw new Error('Missing imageUrl from generate API response');
+        throw new Error('Missing imageUrl from backend generate response');
       }
 
       setGenerationProgress(100);
