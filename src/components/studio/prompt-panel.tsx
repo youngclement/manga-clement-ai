@@ -164,7 +164,7 @@ export default function PromptPanel({
                     </div>
                 )}
 
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <button
                         onClick={onGenerate}
                         disabled={loading || batchLoading || (!prompt.trim() && !isAutoContinue)}
@@ -176,7 +176,7 @@ export default function PromptPanel({
                     {batchLoading ? (
                         <button
                             onClick={onCancelBatch}
-                            className="col-span-2 px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(153,27,27)] hover:shadow-[0_4px_0_0_rgb(153,27,27)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1 ring-2 ring-transparent hover:ring-red-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
+                            className="px-4 sm:px-6 py-3 sm:py-3.5 bg-gradient-to-b from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-2 shadow-[0_4px_0_0_rgb(153,27,27)] hover:shadow-[0_4px_0_0_rgb(153,27,27)] hover:scale-[1.02] active:shadow-[0_1px_0_0_rgb(153,27,27)] active:translate-y-1 ring-2 ring-transparent hover:ring-red-500/30 touch-manipulation min-h-[48px] sm:min-h-[52px]"
                             style={{ fontFamily: 'var(--font-inter)' }}
                         >
                             <X size={14} className="sm:w-4 sm:h-4" />
