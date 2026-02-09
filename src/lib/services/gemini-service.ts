@@ -786,9 +786,11 @@ ${sessionHistory && sessionHistory.length > 0 ? `\nCONTINUITY: Characters must b
       let pagesToUse: GeneratedManga[] = [];
 
       if (selectedReferencePageIds && selectedReferencePageIds.length > 0) {
-        pagesToUse = sessionHistory.filter(page => selectedReferencePageIds.includes(page.id));
+        // Only take last 1 from selected to reduce payload
+        pagesToUse = sessionHistory.filter(page => selectedReferencePageIds.includes(page.id)).slice(-1);
       } else {
-        pagesToUse = sessionHistory.slice(-2);
+        // Keep only last 1 page as reference to avoid payload too large
+        pagesToUse = sessionHistory.slice(-1);
       }
 
       if (pagesToUse.length > 0) {

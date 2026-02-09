@@ -517,7 +517,8 @@ const MangaGeneratorV2 = () => {
     startProgress();
 
     try {
-      let sessionHistory = (workingSession.pages || []).slice(-2);
+      // Keep only last 1 page as reference to avoid payload too large
+      let sessionHistory = (workingSession.pages || []).slice(-1);
       const configWithContext = { ...config, context: context || config.context };
 
       if (isAutoContinue && sessionHistory.length > 0) {
@@ -714,7 +715,8 @@ const MangaGeneratorV2 = () => {
           return;
         }
 
-        let sessionHistory = (localSession.pages || []).slice(-2);
+        // Keep only last 1 page as reference to avoid payload too large
+        let sessionHistory = (localSession.pages || []).slice(-1);
         const isAutoContinuePage = config.autoContinueStory && sessionHistory.length > 0;
 
         if (isAutoContinuePage && sessionHistory.length > 0) {
