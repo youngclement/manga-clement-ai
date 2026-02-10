@@ -14,9 +14,9 @@ export default function LandingPage() {
             <Header />
             <Hero />
             <VideoDemoSection 
-                youtubeId="dQw4w9WgXcQ"
-                title="See Manga Studio in Action"
-                subtitle="Watch how easy it is to create stunning manga pages with AI in just minutes."
+                youtubeId="gFHGGryWHxw"
+                title="How to Create Manga with AI Studio"
+                subtitle="Create your own manga with AI - no drawing skills required. Learn everything from starting a new project to generating stunning manga pages."
             />
             <AnimatedMangaListSection />
             <RecentCreationsSection />
