@@ -69,7 +69,8 @@ export default function RegisterPage() {
                 toast.success('Registration successful!', {
                     description: 'Welcome to Manga Studio!',
                 });
-                router.push('/profile?welcome=true');
+                // Sau khi đăng ký, đưa user vào thẳng Studio thay vì bắt buộc qua trang Profile
+                router.push('/studio');
             } else {
                 const msg = 'Unexpected response from server';
                 setError(msg);
