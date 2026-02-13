@@ -114,24 +114,20 @@ export default function CommunityPage() {
             <h2 className="text-lg font-semibold text-zinc-200">Trending</h2>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {trendingProjects.map(project => (
+            {trendingProjects.map(project => {
+              const coverImg = project.coverImageUrl || project.pages?.[0]?.url || project.sessions?.[0]?.pages?.[0]?.url
+              return (
               <Link
                 key={`trending-${project.ownerId}-${project.id}`}
                 href={`/community/${encodeURIComponent(project.ownerId!)}/${encodeURIComponent(project.id)}`}
                 className="group rounded-xl border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-amber-400/70 transition-all"
               >
-                <div className="h-24 bg-zinc-800/80 flex items-center justify-center">
-                  {project.coverImageUrl ? (
+                <div className="h-24 bg-zinc-800/80 flex items-center justify-center overflow-hidden">
+                  {coverImg ? (
                     <img
-                      src={project.coverImageUrl}
+                      src={coverImg}
                       alt={project.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : project.pages?.[0]?.url ? (
-                    <img
-                      src={project.pages[0].url}
-                      alt={project.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                     />
                   ) : (
                     <span className="text-[10px] text-zinc-500">No preview</span>
@@ -153,7 +149,7 @@ export default function CommunityPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
         </div>
       )}
@@ -235,7 +231,10 @@ export default function CommunityPage() {
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {projects.map(project => (
+            {projects.map(project => {
+              const coverImg = project.coverImageUrl || project.pages?.[0]?.url || project.sessions?.[0]?.pages?.[0]?.url
+              const pageCount = (project.pages?.length || 0) + (project.sessions?.reduce((sum, s) => sum + (s.pages?.length || 0), 0) || 0)
+              return (
               <Link
                 key={`${project.ownerId || 'unknown'}-${project.id}`}
                 href={project.ownerId ? `/community/${encodeURIComponent(project.ownerId)}/${encodeURIComponent(project.id)}` : '#'}
@@ -243,21 +242,15 @@ export default function CommunityPage() {
               >
                 <div className="group rounded-2xl border border-zinc-800 bg-zinc-900/60 overflow-hidden hover:border-amber-400/70 hover:shadow-[0_0_35px_rgba(251,191,36,0.25)] transition-all h-full flex flex-col">
                   <div className="h-40 bg-zinc-800/80 flex items-center justify-center relative overflow-hidden">
-                    {project.coverImageUrl ? (
+                    {coverImg ? (
                       <img
-                        src={project.coverImageUrl}
-                        alt={project.title || 'Manga cover'}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : project.pages?.[0]?.url ? (
-                      <img
-                        src={project.pages[0].url}
+                        src={coverImg}
                         alt={project.title || 'Manga cover'}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                       />
                     ) : (
                       <span className="text-xs text-zinc-500 opacity-70">
-                        {project.pages?.length ? `${project.pages.length} pages` : 'No preview'}
+                        {pageCount > 0 ? `${pageCount} pages` : 'No preview'}
                       </span>
                     )}
                     {project.tags && project.tags.length > 0 && (
@@ -307,7 +300,7 @@ export default function CommunityPage() {
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
 
           {hasMore && (

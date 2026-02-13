@@ -16,7 +16,7 @@ export const getMyProfile = async (): Promise<UserProfile | null> => {
     }
 
     const data = await res.json();
-    const profile = data?.data?.profile ?? data?.profile ?? null;
+    const profile = data?.data?.profile ?? data?.data ?? data?.profile ?? null;
     return profile as UserProfile | null;
   }, null) as Promise<UserProfile | null>;
 };
@@ -63,7 +63,30 @@ export const updateMyProfile = async (
     }
 
     const data = await res.json();
-    const profile = data?.data?.profile ?? data?.profile ?? null;
+    const profile = data?.data?.profile ?? data?.data ?? data?.profile ?? null;
     return profile as UserProfile | null;
   }, null) as Promise<UserProfile | null>;
+};
+
+export const uploadAvatar = async (imageData: string): Promise<string> => {
+  return safeAsync(async () => {
+    const res = await apiFetch('/api/users/avatar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ imageData }),
+    });
+
+    if (!res.ok) {
+      await handleApiError(res);
+    }
+
+    const data = await res.json();
+    const avatarUrl = data?.data?.avatarUrl ?? data?.avatarUrl ?? null;
+    if (!avatarUrl) {
+      throw new Error('Failed to upload avatar');
+    }
+    return avatarUrl as string;
+  }, '') as Promise<string>;
 };

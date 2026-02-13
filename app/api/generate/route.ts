@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
       isAutoContinue,
     } = validated;
 
-    // Treat undefined or null as false so the field is effectively optional.
     const safeIsAutoContinue = !!isAutoContinue;
 
     const pageNumber = sessionHistory.length + 1;
