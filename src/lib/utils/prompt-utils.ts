@@ -1,9 +1,41 @@
-export function cleanUserPrompt(prompt: string): string {
-  if (!prompt) return '';
+const MAX_SHORT_PROMPT_LENGTH = 500;
+const MAX_LINE_LENGTH = 200;
+const MIN_INSTRUCTION_KEYWORD_COUNT = 5;
 
-  let cleaned = prompt.trim();
+const INSTRUCTION_PREFIXES = [
+  /^📝\s*USER\s*PROMPT[:\s]*/i,
+  /^⚠️⚠️⚠️\s*CRITICAL[:\s]*/i,
+  /^📖\s*STORY\s*CONTINUATION[:\s]*/i,
+  /^🎨\s*TECHNICAL\s*SPECIFICATIONS[:\s]*/i,
+  /^🔞\s*CONTENT\s*POLICY[:\s]*/i,
+  /^⚠️\s*ENGLISH\s*TEXT\s*ACCURACY[:\s]*/i,
+  /^MANGA\s*PAGE\s*GENERATION\s*REQUEST[:\s]*/i,
+];
 
-  cleaned = cleaned
+const INSTRUCTION_KEYWORDS = [
+  'CRITICAL', 'REQUIREMENTS', 'MUST', 'SHOULD', 'CHARACTER CONSISTENCY',
+  'TEXT ACCURACY', 'PANEL LAYOUT', 'STORY CONTINUITY', 'VISUAL REFERENCE',
+  'TECHNICAL SPECIFICATIONS', 'CONTENT POLICY', 'DIALOGUE', 'COMPOSITION'
+];
+
+const INSTRUCTION_LINE_MARKERS = ['CRITICAL', 'MUST', 'REQUIREMENTS', '⚠️', '✓', '✗', 'STEP', 'CHECKLIST'];
+
+function countKeywords(text: string, keywords: string[]): number {
+  const upperText = text.toUpperCase();
+  return keywords.filter(keyword => upperText.includes(keyword)).length;
+}
+
+function isInstructionLine(line: string): boolean {
+  const upperLine = line.toUpperCase();
+  return INSTRUCTION_LINE_MARKERS.some(marker => upperLine.includes(marker)) || line.length > MAX_LINE_LENGTH;
+}
+
+function stripPrefixes(text: string): string {
+  return INSTRUCTION_PREFIXES.reduce((result, regex) => result.replace(regex, ''), text);
+}
+
+function normalizeWhitespace(text: string): string {
+  return text
     .replace(/[╔╗╚╝║═]/g, '')
     .replace(/\\n/g, '\n')
     .replace(/\\t/g, '\t')
@@ -12,116 +44,74 @@ export function cleanUserPrompt(prompt: string): string {
     .map(line => line.trim())
     .filter(line => line.length > 0)
     .join('\n');
+}
 
-  const instructionPrefixes = [
-    /^📝\s*USER\s*PROMPT[:\s]*/i,
-    /^⚠️⚠️⚠️\s*CRITICAL[:\s]*/i,
-    /^📖\s*STORY\s*CONTINUATION[:\s]*/i,
-    /^🎨\s*TECHNICAL\s*SPECIFICATIONS[:\s]*/i,
-    /^🔞\s*CONTENT\s*POLICY[:\s]*/i,
-    /^⚠️\s*ENGLISH\s*TEXT\s*ACCURACY[:\s]*/i,
-    /^MANGA\s*PAGE\s*GENERATION\s*REQUEST[:\s]*/i,
-  ];
+function extractUserLines(text: string): string {
+  const lines = text.split('\n');
+  const userLines = lines.filter(line => !isInstructionLine(line) && line.trim().length > 0);
+  return userLines.length > 0 ? userLines.join('\n').trim() : text;
+}
 
-  instructionPrefixes.forEach(regex => {
-    cleaned = cleaned.replace(regex, '');
-  });
+export function cleanUserPrompt(prompt: string): string {
+  if (!prompt) return '';
 
-  if (cleaned.length > 500) {
-    const instructionKeywords = [
-      'CRITICAL', 'REQUIREMENTS', 'MUST', 'SHOULD', 'CHARACTER CONSISTENCY',
-      'TEXT ACCURACY', 'PANEL LAYOUT', 'STORY CONTINUITY', 'VISUAL REFERENCE',
-      'TECHNICAL SPECIFICATIONS', 'CONTENT POLICY', 'DIALOGUE', 'COMPOSITION'
-    ];
+  let cleaned = normalizeWhitespace(prompt.trim());
+  cleaned = stripPrefixes(cleaned);
 
-    const instructionCount = instructionKeywords.reduce((count, keyword) => {
-      return count + (cleaned.toUpperCase().includes(keyword) ? 1 : 0);
-    }, 0);
-
-    if (instructionCount > 5) {
-      const lines = cleaned.split('\n');
-      const userLines: string[] = [];
-
-      for (const line of lines) {
-        const upperLine = line.toUpperCase();
-        if (
-          upperLine.includes('CRITICAL') ||
-          upperLine.includes('MUST') ||
-          upperLine.includes('REQUIREMENTS') ||
-          upperLine.includes('⚠️') ||
-          upperLine.includes('✓') ||
-          upperLine.includes('✗') ||
-          upperLine.includes('STEP') ||
-          upperLine.includes('CHECKLIST') ||
-          line.length > 200
-        ) {
-          continue;
-        }
-        if (line.length < 200 && line.trim().length > 0) {
-          userLines.push(line);
-        }
-      }
-
-      if (userLines.length > 0) {
-        cleaned = userLines.join('\n').trim();
-      }
+  if (cleaned.length > MAX_SHORT_PROMPT_LENGTH) {
+    const instructionCount = countKeywords(cleaned, INSTRUCTION_KEYWORDS);
+    if (instructionCount > MIN_INSTRUCTION_KEYWORD_COUNT) {
+      cleaned = extractUserLines(cleaned);
     }
   }
 
-  cleaned = cleaned
-    .trim()
-    .replace(/\s+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n');
-
-  return cleaned;
+  return cleaned.trim().replace(/\s+/g, ' ');
 }
 
+const AUTO_GENERATED_PATTERNS = [
+  /^Continue the story naturally/i,
+  /^📖\s*(STORY|BATCH)\s*CONTINUATION/i,
+  /^Continue the story naturally from page/i,
+];
+
+const USER_PROMPT_KEYWORDS = [
+  'CRITICAL', 'REQUIREMENTS', 'MUST', 'CHARACTER CONSISTENCY',
+  'TEXT ACCURACY', 'PANEL LAYOUT', 'STORY CONTINUITY'
+];
+
 export function isUserProvidedPrompt(prompt: string | undefined | null): boolean {
-  if (!prompt || !prompt.trim()) return false;
+  if (!prompt?.trim()) return false;
 
   const trimmed = prompt.trim();
 
-  const autoGeneratedPatterns = [
-    /^Continue the story naturally/i,
-    /^📖\s*(STORY|BATCH)\s*CONTINUATION/i,
-    /^Continue the story naturally from page/i,
-  ];
-
-  for (const pattern of autoGeneratedPatterns) {
-    if (pattern.test(trimmed)) {
-      return false;
-    }
+  if (AUTO_GENERATED_PATTERNS.some(pattern => pattern.test(trimmed))) {
+    return false;
   }
 
-  if (trimmed.length > 500) {
-    const instructionKeywords = [
-      'CRITICAL', 'REQUIREMENTS', 'MUST', 'CHARACTER CONSISTENCY',
-      'TEXT ACCURACY', 'PANEL LAYOUT', 'STORY CONTINUITY'
-    ];
-
-    const keywordCount = instructionKeywords.reduce((count, keyword) => {
-      return count + (trimmed.toUpperCase().includes(keyword) ? 1 : 0);
-    }, 0);
-
-    if (keywordCount > 3) {
-      return false;
-    }
+  if (trimmed.length > MAX_SHORT_PROMPT_LENGTH && countKeywords(trimmed, USER_PROMPT_KEYWORDS) > 3) {
+    return false;
   }
 
   return true;
 }
 
+const MAX_INTENT_LENGTH = 300;
+const MAX_SENTENCE_LENGTH = 200;
+
 export function extractUserIntent(prompt: string): string {
   const cleaned = cleanUserPrompt(prompt);
 
-  if (cleaned.length > 300) {
-    const sentences = cleaned.split(/[.!?]\s+/);
-    if (sentences.length > 0 && sentences[0].length < 200) {
-      return sentences[0].trim();
-    }
-
-    return cleaned.substring(0, 200).trim();
+  if (cleaned.length <= MAX_INTENT_LENGTH) {
+    return cleaned;
   }
 
-  return cleaned;
+  const sentences = cleaned.split(/[.!?]\s+/);
+  const firstSentence = sentences[0];
+
+  if (firstSentence && firstSentence.length < MAX_SENTENCE_LENGTH) {
+    return firstSentence.trim();
+  }
+
+  return cleaned.substring(0, MAX_SENTENCE_LENGTH).trim();
 }
+
