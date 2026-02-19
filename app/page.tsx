@@ -8,7 +8,7 @@ import { VideoDemoSection } from '@/components/landing/video-demo-section';
 
 export default function LandingPage() {
     return (
-        <div className=" lg:px-50 sm:px-10 ">
+        <div className="px-4 sm:px-10 lg:px-50">
             <Header />
             <Hero />
             <VideoDemoSection 

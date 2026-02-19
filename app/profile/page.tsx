@@ -347,9 +347,9 @@ export default function ProfilePage() {
                             )}
                         </div>
 
-                        <div className="flex items-start gap-6 mb-6">
+                        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6">
                             <div className="relative group shrink-0">
-                                <Avatar className="h-32 w-32 border-2 border-amber-400/50">
+                                <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-2 border-amber-400/50">
                                     {avatarUrl ? (
                                         <AvatarImage src={avatarUrl} alt={displayName || profile?.username || 'User'} />
                                     ) : null}
@@ -423,7 +423,7 @@ export default function ProfilePage() {
                                         value={email}
                                         onChange={e => setEmail(e.target.value)}
                                         placeholder="your@email.com"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{email || 'Not set'}</span>
@@ -437,7 +437,7 @@ export default function ProfilePage() {
                                         value={phone}
                                         onChange={e => setPhone(e.target.value)}
                                         placeholder="+84 xxx xxx xxx"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{phone || 'Not set'}</span>
@@ -450,7 +450,7 @@ export default function ProfilePage() {
                                         value={location}
                                         onChange={e => setLocation(e.target.value)}
                                         placeholder="City, Country"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{location || 'Not set'}</span>
@@ -464,7 +464,7 @@ export default function ProfilePage() {
                                         value={website}
                                         onChange={e => setWebsite(e.target.value)}
                                         placeholder="https://yourwebsite.com"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{website || 'Not set'}</span>
@@ -480,7 +480,7 @@ export default function ProfilePage() {
                                         value={socialLinks.twitter}
                                         onChange={e => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
                                         placeholder="@username or URL"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{socialLinks.twitter || 'Not set'}</span>
@@ -493,7 +493,7 @@ export default function ProfilePage() {
                                         value={socialLinks.instagram}
                                         onChange={e => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
                                         placeholder="@username or URL"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{socialLinks.instagram || 'Not set'}</span>
@@ -506,7 +506,7 @@ export default function ProfilePage() {
                                         value={socialLinks.facebook}
                                         onChange={e => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
                                         placeholder="URL"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{socialLinks.facebook || 'Not set'}</span>
@@ -519,7 +519,7 @@ export default function ProfilePage() {
                                         value={socialLinks.youtube}
                                         onChange={e => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
                                         placeholder="URL"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{socialLinks.youtube || 'Not set'}</span>
@@ -532,7 +532,7 @@ export default function ProfilePage() {
                                         value={socialLinks.tiktok}
                                         onChange={e => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
                                         placeholder="@username or URL"
-                                        className="bg-zinc-950 border-zinc-700 text-sm w-64"
+                                        className="bg-zinc-950 border-zinc-700 text-sm w-40 sm:w-64"
                                     />
                                 ) : (
                                     <span className="text-sm text-zinc-400">{socialLinks.tiktok || 'Not set'}</span>
