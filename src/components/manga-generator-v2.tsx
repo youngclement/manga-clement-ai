@@ -1174,28 +1174,15 @@ const MangaGeneratorV2 = () => {
 
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
           {isMobile && (
-            <>
-              <button
-                onClick={() => {
-                  setShowMobileSidebar(!showMobileSidebar);
-                  setShowMobileSettings(false);
-                }}
-                className="p-2.5 rounded-lg hover:bg-zinc-800/60 active:bg-zinc-800 transition-all active:scale-95 touch-manipulation"
-                title="Sessions"
-              >
-                <Layers size={20} className="text-zinc-300" />
-              </button>
-              <button
-                onClick={() => {
-                  setShowMobileSettings(!showMobileSettings);
-                  setShowMobileSidebar(false);
-                }}
-                className="p-2.5 rounded-lg hover:bg-zinc-800/60 active:bg-zinc-800 transition-all active:scale-95 touch-manipulation"
-                title="Generate"
-              >
-                <Settings size={20} className="text-zinc-300" />
-              </button>
-            </>
+            <button
+              onClick={() => {
+                setShowMobileSidebar(!showMobileSidebar);
+              }}
+              className="p-2.5 rounded-lg hover:bg-zinc-800/60 active:bg-zinc-800 transition-all active:scale-95 touch-manipulation"
+              title="Sessions"
+            >
+              <Layers size={20} className="text-zinc-300" />
+            </button>
           )}
           <button
             onClick={() => setShowChat(!showChat)}
@@ -1331,15 +1318,100 @@ const MangaGeneratorV2 = () => {
           </>
         )}
 
-        <CanvasArea
-          loading={loading}
-          generationProgress={generationProgress}
-          retryCount={retryCount}
-          currentImage={currentImage}
-          onShowFullscreen={() => setShowFullscreen(true)}
-          onAddToProject={addToProject}
-          onDiscardImage={() => setCurrentImage(null)}
-        />
+        {/* Desktop: CanvasArea only */}
+        {!isMobile && (
+          <CanvasArea
+            loading={loading}
+            generationProgress={generationProgress}
+            retryCount={retryCount}
+            currentImage={currentImage}
+            onShowFullscreen={() => setShowFullscreen(true)}
+            onAddToProject={addToProject}
+            onDiscardImage={() => setCurrentImage(null)}
+          />
+        )}
+
+        {/* Mobile: Split layout with canvas on top and gen/settings panel always visible below */}
+        {isMobile && (
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Mobile Canvas Area - smaller */}
+            <div className="flex-shrink-0 h-[40vh] min-h-[200px] bg-zinc-950 border-b border-zinc-800/50 overflow-auto">
+              <CanvasArea
+                loading={loading}
+                generationProgress={generationProgress}
+                retryCount={retryCount}
+                currentImage={currentImage}
+                onShowFullscreen={() => setShowFullscreen(true)}
+                onAddToProject={addToProject}
+                onDiscardImage={() => setCurrentImage(null)}
+              />
+            </div>
+
+            {/* Mobile Gen/Settings Panel - always visible */}
+            <div className="flex-1 flex flex-col bg-zinc-900 overflow-hidden">
+              {/* Tabs */}
+              <div className="flex border-b border-zinc-800 bg-zinc-900/95 backdrop-blur-sm flex-shrink-0">
+                <button
+                  onClick={() => setMobileTab('prompt')}
+                  className={`flex-1 px-4 py-3 text-sm font-bold transition-all relative ${mobileTab === 'prompt'
+                    ? 'text-amber-400'
+                    : 'text-zinc-400'
+                    }`}
+                >
+                  Generate
+                  {mobileTab === 'prompt' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />
+                  )}
+                </button>
+                <button
+                  onClick={() => setMobileTab('settings')}
+                  className={`flex-1 px-4 py-3 text-sm font-bold transition-all relative ${mobileTab === 'settings'
+                    ? 'text-amber-400'
+                    : 'text-zinc-400'
+                    }`}
+                >
+                  Settings
+                  {mobileTab === 'settings' && (
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />
+                  )}
+                </button>
+              </div>
+
+              {/* Panel Content */}
+              <div className="flex-1 overflow-y-auto custom-scrollbar pb-20">
+                {mobileTab === 'prompt' ? (
+                  <div className="p-4">
+                    <PromptPanel
+                      prompt={prompt}
+                      currentSession={currentSession}
+                      loading={loading}
+                      error={error}
+                      batchLoading={batchLoading}
+                      batchProgress={batchProgress}
+                      generationProgress={generationProgress}
+                      retryCount={retryCount}
+                      config={config}
+                      onPromptChange={setPrompt}
+                      onGenerate={handleGenerate}
+                      onBatchGenerate={handleBatchGenerate}
+                      onCompleteChapter={handleCompleteChapter}
+                      onCancelBatch={cancelBatchGenerate}
+                    />
+                  </div>
+                ) : (
+                  <div className="p-4">
+                    <StorySettingsPanel
+                      context={context}
+                      config={config}
+                      onContextChange={updateSessionContext}
+                      onConfigChange={updateConfig}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {showChat && currentSession && (
           <ChatHistoryPanel
@@ -1348,6 +1420,7 @@ const MangaGeneratorV2 = () => {
           />
         )}
 
+        {/* Mobile Sessions Sidebar - still drawer */}
         {isMobile && showMobileSidebar && (
           <>
             <div
@@ -1388,94 +1461,6 @@ const MangaGeneratorV2 = () => {
                   onConfigChange={updateConfig}
                   leftWidth={320}
                 />
-              </div>
-            </div>
-          </>
-        )}
-
-        {isMobile && showMobileSettings && (
-          <>
-            <div
-              className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm transition-opacity"
-              onClick={() => setShowMobileSettings(false)}
-            />
-            <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 z-50 lg:hidden flex flex-col shadow-2xl rounded-t-3xl max-h-[85vh] animate-in slide-in-from-bottom duration-300">
-              <div className="flex justify-center pt-3 pb-2">
-                <div className="w-12 h-1.5 bg-zinc-700 rounded-full" />
-              </div>
-
-              <div className="flex border-b border-zinc-800 bg-zinc-900/50 px-4">
-                <button
-                  onClick={() => setMobileTab('prompt')}
-                  className={`flex-1 px-4 py-4 text-sm font-bold transition-all relative ${mobileTab === 'prompt'
-                    ? 'text-amber-400'
-                    : 'text-zinc-400'
-                    }`}
-                >
-                  Generate
-                  {mobileTab === 'prompt' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setMobileTab('settings')}
-                  className={`flex-1 px-4 py-4 text-sm font-bold transition-all relative ${mobileTab === 'settings'
-                    ? 'text-amber-400'
-                    : 'text-zinc-400'
-                    }`}
-                >
-                  Settings
-                  {mobileTab === 'settings' && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-400 rounded-full" />
-                  )}
-                </button>
-                <button
-                  onClick={() => setShowMobileSettings(false)}
-                  className="p-3 text-zinc-400 hover:text-zinc-200 active:scale-95 transition-transform"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto custom-scrollbar">
-                {mobileTab === 'prompt' ? (
-                  <div className="p-4 pb-8">
-                    <PromptPanel
-                      prompt={prompt}
-                      currentSession={currentSession}
-                      loading={loading}
-                      error={error}
-                      batchLoading={batchLoading}
-                      batchProgress={batchProgress}
-                      generationProgress={generationProgress}
-                      retryCount={retryCount}
-                      config={config}
-                      onPromptChange={setPrompt}
-                      onGenerate={() => {
-                        handleGenerate();
-                        setShowMobileSettings(false);
-                      }}
-                      onBatchGenerate={(count) => {
-                        handleBatchGenerate(count);
-                        setShowMobileSettings(false);
-                      }}
-                      onCompleteChapter={(targetPages) => {
-                        handleCompleteChapter(targetPages);
-                        setShowMobileSettings(false);
-                      }}
-                      onCancelBatch={cancelBatchGenerate}
-                    />
-                  </div>
-                ) : (
-                  <div className="p-4 pb-8">
-                    <StorySettingsPanel
-                      context={context}
-                      config={config}
-                      onContextChange={updateSessionContext}
-                      onConfigChange={updateConfig}
-                    />
-                  </div>
-                )}
               </div>
             </div>
           </>
@@ -1609,64 +1594,36 @@ const MangaGeneratorV2 = () => {
 
       {isMobile && (
         <div className="fixed bottom-0 left-0 right-0 bg-zinc-950/95 backdrop-blur-md border-t border-zinc-800/50 z-50 lg:hidden safe-area-inset-bottom shadow-[0_-4px_20px_rgba(0,0,0,0.5)]">
-          <div className="flex items-center justify-around h-16 px-2">
+          <div className="flex items-center justify-around h-14 px-2">
             <button
               onClick={() => {
                 setShowMobileSidebar(!showMobileSidebar);
-                setShowMobileSettings(false);
-                setMobileTab('sessions');
               }}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all relative ${showMobileSidebar ? 'bg-zinc-800/60 text-amber-400' : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300'
+              className={`flex flex-col items-center justify-center gap-0.5 flex-1 h-full rounded-xl transition-all relative ${showMobileSidebar ? 'bg-zinc-800/60 text-amber-400' : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300'
                 }`}
             >
-              <Layers size={20} className={showMobileSidebar ? 'drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]' : ''} />
-              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Sessions</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setShowMobileSettings(true);
-                setShowMobileSidebar(false);
-                setMobileTab('prompt');
-              }}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all relative ${showMobileSettings && mobileTab === 'prompt' ? 'bg-zinc-800/60 text-amber-400' : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300'
-                }`}
-            >
-              <Sparkles size={20} className={showMobileSettings && mobileTab === 'prompt' ? 'drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]' : ''} />
-              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Generate</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setShowMobileSettings(true);
-                setShowMobileSidebar(false);
-                setMobileTab('settings');
-              }}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all relative ${showMobileSettings && mobileTab === 'settings' ? 'bg-zinc-800/60 text-amber-400' : 'text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300'
-                }`}
-            >
-              <Settings size={20} className={showMobileSettings && mobileTab === 'settings' ? 'drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]' : ''} />
-              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Settings</span>
+              <Layers size={18} className={showMobileSidebar ? 'drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]' : ''} />
+              <span className="text-[9px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Sessions</span>
             </button>
 
             <button
               onClick={() => router.push('/studio/preview')}
-              className="flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300 relative"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full rounded-xl transition-all text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300 relative"
             >
-              <Eye size={20} />
-              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Preview</span>
+              <Eye size={18} />
+              <span className="text-[9px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Preview</span>
               {exportCount > 0 && (
-                <span className="absolute top-0 right-2 w-4 h-4 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full text-[8px] flex items-center justify-center text-black font-bold shadow-lg shadow-amber-500/30 ring-2 ring-zinc-900">
+                <span className="absolute top-1 right-3 w-4 h-4 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full text-[8px] flex items-center justify-center text-black font-bold shadow-lg shadow-amber-500/30 ring-2 ring-zinc-900">
                   {exportCount}
                 </span>
               )}
             </button>
             <button
               onClick={() => router.push('/studio/preview?autoDownload=1')}
-              className="flex flex-col items-center justify-center gap-1 flex-1 h-full rounded-xl transition-all text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300"
+              className="flex flex-col items-center justify-center gap-0.5 flex-1 h-full rounded-xl transition-all text-zinc-400 hover:bg-zinc-800/40 hover:text-zinc-300"
             >
-              <Download size={20} />
-              <span className="text-[10px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Download</span>
+              <Download size={18} />
+              <span className="text-[9px] font-medium" style={{ fontFamily: 'var(--font-inter)' }}>Download</span>
             </button>
           </div>
         </div>
