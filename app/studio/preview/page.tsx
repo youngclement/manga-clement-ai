@@ -215,34 +215,35 @@ export default function PreviewPage() {
   return (
     <div className="min-h-screen bg-white print:min-h-0">
       <div className="min-h-full p-4 md:p-8 print:p-0">
-        <div className="max-w-4xl mx-auto space-y-12 export-container print:max-w-full print:space-y-0">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center print:hidden border-b border-zinc-200 pb-6 mb-8 gap-4">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-12 export-container print:max-w-full print:space-y-0">
+          <div className="flex flex-col print:hidden border-b border-zinc-200 pb-4 sm:pb-6 mb-4 sm:mb-8 gap-4">
             <div>
-              <h1 className="text-4xl font-manga text-black">
+              <h1 className="text-2xl sm:text-4xl font-manga text-black">
                 {project?.title || 'Manga Preview'}
               </h1>
-              <p className="text-zinc-500 text-sm mt-1 font-manga">
+              <p className="text-zinc-500 text-xs sm:text-sm mt-1 font-manga">
                 {currentSession ? `Session: ${currentSession.name}` : 'No active session'}
               </p>
-              <p className="text-zinc-600 text-xs mt-1 font-manga">
+              <p className="text-zinc-600 text-[10px] sm:text-xs mt-1 font-manga">
                 {currentSession ? `${currentSession.pages.length} total images | ` : ''}
                 {exportPages.length} marked for PDF ✓
               </p>
             </div>
-            <div className="flex gap-3 flex-wrap items-center">
+            <div className="flex gap-2 sm:gap-3 flex-wrap items-center">
               <button
                 onClick={() => setShowSessionPicker(true)}
-                className="px-6 py-3 bg-blue-500 text-white rounded-xl font-manga font-bold shadow-lg hover:bg-blue-400 transition-all flex items-center gap-2"
+                className="px-3 sm:px-6 py-2 sm:py-3 bg-blue-500 text-white rounded-lg sm:rounded-xl font-manga font-bold text-xs sm:text-base shadow-lg hover:bg-blue-400 transition-all flex items-center gap-1 sm:gap-2"
               >
-                <Plus size={20} />
-                ADD FROM OTHER SESSIONS
+                <Plus size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">ADD FROM OTHER SESSIONS</span>
+                <span className="sm:hidden">ADD</span>
               </button>
 
-              <div className="flex items-center gap-2 px-4 py-2 bg-zinc-100 rounded-xl border border-zinc-300">
-                <span className="text-xs font-manga text-zinc-600">PDF Quality:</span>
+              <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 bg-zinc-100 rounded-lg sm:rounded-xl border border-zinc-300">
+                <span className="text-[10px] sm:text-xs font-manga text-zinc-600 hidden sm:inline">PDF Quality:</span>
                 <button
                   onClick={() => setPdfQuality('high')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${pdfQuality === 'high'
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${pdfQuality === 'high'
                     ? 'bg-green-500 text-white shadow-lg'
                     : 'bg-white text-zinc-600 hover:bg-zinc-50'
                     }`}
@@ -251,7 +252,7 @@ export default function PreviewPage() {
                 </button>
                 <button
                   onClick={() => setPdfQuality('low')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${pdfQuality === 'low'
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-bold transition-all ${pdfQuality === 'low'
                     ? 'bg-blue-500 text-white shadow-lg'
                     : 'bg-white text-zinc-600 hover:bg-zinc-50'
                     }`}
@@ -262,16 +263,17 @@ export default function PreviewPage() {
 
               <button
                 onClick={downloadPDF}
-                className="px-8 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-xl font-manga font-bold shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 sm:px-8 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-lg sm:rounded-xl font-manga font-bold text-xs sm:text-base shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all flex items-center gap-1 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={exportPages.length === 0 || loading}
                 title={exportPages.length === 0 ? 'No pages marked for export' : `Download ${exportPages.length} pages as PDF (${pdfQuality.toUpperCase()} quality)`}
               >
-                <Download size={20} />
-                <span>{loading ? 'GENERATING...' : `DOWNLOAD PDF (${exportPages.length})`}</span>
+                <Download size={16} className="sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">{loading ? 'GENERATING...' : `DOWNLOAD PDF (${exportPages.length})`}</span>
+                <span className="sm:hidden">{loading ? '...' : `PDF (${exportPages.length})`}</span>
               </button>
               <button
                 onClick={() => window.print()}
-                className="px-6 py-3 bg-amber-500 text-black rounded-xl font-manga font-bold shadow-lg hover:bg-amber-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-3 sm:px-6 py-2 sm:py-3 bg-amber-500 text-black rounded-lg sm:rounded-xl font-manga font-bold text-xs sm:text-base shadow-lg hover:bg-amber-400 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={exportPages.length === 0 || loading}
                 title="Print preview"
               >
@@ -279,34 +281,35 @@ export default function PreviewPage() {
               </button>
               <button
                 onClick={() => router.push('/studio')}
-                className="px-6 py-3 border border-zinc-300 rounded-xl text-zinc-600 font-manga font-bold hover:bg-zinc-50 transition-all"
+                className="px-3 sm:px-6 py-2 sm:py-3 border border-zinc-300 rounded-lg sm:rounded-xl text-zinc-600 font-manga font-bold text-xs sm:text-base hover:bg-zinc-50 transition-all"
               >
-                BACK TO STUDIO
+                <span className="hidden sm:inline">BACK TO STUDIO</span>
+                <span className="sm:hidden">BACK</span>
               </button>
             </div>
           </div>
 
           {showSessionPicker && project && (
-            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-                <div className="p-6 border-b border-zinc-200 flex justify-between items-center">
-                  <h2 className="text-2xl font-manga text-black">Add Images from Other Sessions</h2>
+                <div className="p-4 sm:p-6 border-b border-zinc-200 flex justify-between items-center">
+                  <h2 className="text-lg sm:text-2xl font-manga text-black">Add Images from Other Sessions</h2>
                   <button onClick={() => setShowSessionPicker(false)} className="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
-                    <X size={24} className="text-zinc-600" />
+                    <X size={20} className="sm:w-6 sm:h-6 text-zinc-600" />
                   </button>
                 </div>
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-6">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {project.sessions
                       .filter(s => s.id !== currentSession?.id)
                       .map(session => (
-                        <div key={session.id} className="border border-zinc-200 rounded-lg p-4">
-                          <div className="flex items-center gap-2 mb-4">
-                            <Layers size={20} className="text-amber-500" />
-                            <h3 className="text-lg font-manga text-black">{session.name}</h3>
-                            <span className="text-sm text-zinc-500">({session.pages.length} images)</span>
+                        <div key={session.id} className="border border-zinc-200 rounded-lg p-3 sm:p-4">
+                          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                            <Layers size={18} className="sm:w-5 sm:h-5 text-amber-500" />
+                            <h3 className="text-base sm:text-lg font-manga text-black">{session.name}</h3>
+                            <span className="text-xs sm:text-sm text-zinc-500">({session.pages.length} images)</span>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4">
                             {session.pages.map(page => (
                               <div key={page.id} className="relative group">
                                 <img

@@ -433,15 +433,15 @@ export default function CommunityProjectDetailPage() {
             </div>
 
             <div className="flex-1 space-y-4">
-              <h1 className="text-3xl md:text-4xl font-manga text-amber-400">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-manga text-amber-400">
                 {project.title || 'Untitled Story'}
               </h1>
               
-              <div className="flex items-center gap-4 text-sm text-zinc-400">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-zinc-400">
                 <span>By <span className="text-zinc-200">{project.ownerDisplayName || 'Unknown'}</span></span>
-                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-600 hidden sm:inline">•</span>
                 <span>{totalSessions} chapters</span>
-                <span className="text-zinc-600">•</span>
+                <span className="text-zinc-600 hidden sm:inline">•</span>
                 <span>{totalPages} pages</span>
               </div>
 
@@ -457,30 +457,30 @@ export default function CommunityProjectDetailPage() {
                 </div>
               )}
 
-              <div className="flex items-center gap-6 pt-2">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-6 pt-2">
                 <button
                   onClick={handleToggleLike}
-                  className="flex items-center gap-2 px-4 py-2 rounded-full border border-zinc-700 hover:bg-zinc-800/70 transition-colors"
+                  className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full border border-zinc-700 hover:bg-zinc-800/70 transition-colors"
                 >
-                  <Heart size={18} className={likedByUser ? 'fill-red-500 text-red-500' : 'text-zinc-400'} />
-                  <span className="text-sm text-zinc-200">{project.likeCount ?? likeTotal}</span>
+                  <Heart size={16} className={`sm:w-[18px] sm:h-[18px] ${likedByUser ? 'fill-red-500 text-red-500' : 'text-zinc-400'}`} />
+                  <span className="text-xs sm:text-sm text-zinc-200">{project.likeCount ?? likeTotal}</span>
                 </button>
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <Eye size={18} />
-                  <span className="text-sm">{project.viewCount || 0} views</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-zinc-400">
+                  <Eye size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="text-xs sm:text-sm">{project.viewCount || 0} views</span>
                 </div>
-                <div className="flex items-center gap-2 text-zinc-400">
-                  <MessageCircle size={18} />
-                  <span className="text-sm">{project.commentCount ?? comments.length}</span>
+                <div className="flex items-center gap-1.5 sm:gap-2 text-zinc-400">
+                  <MessageCircle size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  <span className="text-xs sm:text-sm">{project.commentCount ?? comments.length}</span>
                 </div>
               </div>
 
               {totalPages > 0 && (
                 <button
                   onClick={() => setViewMode('read')}
-                  className="mt-4 px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black rounded-xl font-manga font-bold text-lg shadow-lg hover:from-amber-400 hover:to-orange-400 transition-all flex items-center gap-2"
+                  className="mt-4 w-full sm:w-auto px-6 sm:px-8 py-2.5 sm:py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-black rounded-xl font-manga font-bold text-base sm:text-lg shadow-lg hover:from-amber-400 hover:to-orange-400 transition-all flex items-center justify-center gap-2"
                 >
-                  <BookOpen size={20} />
+                  <BookOpen size={18} className="sm:w-5 sm:h-5" />
                   Start Reading
                 </button>
               )}
