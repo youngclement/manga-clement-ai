@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Eye, Settings, Layers, MessageSquare, X, LogOut, Download } from 'lucide-react';
+import { Sparkles, Eye, Settings, Layers, MessageSquare, X, LogOut, Download, BookOpen } from 'lucide-react';
 import { toast } from 'sonner';
 import { safeArray, generateId, normalizeSession } from '@/lib/utils/react-utils';
 import { extractErrorMessage } from '@/lib/utils/error-handler';
@@ -243,6 +243,59 @@ const MangaGeneratorV2 = () => {
       }
     };
     init();
+  }, []);
+
+  // Handle imported story outline from Story Outline AI page
+  useEffect(() => {
+    const importedOutline = sessionStorage.getItem('storyOutlineForStudio');
+    if (importedOutline) {
+      try {
+        const outline = JSON.parse(importedOutline);
+        sessionStorage.removeItem('storyOutlineForStudio');
+        
+        // Create a new session from the outline
+        if (outline.title || outline.panels?.length > 0) {
+          const newSessionId = generateId();
+          const outlineContext = [
+            outline.synopsis ? `Synopsis: ${outline.synopsis}` : '',
+            outline.setting ? `Setting: ${outline.setting}` : '',
+            outline.characters ? `Characters: ${outline.characters}` : '',
+          ].filter(Boolean).join('\n\n');
+
+          const newSession: MangaSession = {
+            id: newSessionId,
+            name: outline.title || 'Imported Outline',
+            context: outlineContext,
+            pages: [],
+            chatHistory: [],
+            config: { ...config },
+            createdAt: Date.now(),
+            updatedAt: Date.now()
+          };
+
+          setCurrentSession(newSession);
+          setContext(outlineContext);
+          setConfig(prev => ({ ...prev, context: outlineContext }));
+          setProject(prev => ({
+            ...prev,
+            sessions: Array.isArray(prev.sessions) ? [...prev.sessions, newSession] : [newSession],
+            currentSessionId: newSessionId
+          }));
+
+          // Set the first panel's prompt if available
+          if (outline.panels?.length > 0 && outline.panels[0].prompt) {
+            setPrompt(outline.panels[0].prompt);
+          }
+
+          toast.success('Story outline imported!', {
+            description: `${outline.panels?.length || 0} panels ready to generate`,
+            duration: 4000,
+          });
+        }
+      } catch (e) {
+        console.error('Failed to import story outline:', e);
+      }
+    }
   }, []);
 
   const createSession = useCallback((name: string) => {
@@ -1170,6 +1223,14 @@ const MangaGeneratorV2 = () => {
               <span className="text-[9px] sm:text-[10px] text-zinc-500 font-medium flex-shrink-0">({currentSession.pages.length})</span>
             </div>
           )}
+          <Link
+            href="/story-outline"
+            className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800/60 hover:bg-zinc-700/60 rounded-lg border border-zinc-700/50 transition-all group"
+            title="Story Outline AI"
+          >
+            <BookOpen size={14} className="text-amber-400 group-hover:text-amber-300" />
+            <span className="text-xs font-medium text-zinc-300 group-hover:text-zinc-200">Story Outline</span>
+          </Link>
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 lg:gap-3 flex-shrink-0">
