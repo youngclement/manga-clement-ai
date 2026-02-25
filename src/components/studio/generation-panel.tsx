@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGenerationStore } from '@/lib/stores/generation.store';
 import { useUIStore } from '@/lib/stores/ui.store';
+import { authStore } from '@/lib/services/auth-client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +14,7 @@ import { Progress } from '@/components/ui/progress';
 import { Wand2, X, Download, RefreshCw } from 'lucide-react';
 
 export function GenerationPanel() {
+  const router = useRouter();
   const {
     isGenerating,
     isBatchGenerating,
@@ -41,6 +44,14 @@ export function GenerationPanel() {
   });
 
   const handleGenerate = async () => {
+    // Check authentication before generating
+    authStore.loadFromStorage();
+    if (!authStore.getAccessToken()) {
+      showErrorNotification('Login required', 'Please login to use the image generation feature');
+      router.push('/auth/login');
+      return;
+    }
+
     if (!prompt.trim()) {
       showErrorNotification('Error', 'Please enter a prompt');
       return;

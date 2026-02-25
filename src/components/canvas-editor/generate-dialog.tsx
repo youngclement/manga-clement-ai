@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useCallback, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { X, Sparkles, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useCanvasStore, createImageElement } from '@/lib/stores/canvas-store'
+import { authStore } from '@/lib/services/auth-client'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
@@ -40,6 +42,7 @@ interface GenerateDialogProps {
 }
 
 export default function GenerateDialog({ open, onClose, targetPanelId }: GenerateDialogProps) {
+  const router = useRouter()
   const { project, addElement, updateElement, generateId } = useCanvasStore()
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState('manhwa')
@@ -52,6 +55,19 @@ export default function GenerateDialog({ open, onClose, targetPanelId }: Generat
     : null
 
   const handleGenerate = async () => {
+    // Check authentication before generating
+    authStore.loadFromStorage()
+    if (!authStore.getAccessToken()) {
+      toast.error('Login required', {
+        description: 'Please login to use the image generation feature',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/auth/login'),
+        },
+      })
+      return
+    }
+
     if (!prompt.trim()) {
       toast.error('Please enter a prompt')
       return

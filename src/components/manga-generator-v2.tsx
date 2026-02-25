@@ -485,6 +485,19 @@ const MangaGeneratorV2 = () => {
   };
 
   const handleGenerate = async () => {
+    // Check authentication before generating
+    authStore.loadFromStorage();
+    if (!authStore.getAccessToken()) {
+      toast.error('Login required', {
+        description: 'Please login to use the image generation feature',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/auth/login'),
+        },
+      });
+      return;
+    }
+
     if (generatingRef.current || loading || batchLoading) {
       return;
     }
@@ -699,6 +712,19 @@ const MangaGeneratorV2 = () => {
   };
 
   const handleBatchGenerate = async (totalPages: number = 10) => {
+    // Check authentication before generating
+    authStore.loadFromStorage();
+    if (!authStore.getAccessToken()) {
+      toast.error('Login required', {
+        description: 'Please login to use the image generation feature',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/auth/login'),
+        },
+      });
+      return;
+    }
+
     if (batchGeneratingRef.current) {
       return;
     }

@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { authStore } from '@/lib/services/auth-client';
 import { StoryOutline, StoryPanel, createEmptyOutline, createNewPanel } from './types';
 import StoryOutlineHeader from './story-outline-header';
 import StorySettingsSidebar from './story-settings-sidebar';
@@ -151,6 +152,19 @@ export default function StoryOutlineEditor() {
   };
 
   const generateAISuggestion = useCallback(async (panelId: string) => {
+    // Check authentication before generating
+    authStore.loadFromStorage();
+    if (!authStore.getAccessToken()) {
+      toast.error('Login required', {
+        description: 'Please login to use the AI feature',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/auth/login'),
+        },
+      });
+      return;
+    }
+
     const panel = outline.panels.find(p => p.id === panelId);
     if (!panel) return;
 
@@ -201,9 +215,22 @@ ${outline.panels
     } finally {
       setAiGenerating(null);
     }
-  }, [outline, updatePanel]);
+  }, [outline, updatePanel, router]);
 
   const generateAllPanelPrompts = useCallback(async () => {
+    // Check authentication before generating
+    authStore.loadFromStorage();
+    if (!authStore.getAccessToken()) {
+      toast.error('Login required', {
+        description: 'Please login to use the AI feature',
+        action: {
+          label: 'Login',
+          onClick: () => router.push('/auth/login'),
+        },
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       for (const panel of outline.panels) {
@@ -216,7 +243,7 @@ ${outline.panels
     } finally {
       setLoading(false);
     }
-  }, [outline.panels, generateAISuggestion]);
+  }, [outline.panels, generateAISuggestion, router]);
 
   const exportToStudio = useCallback(() => {
     sessionStorage.setItem('storyOutlineForStudio', JSON.stringify(outline));
