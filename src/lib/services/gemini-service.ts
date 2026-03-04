@@ -1,9 +1,9 @@
-import { GoogleGenAI } from "@google/genai";
-import { MANGA_SYSTEM_INSTRUCTION, LAYOUT_PROMPTS } from "@/lib/constants";
-import { MangaConfig, GeneratedManga } from "@/lib/types";
-import { cleanUserPrompt, isUserProvidedPrompt, extractUserIntent } from "@/lib/utils/prompt-utils";
+import { LAYOUT_PROMPTS, MANGA_SYSTEM_INSTRUCTION } from "@/lib/constants";
 import { loadProjectImages } from "@/lib/services/storage-service";
+import { GeneratedManga, MangaConfig } from "@/lib/types";
 import { delay } from "@/lib/utils/common";
+import { cleanUserPrompt, extractUserIntent, isUserProvidedPrompt } from "@/lib/utils/prompt-utils";
+import { GoogleGenAI } from "@google/genai";
 
 function isOverloadedError(error: any): boolean {
   if (!error) return false;
@@ -17,7 +17,6 @@ function isOverloadedError(error: any): boolean {
   );
 }
 
-import { requireEnv } from '@/lib/utils/env';
 
 function getApiKey(): string {
   const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY;
@@ -436,7 +435,7 @@ Create the NEXT scene that follows from previous pages. Change: camera angle, ch
       const storyDirectionNote = hasStoryDirection && config.storyDirection
         ? `\nSTORY DIRECTION (PRIMARY GUIDE): ${config.storyDirection.trim().substring(0, 200)}${config.storyDirection.trim().length > 200 ? '...' : ''}\n`
         : '';
-
+//auto
       actualPrompt = `Continue from Page ${lastPageNum} to Page ${lastPageNum + 1}
 ${hasStoryDirection && config.storyDirection ? `\nStory direction: ${config.storyDirection.trim().substring(0, 100)}${config.storyDirection.trim().length > 100 ? '...' : ''}` : ''}
 ${hasContext ? '\nMaintain character consistency from context.' : ''}
